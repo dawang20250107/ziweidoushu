@@ -1,0 +1,158 @@
+# API 文档
+
+统一响应包裹:
+
+```json
+{ "ok": true,  "data": { ... } }
+{ "ok": false, "error": { "code": "...", "message": "..." } }
+```
+
+- Base URL:`http://<host>:8080`
+- 所有接口无鉴权(管理接口除外),按单 IP 令牌桶限流(默认 20 rps / 突发 40)
+- 时辰索引口径:`0`=早子时(00:00-01:00),`1`=丑时 … `11`=亥时,`12`=晚子时(23:00-00:00)
+- 地支索引口径:`0`=子 `1`=丑 … `11`=亥;天干索引:`0`=甲 … `9`=癸
+
+---
+
+## 排盘
+
+### POST /api/v1/chart
+
+生成完整命盘 + 格局判定。
+
+请求体:
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| year / month / day | int | ✓ | 公历生日(1900-2100) |
+| hour | int | ✓ | 时辰索引 0-12 |
+| gender | string | ✓ | `male` / `female` |
+| name | string | | 姓名 |
+| longitude | float | | 出生地东经度数 |
+| province / city | string | | 出生省市(自动查内置经度表) |
+| trueSolarTime | bool | | 真太阳时校正(需 longitude 或 province+city) |
+| referenceYear | int | | 「当前年龄/当前大限」参考年,默认系统当前年 |
+| withPatterns | bool | | 是否返回格局,默认 true |
+
+```bash
+curl -s localhost:8080/api/v1/chart -d '{
+  "year":1990,"month":6,"day":15,"hour":5,"gender":"male"
+}'
+```
+
+响应 `data.chart` 关键字段:
+
+- `lunarInfo` 农历(年/月/日/年干支/闰月)、`fourPillars` 四柱、`lunarDateText`
+- `mingGongBranch` / `shenGongBranch` 命身宫地支索引;`mingZhu` / `shenZhu` 命主身主
+- `wuxingJu` / `wuxingJuName` 五行局;`ziweiPos` 紫微位置
+- `palaces[12]` 十二宫(按地支索引排序):宫名、宫干、星曜(名称/类型/庙旺利陷/生年四化)、大限起讫、长生十二神、博士十二神、小限、空宫借星
+- `daXians[12]` 大限序列;`currentDaXianIndex` 当前大限
+- `data.patterns[]` 格局:名称、吉凶等级(excellent/good/neutral/caution)、描述、必须/加分/破格条件、古籍出处
+
+### GET /api/v1/famous
+### GET /api/v1/famous/{id}/chart
+
+名人命盘示例库与一键排盘。
+
+---
+
+## 四化
+
+### GET /api/v1/sihua/liunian?year=2026
+
+流年四化(年干 → 禄权科忌四星)。
+
+### GET /api/v1/sihua/liuyue?year=2026&month=3
+
+流月四化(五虎遁推月干;month 为农历月 1-12)。
+
+---
+
+## 古籍查阅
+
+### GET /api/v1/books
+
+全部书目(书名/朝代/作者/简介/章节数/段落数)与语料统计。
+
+### GET /api/v1/books/{slug}
+
+整本书(含全部章节与段落)。内置:`gusuifu` 骨髓赋、`quanji` 紫微斗数全集、`quanshu` 紫微斗数全书。
+
+### GET /api/v1/books/{slug}/chapters/{idx}
+
+单章内容(0 起)。
+
+### GET /api/v1/search?q=紫微&limit=30
+
+全文检索(中文二元索引 + 原文校验,毫秒级)。命中片段以 `<mark>` 高亮(已转义)。
+
+### POST /api/v1/admin/corpus/reload
+
+热加载 `CORPUS_EXTERNAL_DIR` 外部古籍目录,无需重启。需 `Authorization: Bearer <ADMIN_TOKEN>`。
+外部古籍 JSON 格式见 [docs/corpus-schema.md](./corpus-schema.md)。
+
+---
+
+## 倪海厦知识库
+
+### GET /api/v1/nihai/{section}
+
+`tianji`(天纪:课程模块/64卦/堪舆/24集课程表/语录)、`renji`(人纪:针灸经验/透针/汉唐方/经方)、`diji`(地纪)、`bio`(倪师完整传记)。
+
+### GET /api/v1/knowledge/stars
+
+十四主星速览(关键词/五行/吉凶)+ 拼音 slug。
+
+### GET /api/v1/knowledge/topics
+
+13 个解读主题(命格总览/感情/事业/财运/健康…)与对应宫位。
+
+### GET /api/v1/knowledge/heming
+
+合盘知识库(十四主星在夫妻宫断语、四化影响、方法论、评分标准)。
+
+### GET /api/v1/cities
+
+中国省市经度表(真太阳时校正用)。
+
+---
+
+## AI 解读
+
+### POST /api/v1/ai/interpret
+
+请求体 = 排盘字段 + 以下扩展:
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| topic | string | 解读主题:overview/personality/love/career/wealth/health/… |
+| question | string | 自由提问(≤500 字) |
+| stream | bool | true = SSE 流式(或用 `Accept: text/event-stream`) |
+
+- **未配置 AI Key 时自动降级**:返回知识库规则版解读(`degraded: true`),服务始终可用。
+- SSE 事件:`delta`(增量文本)→ `done`(供应商/长度)或 `error`。
+- 上游并发满载时返回 `429 ai_busy`,带 `Retry-After`。
+
+```bash
+# 流式
+curl -N localhost:8080/api/v1/ai/interpret -d '{
+  "year":1990,"month":6,"day":15,"hour":5,"gender":"male",
+  "topic":"career","stream":true
+}'
+```
+
+### POST /api/v1/heming
+
+合盘分析。请求体:`{"a": {排盘字段}, "b": {排盘字段}, "withAI": false}`。
+返回双方命盘 + 夫妻宫主星断语(空宫借对宫)+ 倪师合盘方法论;`withAI: true` 时附加 AI 综合分析。
+
+---
+
+## 运维
+
+| 接口 | 说明 |
+|------|------|
+| GET /healthz | 存活探针 |
+| GET /readyz | 就绪探针(数据加载完成) |
+| GET /metrics | Prometheus 文本指标(请求量/延迟/缓存命中/AI 调用) |
+| GET /api/v1/meta | 版本、引擎口径、AI 供应商、语料统计 |

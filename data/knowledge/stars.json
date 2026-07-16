@@ -1,0 +1,106 @@
+{
+ "descriptions": {
+  "紫微": {
+   "keywords": "帝王·尊贵·独立",
+   "nature": "中性偏吉",
+   "element": "土"
+  },
+  "天机": {
+   "keywords": "智慧·机变·谋略",
+   "nature": "吉星",
+   "element": "木"
+  },
+  "太阳": {
+   "keywords": "阳刚·官贵·慷慨",
+   "nature": "吉星",
+   "element": "火"
+  },
+  "武曲": {
+   "keywords": "财富·刚毅·果断",
+   "nature": "中性",
+   "element": "金"
+  },
+  "天同": {
+   "keywords": "温和·享福·随缘",
+   "nature": "吉星",
+   "element": "水"
+  },
+  "廉贞": {
+   "keywords": "才艺·刑囚·桃花",
+   "nature": "凶中带吉",
+   "element": "火"
+  },
+  "天府": {
+   "keywords": "财库·稳重·保守",
+   "nature": "吉星",
+   "element": "土"
+  },
+  "太阴": {
+   "keywords": "柔美·财富·阴柔",
+   "nature": "吉星",
+   "element": "水"
+  },
+  "贪狼": {
+   "keywords": "欲望·桃花·多才",
+   "nature": "中性",
+   "element": "木"
+  },
+  "巨门": {
+   "keywords": "口舌·是非·善辩",
+   "nature": "凶中带吉",
+   "element": "水"
+  },
+  "天相": {
+   "keywords": "辅佐·行政·印绶",
+   "nature": "吉星",
+   "element": "水"
+  },
+  "天梁": {
+   "keywords": "荫护·医药·长辈",
+   "nature": "吉星",
+   "element": "土"
+  },
+  "七杀": {
+   "keywords": "将星·果决·孤克",
+   "nature": "凶星",
+   "element": "金"
+  },
+  "破军": {
+   "keywords": "开创·变动·破坏",
+   "nature": "凶星",
+   "element": "水"
+  }
+ },
+ "slugs": {
+  "紫微": "ziwei",
+  "天机": "tianji",
+  "太阳": "taiyang",
+  "武曲": "wuqu",
+  "天同": "tiantong",
+  "廉贞": "lianzhen",
+  "天府": "tianfu",
+  "太阴": "taiyin",
+  "贪狼": "tanlang",
+  "巨门": "jumen",
+  "天相": "tianxiang",
+  "天梁": "tianliang",
+  "七杀": "qisha",
+  "破军": "pojun"
+ },
+ "order": [
+  "紫微",
+  "天机",
+  "太阳",
+  "武曲",
+  "天同",
+  "廉贞",
+  "天府",
+  "太阴",
+  "贪狼",
+  "巨门",
+  "天相",
+  "天梁",
+  "七杀",
+  "破军"
+ ]
+}

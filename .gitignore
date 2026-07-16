@@ -1,8 +1,27 @@
+# 二进制与构建产物
+/bin/
+/dist/
+ziweidoushu
+*.exe
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# Node(仅 tools/goldgen 基准再生成时临时使用)
 node_modules/
-.next/
-.vercel/
-.env*
-!.env.example
-dist/
-*.tsbuildinfo
+package-lock.json
+
+# 测试与覆盖率
+coverage.out
+*.test
+
+# 外部语料目录(本地投放,不入库)
+/corpus-external/
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
 .DS_Store

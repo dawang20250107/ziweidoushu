@@ -1,0 +1,27 @@
+# 单机部署编排。服务本身无状态,横向扩容时在前面加任意负载均衡即可。
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      LISTEN_ADDR: ":8080"
+      RATE_LIMIT_RPS: "50"
+      RATE_LIMIT_BURST: "100"
+      CHART_CACHE_SIZE: "8192"
+      # AI 解读(不配置则自动降级为知识库规则版)
+      # ANTHROPIC_API_KEY: "sk-..."
+      # 或 OpenAI 兼容(DeepSeek 示例):
+      # OPENAI_API_KEY: "sk-..."
+      # OPENAI_BASE_URL: "https://api.deepseek.com/v1"
+      # OPENAI_MODEL: "deepseek-chat"
+      # 外部古籍目录(后期投放古籍/倪师著作)
+      CORPUS_EXTERNAL_DIR: "/corpus"
+      # ADMIN_TOKEN: "change-me"  # 开启语料热加载接口
+    volumes:
+      - ./corpus-external:/corpus:ro
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M

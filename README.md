@@ -1,201 +1,116 @@
-# 紫微斗数 · 开源排盘引擎
+# 紫微斗数 · AI+ 排盘与古籍查阅平台
 
-> 🎉 **网站已完成 ICP 备案**（渝ICP备2026013379号-1），主域名已正式上线、全部功能正常访问。
->
-> 直接访问主域名 **https://metisziwei.com** 即可，排盘 / AI 解读 / 命盘历史等全部功能均已开放。
->
-> 💕 **发财的小手点一下，小红书 / 抖音 / 闲鱼 / X 关注：王多鱼AI**，第一时间看上线 + 解锁更多紫微干货～
+基于**倪海厦《天纪》体系**的紫微斗数平台后端:完整排盘引擎、格局判定、古籍全文检索、
+倪海厦三纪知识库、AI 命盘解读。**Go 语言实现,纯 API 服务,API-first 设计**,
+供 Web / 微信小程序等多端接入。
 
-基于**倪海夏《天纪》**教学体系的紫微斗数排盘系统，包含完整排盘算法、四化系统、格局知识库、古籍原文数据，以及 **51.8 万条命盘样本数据**。
+> v2.0 全面重构:原 Next.js/TypeScript 全栈实现已下线,语言栈整体切换为 Go。
+> 排盘不再依赖第三方库——安星算法完整自研实现,并以 iztro 2.5.8 的
+> 1566 个黄金基准用例逐字段回归验证(见「正确性保障」)。
 
-线上体验：[metisziwei.com](https://metisziwei.com)
+## 能力总览
 
----
-
-## 51.8 万命盘样本数据
-
-> **下载位置：本仓库右侧 [Releases](https://github.com/Renhuai123/ziwei-doushu/releases/tag/v3.0-samples) 页面**
-
-我们开源了一套完整的紫微斗数命盘样本数据集，覆盖 **51.8 万种排盘组合**（年 60 × 月 12 × 日 30 × 时 12 × 性别 2），每条样本包含完整的命盘结构和基于倪海夏体系的解读文本。
-
-### 数据规格
-
-| 项目 | 说明 |
+| 模块 | 说明 |
 |------|------|
-| 样本数量 | **518,400 条** |
-| 总大小 | 5.5 GB（分 3 卷压缩） |
-| 体系 | 倪海夏《天纪》正统（纯飞星派已下线） |
-| 内容 | 命盘 JSON + 13 主题解读文本（命格总览、财运、事业、感情、健康等） |
-| 验证 | 男女命差异化 100%、健康含子午流注 100%、女命含妇科保养 100% |
-| 口径 | 与线上 [metisziwei.com](https://metisziwei.com) 完全一致 |
+| **排盘引擎** | 完整安星:命身宫、五虎遁、五行局、十四主星、十四辅星、38 杂曜、庙旺利陷、生年四化、大限小限、长生/博士十二神、四柱、真太阳时校正、空宫借对宫 |
+| **格局引擎** | 41 个判定器、70+ 经典格局(君臣庆会/紫府同宫/杀破狼/阳梁昌禄…),必须/加分/破格三层条件,古籍出处可考 |
+| **古籍查阅** | 骨髓赋、紫微斗数全集、紫微斗数全书;中文二元索引全文检索;**外部目录热加载**(后期古籍资料、倪师著作按 JSON 规范投放即可,无需改代码) |
+| **倪海厦知识库** | 天纪(课程/64 卦/堪舆/语录)、人纪(针灸经验 120/透针 31/汉唐方 97/经方 25)、地纪、倪师传记;十四主星速览;合盘夫妻宫断语 |
+| **AI 解读** | Anthropic 原生 + OpenAI 兼容协议(DeepSeek/通义/智谱等),SSE 流式;prompt 融合命盘+格局+知识库+古籍引文(RAG);**无 Key 自动降级**为知识库规则版解读 |
+| **合盘** | 双人命盘 + 夫妻宫主星断语 + 倪师合盘方法论,可选 AI 综合分析 |
 
-### 下载方式
+## 体系口径
 
-前往 [Releases](https://github.com/Renhuai123/ziwei-doushu/releases/tag/v3.0-samples) 下载以下文件：
-
-```
-ziwei-samples-v3-part1.zip.001  (1.9 GB)
-ziwei-samples-v3-part2.zip.002  (1.9 GB)
-ziwei-samples-v3-part3.zip.003  (1.8 GB)
-SHA256SUMS.txt                  (校验文件)
-```
-
-下载后合并解压：
-
-```bash
-# macOS / Linux
-cat ziwei-samples-v3-part*.zip.* > combined.zip
-unzip combined.zip
-
-# Windows (PowerShell)
-Get-Content ziwei-samples-v3-part*.zip.* -Encoding Byte -ReadCount 0 | Set-Content combined.zip -Encoding Byte
-Expand-Archive combined.zip
-```
-
-### 用途
-
-- 微调小模型的训练语料（51.8 万 input-output 配对）
-- AI 对话的 RAG 检索源
-- 修改 `patterns.ts` 后做 A/B 基线对比
-- 紫微斗数研究与数据分析
-
-### 数据许可与引用
-
-📂 **完全开源 · 可自由商用** —— 你可以在任何项目里使用这套数据，包括但不限于：
-
-- 商业产品 / SaaS / 付费应用
-- AI 模型微调（开源或闭源模型均可）
-- 二次开发、再分发、衍生数据集
-- 学术研究、技术博客、教学课程
-
-无需付费、无需申请、无需事先告知。
-
-**唯一的要求是保留数据来源标注（attribution）**：
-
-> 本项目使用了 **紫微斗数开源样本数据集 v3.0**（518,400 条）
-> 来源：https://github.com/Renhuai123/ziwei-doushu
-> 作者：王多鱼AI
-
-放在哪里都行：
-
-- **网页 / 产品**：About 页 / 关于我们 / 数据来源 / 页脚，写一行链接即可
-- **AI 模型**：模型卡（Model Card）或数据集卡（Dataset Card）的 "Training Data" 字段
-- **学术论文**：参考文献或致谢章节
-- **二次发布的数据集**：README 或 metadata 文件里注明上游来源
-
-仅此一条，其余都自由。希望这套数据能帮你做出好东西 —— 做出来记得来小红书 / 抖音 / 闲鱼 **@王多鱼AI** 打个招呼 👋
-
----
-
-## 开源内容
-
-### 排盘算法（`lib/ziwei/`）
-
-| 文件 | 说明 |
-|------|------|
-| `algorithm.ts` | 完整排盘流程：安命宫、定五行局、安十四主星、安辅星、排大限流年 |
-| `constants.ts` | 天干地支、十四主星、辅星常量 |
-| `sihua.ts` | 四化飞星系统（禄权科忌），含各天干四化对照表 |
-| `patterns.ts` | **1100+ 行格局知识库**：紫府同宫、日月并明、七杀朝斗等经典格局判定规则 |
-| `heming-knowledge.ts` | 合盘方法论：倪师体系下双盘比对逻辑 |
-| `types.ts` | TypeScript 类型定义 |
-| `cities.ts` | 中国城市经纬度，用于真太阳时校正 |
-| `famous.ts` | 历史名人命盘示例数据 |
-
-### 古籍原文（`lib/classics/`）
-
-- **骨髓赋**（`gusuifu.ts`）— 紫微斗数核心歌诀
-- **紫微斗数全集**（`quanji.ts`）— 清代古本
-- **紫微斗数全书**（`quanshu.ts`）— 陈希夷传本
-
-### 前端界面（`app/` + `components/`）
-
-完整的 Next.js 14 前端，包含：
-
-- 排盘工作台（命盘方格、宫位详情、星曜面板）
-- 合盘分析页
-- 古籍阅读器（全文搜索）
-- 命理百科（14 主星 + 12 宫位知识页）
-- 亮色/暗色主题切换
-- 移动端适配
-
-### SEO 知识图谱（`lib/seo/`）
-
-14 主星 × 12 宫位的结构化知识数据，可用于内容生成或知识库构建。
-
----
-
-## 未包含的部分
-
-以下属于平台运营层，不在开源范围内：
-
-- **AI 解读 prompt**：基于倪海夏体系调教的命盘解读提示词
-- **后端 API**：`/api/interpret`、`/api/heming`、`/api/generate` 等路由实现
-- **用户系统**：登录、短信验证、会员、支付
-- **服务端安全**：签名校验、防刷、水印
-- **部署配置**：Vercel/Nginx/Docker/数据库
-
-如果你需要 AI 解读能力，可以参考 `lib/ziwei/patterns.ts` 和 `heming-knowledge.ts` 中的知识库，结合任意 LLM 自行构建 prompt。
-
----
+倪海厦《天纪》三合派正统:**生年四化永远固定不动**,不使用飞星派的宫干自化、
+大限四化、来因宫作为排盘输出(相关工具函数保留于 `internal/ziwei/sihua.go` 仅供研究)。
+命宫为本、三方四正为用;空宫借对宫主星论。
 
 ## 快速开始
 
 ```bash
-# 克隆
-git clone https://github.com/Renhuai123/ziwei-doushu.git
-cd ziwei-doushu
+# 本地运行(Go 1.22+)
+make run                       # 或: go run ./cmd/server
+curl localhost:8080/api/v1/meta
 
-# 安装依赖
-npm install
+# 排盘
+curl -s localhost:8080/api/v1/chart -d '{
+  "year":1990,"month":6,"day":15,"hour":5,"gender":"male"
+}'
 
-# 配置环境变量
-cp .env.example .env.local
-# 编辑 .env.local，填入你的 AI API Key
+# 古籍检索
+curl -s 'localhost:8080/api/v1/search?q=紫微'
 
-# 启动开发服务器
-npm run dev
+# AI 解读(SSE 流式;未配 Key 时返回知识库规则版)
+curl -N localhost:8080/api/v1/ai/interpret -d '{
+  "year":1990,"month":6,"day":15,"hour":5,"gender":"male",
+  "topic":"career","stream":true
+}'
 ```
 
-> 注意：开源版不含后端 API 路由，AI 解读功能需要你自行实现 `/api/interpret` 等接口。排盘算法和前端界面可独立运行。
+Docker:
 
----
+```bash
+docker compose up -d
+```
 
-## 技术栈
+配置全部走环境变量,见 [.env.example](./.env.example);完整接口文档见 [docs/api.md](./docs/api.md)。
 
-- **框架**：Next.js 14（App Router）
-- **语言**：TypeScript
-- **样式**：Tailwind CSS + CSS Variables 设计系统
-- **排盘**：基于 [iztro](https://github.com/SylarLong/iztro) + lunar-javascript
-- **动画**：Framer Motion
+## 高并发设计
 
----
+- **无状态服务**:缓存/限流均为进程内加速,不影响正确性,水平扩容加负载均衡即可;
+- **排盘纯计算**:单次排盘微秒级、零 IO,叠加 16 路分片 LRU 缓存;
+- **语料只读快照**:检索基于不可变快照 + 二元倒排索引,读路径零锁竞争,热加载不阻塞读;
+- **AI 上游治理**:信号量并发上限、独立超时、满载快速失败(429 + Retry-After),流式回传不占内存;
+- **防护**:单 IP 令牌桶限流(32 分片)、请求体 1MiB 上限、panic 兜底、优雅停机;
+- **可观测**:结构化 JSON 日志(含 request-id)、Prometheus 指标、健康/就绪探针。
 
-## 项目理念
+小程序接入:所有能力均为标准 HTTP/JSON + SSE,小程序端可直连或经 BFF 转发;
+CORS 与限流均可按环境变量收紧。
 
-紫微斗数是中国传统命理学的瑰宝，倪海夏老师在《天纪》中系统梳理了正宗的紫微斗数体系。我们希望通过技术手段让更多人接触和学习这门学问。
+## 正确性保障
 
-开源排盘算法和知识库，是因为我们相信：**算法是公开的传统智慧，不应该被锁在围墙里**。真正的价值在于解读的深度、用户体验的打磨、以及持续运营的积累。
+排盘这类算法「重构后结果不能变」是硬约束,本仓库用双重黄金基准锁死口径:
 
-想自己搭？代码都在这里，拿去用。嫌麻烦？来 [metisziwei.com](https://metisziwei.com) 直接用。
+1. **安星基准**:iztro 2.5.8(线上旧版所用引擎)对 1566 个生辰(覆盖 1900-2100
+   闰月首尾、农历年界、历法分歧年份、全时辰)输出的完整命盘,与 Go 引擎
+   **逐宫逐星逐字段**比对(星曜名称与顺序、庙旺利陷、四化、宫干、大限小限、
+   长生/博士十二神、四柱、农历文本、命主身主、五行局)——全部一致;
+2. **格局基准**:TS 原版 `patterns.ts` 对同一批输入的判定输出,与 Go 移植版
+   比对(格局数量、顺序、名称、等级、描述文案、三层条件、古籍出处)——全部一致;
+3. 历法层采用 lunar-go,与 iztro 底层的 lunar-typescript 同源同作者,
+   基准中另附 lunar-javascript 转换结果交叉验证。
 
----
+```bash
+make test-race   # 全部测试(含两份黄金基准回归)
+make bench       # 排盘引擎微基准
+```
+
+基准数据的再生成方法见 [tools/goldgen/README.md](./tools/goldgen/README.md);
+iztro 安星算法的移植规格文档见 [docs/algorithm/](./docs/algorithm/)。
+
+## 目录结构
+
+```
+cmd/server/          服务入口
+internal/
+  ziwei/             排盘引擎(安星/四化/格局/黄金基准测试)
+  corpus/            古籍语料库(存储/检索/外部导入)
+  knowledge/         倪海厦三纪知识库与业务知识
+  ai/                AI 解读层(多供应商/SSE/降级)
+  httpapi/           HTTP API(路由/中间件/限流/缓存/指标)
+  config/            环境变量配置
+data/                内嵌数据资产(古籍/三纪/合盘/城市/名人,go:embed)
+docs/                API 文档 / 古籍投放规范 / 算法规格
+tools/goldgen/       黄金基准生成脚本(Node,存档用)
+```
+
+## 古籍资料扩容(预留)
+
+后期投放古籍资料与倪海厦著作:整理为 [docs/corpus-schema.md](./docs/corpus-schema.md)
+规范的 JSON,放入 `CORPUS_EXTERNAL_DIR` 目录,调用
+`POST /api/v1/admin/corpus/reload` 即时生效——自动进入全文检索与 AI 引文源。
 
 ## 协议
 
-本仓库分三部分授权，都是宽松协议，**商用没有任何限制**：
-
-| 内容 | 协议 | 简单说 |
-|------|------|--------|
-| **代码**（`lib/`、`app/`、`components/`） | [MIT License](./LICENSE) | 拿去随便用，保留 LICENSE 文件即可 |
-| **数据**（Releases 中的 51.8 万样本数据集 v3.0） | 自由使用 · 要求 attribution | 商用也行，**注明数据来源即可**，详见上文 [数据许可与引用](#数据许可与引用) |
-| **古籍原文**（骨髓赋、紫微斗数全集 / 全书等） | Public Domain | 古书都是公有领域，不存在版权 |
-
-**一句话**：拿去用，商用也行，把数据来源链接带上就行。
-
----
-
-## 联系
-
-- 线上平台：[metisziwei.com](https://metisziwei.com)
-- Issues：欢迎提 Bug 和建议
+- 代码:[MIT License](./LICENSE)
+- 古籍原文(骨髓赋、紫微斗数全集/全书):Public Domain
