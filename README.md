@@ -93,15 +93,24 @@ iztro 安星算法的移植规格文档见 [docs/algorithm/](./docs/algorithm/)�
 ```
 cmd/server/          服务入口
 internal/
-  ziwei/             排盘引擎(安星/四化/格局/黄金基准测试)
+  ziwei/             排盘引擎(安星/四化/格局/运限/黄金基准测试)
   corpus/            古籍语料库(存储/检索/外部导入)
   knowledge/         倪海厦三纪知识库与业务知识
   ai/                AI 解读层(多供应商/SSE/降级)
   httpapi/           HTTP API(路由/中间件/限流/缓存/指标)
   config/            环境变量配置
 data/                内嵌数据资产(古籍/三纪/合盘/城市/名人,go:embed)
-docs/                API 文档 / 古籍投放规范 / 算法规格
+web/                 Web 前端(Next.js 15 + Tailwind 4,观星台设计系统)
+migrations/          PostgreSQL Schema(用户/档案/订单/订阅,P1 用户系统用)
+docs/                API 文档 / 古籍投放规范 / 算法规格 / 架构与设计系统
 tools/goldgen/       黄金基准生成脚本(Node,存档用)
+```
+
+Web 前端本地开发:
+
+```bash
+make run                # 终端 1:Go API(:8080)
+cd web && npm install && npm run dev   # 终端 2:前端(:3000,/api 已代理到 8080)
 ```
 
 ## 古籍资料扩容(预留)
