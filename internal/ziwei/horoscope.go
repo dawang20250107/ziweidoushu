@@ -222,6 +222,9 @@ func horoscopeStars(scopeName string, stem, branch int) [][]Star {
 	tianxi := fix12(hongluan + 6)
 
 	stars := make([][]Star, 12)
+	for i := range stars {
+		stars[i] = []Star{} // JSON 契约:空宫格输出 [] 而非 null
+	}
 	push := func(palaceIdx int, suffix string, iztroType string) {
 		b := palaceIndexToBranch(palaceIdx)
 		stars[b] = append(stars[b], Star{Name: prefix + suffix, Type: classifyStar(prefix+suffix, iztroType)})

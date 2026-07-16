@@ -9,9 +9,15 @@ ziweidoushu
 .env.local
 .env.*.local
 
-# Node(仅 tools/goldgen 基准再生成时临时使用)
+# Node
 node_modules/
-package-lock.json
+# 根目录 lock 不入库(tools/goldgen 临时用);web/ 的 lock 需要入库保证可复现
+/package-lock.json
+
+# Next.js 构建产物
+web/.next/
+web/out/
+web/*.tsbuildinfo
 
 # 测试与覆盖率
 coverage.out

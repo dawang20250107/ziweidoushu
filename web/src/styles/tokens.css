@@ -1,0 +1,176 @@
+/* ============================================================
+ * 观星台设计系统 · Design Tokens v1(P0 定稿)
+ *
+ * 双主题:
+ *   玄穹(dark,默认)—— 紫微垣深空,排盘工作台的主场
+ *   宣纸(light)——— 古籍阅读与内容页的主场
+ * 主题切换:媒体查询承接系统偏好,data-theme 属性强制覆盖。
+ * 用法:组件一律引用 token,禁止硬编码色值。
+ * ============================================================ */
+
+:root {
+  /* ── 基底(玄穹)───────────────────────────────── */
+  --bg:            #0e1220;  /* 玄穹:偏靛的夜空黑,非纯黑 */
+  --bg-raised:     #151a2c;  /* 抬升面:卡片/侧栏 */
+  --bg-overlay:    #1c2238;  /* 浮层:弹窗/菜单 */
+  --ink:           #e8e6df;  /* 主文本:暖白(星光色) */
+  --ink-secondary: #a8adbd;  /* 次文本 */
+  --ink-faint:     #6e7688;  /* 弱文本/占位 */
+  --line:          #262d44;  /* 分隔线 */
+  --line-strong:   #38405c;  /* 强边框/焦点邻近 */
+
+  /* ── 品牌色 ───────────────────────────────────── */
+  --gold:          #d9b36c;  /* 星曜金:主强调,按钮/链接/选中 */
+  --gold-bright:   #f2ce85;  /* 高亮金:hover/庙旺 */
+  --gold-dim:      #8a7344;  /* 弱化金:边框/次级 */
+  --gold-glow:     rgba(217, 179, 108, 0.14); /* 金晕:焦点光/宫位高亮底 */
+  --violet:        #6d5fa3;  /* 垣紫:氛围色,仅用于面层微染与装饰,不作强调 */
+  --violet-faint:  rgba(109, 95, 163, 0.16);
+
+  /* ── 庙旺利陷(星曜亮度语义色阶,产品独有)────── */
+  --brightness-miao:  #f2ce85;  /* 庙:辉金 */
+  --brightness-wang:  #d9b36c;  /* 旺:曜金 */
+  --brightness-mid:   #9aa3b5;  /* 得/利/平:星灰 */
+  --brightness-bu:    #6e7688;  /* 不:晦 */
+  --brightness-xian:  #4e5468;  /* 陷:沉 */
+
+  /* ── 四化 ─────────────────────────────────────── */
+  --sihua-lu:      #57b583;  /* 禄:翠 */
+  --sihua-quan:    #d08a3e;  /* 权:赭 */
+  --sihua-ke:      #5e8fc7;  /* 科:青 */
+  --sihua-ji:      #c7554f;  /* 忌:朱 */
+
+  /* ── 格局等级 ─────────────────────────────────── */
+  --level-excellent: var(--gold-bright);
+  --level-good:      #57b583;
+  --level-neutral:   #9aa3b5;
+  --level-caution:   #c7554f;
+
+  /* ── 系统语义(与品牌金区分)──────────────────── */
+  --ok:            #57b583;
+  --warn:          #d08a3e;
+  --danger:        #c7554f;
+  --info:          #5e8fc7;
+
+  /* ── 字体 ─────────────────────────────────────── */
+  /* 陈述/标题:宋体系(仪式感);正文 UI:黑体系;古籍:楷体系 */
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+  --font-body: -apple-system, "PingFang SC", "MiSans", "HarmonyOS Sans SC",
+               "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  --font-reading: "LXGW WenKai", "Kaiti SC", "STKaiti", "KaiTi",
+                  "Noto Serif SC", serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  /* 字号阶(1.25 比):12 14 15 16 20 25 31 39 49 */
+  --text-xs: 12px;  --text-sm: 14px;  --text-ui: 15px;  --text-base: 16px;
+  --text-lg: 20px;  --text-xl: 25px;  --text-2xl: 31px; --text-3xl: 39px;
+  --text-4xl: 49px;
+  --leading-tight: 1.3;  --leading-normal: 1.6;  --leading-reading: 1.9;
+  --tracking-label: 0.08em; /* 全大写/汉字小标签的字距 */
+
+  /* ── 间距(8px 基)与形状 ─────────────────────── */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 64px;
+  --radius-sm: 2px;   /* 徽标/标签:近方,器物感 */
+  --radius-md: 6px;   /* 卡片/输入 */
+  --radius-lg: 10px;  /* 弹窗/大面板 */
+  --content-width: 68ch;     /* 阅读栏宽 */
+  --chart-cell-min: 132px;   /* 星盘宫格最小边长 */
+
+  /* ── 层级与光 ─────────────────────────────────── */
+  /* 玄穹主题少用投影,用 1px 边线 + 内侧金晕表达层级 */
+  --elevation-1: 0 0 0 1px var(--line);
+  --elevation-2: 0 0 0 1px var(--line-strong), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold);
+
+  /* ── 动效 ─────────────────────────────────────── */
+  --motion-fast: 120ms;     /* 悬停/按压 */
+  --motion-base: 200ms;     /* 展开/切换 */
+  --motion-slow: 420ms;     /* 星盘入场/宫位聚焦 */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ── 宣纸(light):古籍阅读主场 ─────────────────── */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:            #f5f0e4;  /* 宣纸:暖纸底 */
+    --bg-raised:     #fbf8f0;
+    --bg-overlay:    #ffffff;
+    --ink:           #2a2c35;  /* 青墨 */
+    --ink-secondary: #5a5d6b;
+    --ink-faint:     #8f92a0;
+    --line:          #e0d8c4;
+    --line-strong:   #c9bfa4;
+
+    --gold:          #a97f35;  /* 纸上金需加深保对比 */
+    --gold-bright:   #8a6520;
+    --gold-dim:      #c9ab72;
+    --gold-glow:     rgba(169, 127, 53, 0.12);
+    --violet:        #55488a;
+    --violet-faint:  rgba(85, 72, 138, 0.10);
+
+    --brightness-miao: #8a6520;
+    --brightness-wang: #a97f35;
+    --brightness-mid:  #6b6e7c;
+    --brightness-bu:   #9b9daa;
+    --brightness-xian: #b9bbc6;
+
+    --sihua-lu:   #2e8a5c;
+    --sihua-quan: #b06a1c;
+    --sihua-ke:   #3a6ea8;
+    --sihua-ji:   #b03a34;
+
+    --level-good:    #2e8a5c;
+    --level-neutral: #6b6e7c;
+    --level-caution: #b03a34;
+    --ok: #2e8a5c;  --warn: #b06a1c;  --danger: #b03a34;  --info: #3a6ea8;
+
+    --elevation-1: 0 0 0 1px var(--line);
+    --elevation-2: 0 1px 2px rgba(42, 44, 53, 0.06), 0 8px 24px rgba(42, 44, 53, 0.10);
+    --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold);
+  }
+}
+
+/* 用户手动切换:data-theme 覆盖系统偏好(两个方向都要赢) */
+:root[data-theme="light"] {
+  --bg: #f5f0e4; --bg-raised: #fbf8f0; --bg-overlay: #ffffff;
+  --ink: #2a2c35; --ink-secondary: #5a5d6b; --ink-faint: #8f92a0;
+  --line: #e0d8c4; --line-strong: #c9bfa4;
+  --gold: #a97f35; --gold-bright: #8a6520; --gold-dim: #c9ab72;
+  --gold-glow: rgba(169, 127, 53, 0.12);
+  --violet: #55488a; --violet-faint: rgba(85, 72, 138, 0.10);
+  --brightness-miao: #8a6520; --brightness-wang: #a97f35; --brightness-mid: #6b6e7c;
+  --brightness-bu: #9b9daa; --brightness-xian: #b9bbc6;
+  --sihua-lu: #2e8a5c; --sihua-quan: #b06a1c; --sihua-ke: #3a6ea8; --sihua-ji: #b03a34;
+  --level-good: #2e8a5c; --level-neutral: #6b6e7c; --level-caution: #b03a34;
+  --ok: #2e8a5c; --warn: #b06a1c; --danger: #b03a34; --info: #3a6ea8;
+  --elevation-1: 0 0 0 1px var(--line);
+  --elevation-2: 0 1px 2px rgba(42, 44, 53, 0.06), 0 8px 24px rgba(42, 44, 53, 0.10);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold);
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1220; --bg-raised: #151a2c; --bg-overlay: #1c2238;
+  --ink: #e8e6df; --ink-secondary: #a8adbd; --ink-faint: #6e7688;
+  --line: #262d44; --line-strong: #38405c;
+  --gold: #d9b36c; --gold-bright: #f2ce85; --gold-dim: #8a7344;
+  --gold-glow: rgba(217, 179, 108, 0.14);
+  --violet: #6d5fa3; --violet-faint: rgba(109, 95, 163, 0.16);
+  --brightness-miao: #f2ce85; --brightness-wang: #d9b36c; --brightness-mid: #9aa3b5;
+  --brightness-bu: #6e7688; --brightness-xian: #4e5468;
+  --sihua-lu: #57b583; --sihua-quan: #d08a3e; --sihua-ke: #5e8fc7; --sihua-ji: #c7554f;
+  --level-good: #57b583; --level-neutral: #9aa3b5; --level-caution: #c7554f;
+  --ok: #57b583; --warn: #d08a3e; --danger: #c7554f; --info: #5e8fc7;
+  --elevation-1: 0 0 0 1px var(--line);
+  --elevation-2: 0 0 0 1px var(--line-strong), 0 8px 24px rgba(0, 0, 0, 0.4);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+  }
+}
