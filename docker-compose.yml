@@ -1,14 +1,20 @@
-# 单机部署编排。服务本身无状态,横向扩容时在前面加任意负载均衡即可。
+# 单机部署编排。API 无状态,横向扩容时在前面加任意负载均衡即可。
 services:
   api:
     build: .
     ports:
       - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
     environment:
       LISTEN_ADDR: ":8080"
       RATE_LIMIT_RPS: "50"
       RATE_LIMIT_BURST: "100"
       CHART_CACHE_SIZE: "8192"
+      # 用户体系(注释掉两项即回到无库模式)
+      DATABASE_URL: "postgres://ziwei:ziwei-local-dev@db:5432/ziwei"
+      JWT_SECRET: "change-me-to-a-random-32byte-secret!!"
       # AI 解读(不配置则自动降级为知识库规则版)
       # ANTHROPIC_API_KEY: "sk-..."
       # 或 OpenAI 兼容(DeepSeek 示例):
@@ -25,3 +31,21 @@ services:
       resources:
         limits:
           memory: 512M
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ziwei
+      POSTGRES_PASSWORD: ziwei-local-dev
+      POSTGRES_DB: ziwei
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ziwei"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:

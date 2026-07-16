@@ -43,7 +43,7 @@ func newTestServer(t *testing.T, mutate func(*config.Config)) *httptest.Server {
 	}
 	interp := ai.NewInterpreter(nil, kb, store, cfg.AI) // 无供应商 → 规则化降级
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	s := New(cfg, logger, store, kb, interp)
+	s := New(cfg, logger, store, kb, interp, Deps{})
 	ts := httptest.NewServer(s.http.Handler)
 	t.Cleanup(ts.Close)
 	return ts

@@ -16,9 +16,11 @@ import (
 	"time"
 
 	"github.com/dawang20250107/ziweidoushu/internal/ai"
+	"github.com/dawang20250107/ziweidoushu/internal/auth"
 	"github.com/dawang20250107/ziweidoushu/internal/config"
 	"github.com/dawang20250107/ziweidoushu/internal/corpus"
 	"github.com/dawang20250107/ziweidoushu/internal/knowledge"
+	"github.com/dawang20250107/ziweidoushu/internal/store"
 )
 
 // Version 服务版本(构建时可用 -ldflags 覆盖)。
@@ -31,20 +33,30 @@ type Server struct {
 	corpus  *corpus.Store
 	kb      *knowledge.Base
 	interp  *ai.Interpreter
+	auth    *auth.Service // nil = 用户体系未启用(无库模式)
+	store   *store.Store  // nil = 无库模式
 	cache   *lruCache
 	limiter *ipLimiter
 	metrics *metrics
 	http    *http.Server
 }
 
+// Deps 可选依赖(无库模式下 Auth/Store 为 nil)。
+type Deps struct {
+	Auth  *auth.Service
+	Store *store.Store
+}
+
 // New 组装服务。
-func New(cfg config.Config, logger *slog.Logger, store *corpus.Store, kb *knowledge.Base, interp *ai.Interpreter) *Server {
+func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *knowledge.Base, interp *ai.Interpreter, deps Deps) *Server {
 	s := &Server{
 		cfg:     cfg,
 		logger:  logger,
-		corpus:  store,
+		corpus:  corpusStore,
 		kb:      kb,
 		interp:  interp,
+		auth:    deps.Auth,
+		store:   deps.Store,
 		cache:   newLRUCache(cfg.ChartCacheSize),
 		limiter: newIPLimiter(cfg.RateLimitRPS, cfg.RateLimitBurst),
 		metrics: newMetrics(),
@@ -87,6 +99,13 @@ func New(cfg config.Config, logger *slog.Logger, store *corpus.Store, kb *knowle
 	// AI 解读与合盘
 	mux.HandleFunc("POST /api/v1/ai/interpret", s.handleInterpret)
 	mux.HandleFunc("POST /api/v1/heming", s.handleHeming)
+
+	// 用户体系(未配置 DATABASE_URL/JWT_SECRET 时统一 503)
+	mux.HandleFunc("POST /api/v1/auth/sms/send", s.handleSMSSend)
+	mux.HandleFunc("POST /api/v1/auth/sms/verify", s.handleSMSVerify)
+	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleRefresh)
+	mux.HandleFunc("POST /api/v1/auth/logout", s.requireAuth(s.handleLogout))
+	mux.HandleFunc("GET /api/v1/me", s.requireAuth(s.handleMe))
 
 	// 元信息
 	mux.HandleFunc("GET /api/v1/meta", s.handleMeta)

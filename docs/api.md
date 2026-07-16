@@ -173,6 +173,32 @@ curl -N localhost:8080/api/v1/ai/interpret -d '{
 
 ---
 
+## 用户体系(需配置 DATABASE_URL + JWT_SECRET,否则统一 503)
+
+### POST /api/v1/auth/sms/send
+
+`{phone}` → `{sent: true}`。频控:同号 60s/次、1h≤5、24h≤10;同 IP 24h≤20。
+dev 短信通道 + `SMS_DEV_ECHO_CODE=1` 时附 `devCode`(仅本地)。
+
+### POST /api/v1/auth/sms/verify
+
+`{phone, code}` → `{tokens: {access, refresh, expiresAt}, user, created}`。
+未注册手机号自动建号。验证码 5 分钟有效、一次性、错误话术统一防遍历。
+
+### POST /api/v1/auth/refresh
+
+`{refresh}` → 新令牌对(旋转:旧 refresh 即刻失效)。
+**复用检测**:已撤销的 refresh 被再次使用时,撤销该用户全部令牌并全端下线。
+
+### POST /api/v1/auth/logout(需鉴权)
+
+`{refresh?, all?}`:撤销当前设备令牌;`all=true` 时全端下线(会话版本 +1,
+所有已签发 access 在 10 秒内失效)。
+
+### GET /api/v1/me(需鉴权)
+
+`Authorization: Bearer <access>` → 用户信息(id/昵称/头像/会员层级)。
+
 ## 运维
 
 | 接口 | 说明 |

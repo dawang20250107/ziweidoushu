@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { ThemeProvider, ThemeToggle, themeInitScript } from "@/components/theme/ThemeProvider";
+import { UserMenu } from "@/components/theme/UserMenu";
 
 export const metadata: Metadata = {
   title: { default: "观星台 · 紫微斗数", template: "%s · 观星台" },
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 ))}
                 <span className="mx-2 h-4 w-px bg-line" aria-hidden />
                 <ThemeToggle />
+                <UserMenu />
               </nav>
             </div>
           </header>

@@ -36,6 +36,14 @@ type Config struct {
 	// AdminToken 管理接口令牌(语料热加载);空则禁用管理接口。
 	AdminToken string
 
+	// DatabaseURL PostgreSQL 连接串;空则以无库模式运行(用户体系不可用)。
+	DatabaseURL string
+	// JWTSecret 访问令牌签名密钥(≥32 字节);JWTPrevSecret 轮换期兼容旧密钥。
+	JWTSecret     string
+	JWTPrevSecret string
+	// SMSDevEchoCode dev 短信通道下把验证码回显到接口(仅本地/E2E,生产禁开)。
+	SMSDevEchoCode bool
+
 	AI ai.Config
 }
 
@@ -51,6 +59,10 @@ func FromEnv() Config {
 		ShutdownTimeout:   time.Duration(envInt("SHUTDOWN_TIMEOUT_SECONDS", 20)) * time.Second,
 		ChartCacheSize:    envInt("CHART_CACHE_SIZE", 4096),
 		AdminToken:        os.Getenv("ADMIN_TOKEN"),
+		DatabaseURL:       os.Getenv("DATABASE_URL"),
+		JWTSecret:         os.Getenv("JWT_SECRET"),
+		JWTPrevSecret:     os.Getenv("JWT_SECRET_PREV"),
+		SMSDevEchoCode:    os.Getenv("SMS_DEV_ECHO_CODE") == "1",
 		AI:                ai.ConfigFromEnv(),
 	}
 }

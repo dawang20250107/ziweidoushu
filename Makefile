@@ -24,6 +24,11 @@ fmt:
 bench:
 	go test ./internal/ziwei/ -bench . -benchmem -run '^$$'
 
+# 数据库集成测试(需本机 PostgreSQL;TEST_DATABASE_URL 可自定义)
+test-db:
+	@test -n "$$TEST_DATABASE_URL" || (echo "请设置 TEST_DATABASE_URL,如 postgres://postgres@localhost:5432/postgres" && exit 1)
+	go test ./internal/auth/ ./internal/store/ -v
+
 docker:
 	docker build -t ziweidoushu:latest .
 
