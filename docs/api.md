@@ -49,6 +49,31 @@ curl -s localhost:8080/api/v1/chart -d '{
 - `daXians[12]` 大限序列;`currentDaXianIndex` 当前大限
 - `data.patterns[]` 格局:名称、吉凶等级(excellent/good/neutral/caution)、描述、必须/加分/破格条件、古籍出处
 
+### POST /api/v1/horoscope
+
+运限叠加:大限(含童限)/ 小限 / 流年 / 流月 / 流日 / 流时。
+
+请求体 = 排盘字段 + `target: {year, month, day, hour}`(目标公历日期与时辰索引 0-12)。
+
+响应 `data.horoscope`:
+
+- `nominalAge` 虚岁(自然年口径,支持 1-120)
+- 六层 scope(`decadal/age/yearly/monthly/daily/hourly`),每层含:
+  - `palaceBranch` 该层命宫地支索引;`palaceNames[12]` 以该层命宫重排的宫名(下标=地支索引)
+  - `stem`/`branch` 该层干支;`mutagen[4]` 该层四化 [禄,权,科,忌]
+  - `stars` 流曜(运/流/月/日/时 + 魁钺昌曲禄羊陀马鸾喜,流年另含年解),下标=地支索引
+- `suiqian12` / `jiangqian12` 流年岁前/将前十二神
+
+> 体系口径:倪师《天纪》只认**生年四化**(已标注在本命盘星曜上)与**流年四化**;
+> 大限/流月等层的 `mutagen` 为飞星派研究字段,展示层自行取舍。
+
+```bash
+curl -s localhost:8080/api/v1/horoscope -d '{
+  "year":1990,"month":6,"day":15,"hour":5,"gender":"male",
+  "target":{"year":2026,"month":7,"day":16,"hour":6}
+}'
+```
+
 ### GET /api/v1/famous
 ### GET /api/v1/famous/{id}/chart
 

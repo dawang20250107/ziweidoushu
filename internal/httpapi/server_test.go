@@ -121,6 +121,58 @@ func TestChartEndpoint(t *testing.T) {
 	}
 }
 
+func TestHoroscopeEndpoint(t *testing.T) {
+	ts := newTestServer(t, nil)
+	body := map[string]any{
+		"year": 1990, "month": 6, "day": 15, "hour": 5, "gender": "male",
+		"target": map[string]any{"year": 2026, "month": 7, "day": 16, "hour": 6},
+	}
+	resp, raw := postJSON(t, ts.URL+"/api/v1/horoscope", body)
+	if resp.StatusCode != 200 {
+		t.Fatalf("运限接口 %d: %s", resp.StatusCode, truncate(raw))
+	}
+	var out struct {
+		Data struct {
+			Horoscope struct {
+				NominalAge int `json:"nominalAge"`
+				Decadal    struct {
+					Name        string   `json:"name"`
+					PalaceNames []string `json:"palaceNames"`
+				} `json:"decadal"`
+				Yearly struct {
+					Stars [][]struct {
+						Name string `json:"name"`
+					} `json:"stars"`
+				} `json:"yearly"`
+			} `json:"horoscope"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	h := out.Data.Horoscope
+	if h.NominalAge != 37 {
+		t.Errorf("虚岁: got %d want 37", h.NominalAge)
+	}
+	if h.Decadal.Name != "大限" || len(h.Decadal.PalaceNames) != 12 {
+		t.Errorf("大限层异常: %+v", h.Decadal)
+	}
+	count := 0
+	for _, cell := range h.Yearly.Stars {
+		count += len(cell)
+	}
+	if count != 11 { // 流曜十颗 + 年解
+		t.Errorf("流年流曜数: got %d want 11", count)
+	}
+
+	// 越界目标
+	body["target"] = map[string]any{"year": 1900, "month": 1, "day": 1, "hour": 0}
+	resp, _ = postJSON(t, ts.URL+"/api/v1/horoscope", body)
+	if resp.StatusCode != 400 {
+		t.Errorf("早于出生的目标应 400: %d", resp.StatusCode)
+	}
+}
+
 func TestCorpusEndpoints(t *testing.T) {
 	ts := newTestServer(t, nil)
 

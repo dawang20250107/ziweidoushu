@@ -103,6 +103,38 @@ func (s *Server) handleFamousChart(w http.ResponseWriter, r *http.Request) {
 	writeError(w, http.StatusNotFound, "not_found", "未收录该名人")
 }
 
+// horoscopeRequest 运限请求:本命盘生辰 + 目标日期。
+type horoscopeRequest struct {
+	chartRequest
+	Target struct {
+		Year  int `json:"year"`
+		Month int `json:"month"`
+		Day   int `json:"day"`
+		Hour  int `json:"hour"` // 时辰索引 0-12
+	} `json:"target"`
+}
+
+// handleHoroscope 运限叠加:大限/小限/流年/流月/流日/流时。
+// 倪师口径提示由引擎在字段注释中约定:生年四化与流年四化为准,
+// 其余层 mutagen 为飞星派研究字段,前端展示层自行取舍。
+func (s *Server) handleHoroscope(w http.ResponseWriter, r *http.Request) {
+	var req horoscopeRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	resp, err := s.computeChart(req.chartRequest)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_birth", err.Error())
+		return
+	}
+	h, err := ziwei.GenerateHoroscope(resp.Chart, req.Target.Year, req.Target.Month, req.Target.Day, req.Target.Hour)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_target", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"horoscope": h})
+}
+
 func (s *Server) handleLiuNianSiHua(w http.ResponseWriter, r *http.Request) {
 	year, err := strconv.Atoi(r.URL.Query().Get("year"))
 	if err != nil || year < 1900 || year > 2100 {

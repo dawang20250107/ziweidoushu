@@ -62,6 +62,7 @@ func New(cfg config.Config, logger *slog.Logger, store *corpus.Store, kb *knowle
 
 	// 排盘
 	mux.HandleFunc("POST /api/v1/chart", s.handleChart)
+	mux.HandleFunc("POST /api/v1/horoscope", s.handleHoroscope)
 	mux.HandleFunc("GET /api/v1/famous", s.handleFamousList)
 	mux.HandleFunc("GET /api/v1/famous/{id}/chart", s.handleFamousChart)
 
