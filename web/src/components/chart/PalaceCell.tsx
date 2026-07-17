@@ -8,10 +8,15 @@ import {
 
 /** 星名 + 四化徽章(本命实心;流曜空心由 StarBadge outline 表达) */
 function StarGlyph({ star, size }: { star: Star; size: "lg" | "md" }) {
+  // 庙旺主星带星光辉晕:亮度语义从「颜色」升级为「颜色 + 光」
+  const glow =
+    size === "lg" && (star.brightness === "庙" || star.brightness === "旺")
+      ? { textShadow: "0 0 10px var(--gold-glow), 0 0 18px var(--gold-glow)" }
+      : undefined;
   return (
     <span
       className={size === "lg" ? "font-display text-[17px] font-semibold leading-tight" : "text-[13px] leading-tight"}
-      style={{ color: brightnessVar(star.brightness) }}
+      style={{ color: brightnessVar(star.brightness), ...glow }}
     >
       {star.name}
       {star.siHua && (
@@ -62,7 +67,7 @@ export function PalaceCell({
         "palace-enter relative flex min-h-[124px] flex-col rounded-[6px] p-2 pb-1.5 text-left transition-shadow",
         "bg-bg-raised",
         selected
-          ? "shadow-[0_0_0_2px_var(--gold)]"
+          ? "shadow-[0_0_0_2px_var(--gold),var(--glow-gold)]"
           : inSanFang
             ? "shadow-[0_0_0_1px_var(--gold-dim)]"
             : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--line-strong)]",
