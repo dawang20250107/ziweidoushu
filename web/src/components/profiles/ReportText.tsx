@@ -9,24 +9,24 @@ export function ReportText({ text }: { text: string }) {
     .filter(Boolean);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {blocks.map((block, i) => {
         if (block.startsWith("## ")) {
           return (
-            <h2 key={i} className="font-display text-lg font-semibold text-ink">
+            <h2 key={i} className="mt-1 font-display text-[20px] font-semibold text-ink">
               {block.slice(3).trim()}
             </h2>
           );
         }
         if (block.startsWith("# ")) {
           return (
-            <h2 key={i} className="font-display text-xl font-semibold text-ink">
+            <h2 key={i} className="mt-1 font-display text-[25px] font-semibold text-ink">
               {block.slice(2).trim()}
             </h2>
           );
         }
         return (
-          <p key={i} className="whitespace-pre-wrap font-reading text-[15px] leading-relaxed text-ink-secondary">
+          <p key={i} className="whitespace-pre-wrap font-reading text-[16px] leading-[1.9] text-ink-secondary">
             {block}
           </p>
         );

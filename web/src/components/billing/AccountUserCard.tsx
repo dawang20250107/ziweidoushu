@@ -28,7 +28,7 @@ export function AccountUserCard({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)]">
+    <div className="flex flex-wrap items-center gap-5 rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
       <span
         className="grid h-14 w-14 shrink-0 place-items-center rounded-full font-display text-xl text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
         aria-hidden

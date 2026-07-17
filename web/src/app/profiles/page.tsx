@@ -90,15 +90,15 @@ export default function ProfilesPage() {
   // 未登录:居中提示 + 去登录
   if (signedIn === false) {
     return (
-      <div className="mx-auto max-w-md px-4 py-24">
-        <div className="rounded-[10px] bg-bg-raised px-6 py-12 text-center shadow-[0_0_0_1px_var(--line)]">
+      <div className="mx-auto max-w-md px-4 py-24 md:py-32">
+        <div className="rounded-[10px] bg-bg-raised px-6 py-16 text-center shadow-[0_0_0_1px_var(--line)]">
           <p className="font-display text-xl font-semibold text-ink">登录后查看命盘档案库</p>
           <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">
             档案库为你保存命主生辰,随时一键载入排盘。
           </p>
           <Link
             href="/login?next=/profiles"
-            className="mt-6 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+            className="glow-gold mt-8 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
           >
             去登录
           </Link>
@@ -111,18 +111,18 @@ export default function ProfilesPage() {
   const atLimit = limit > 0 && count >= limit;
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-8 md:py-12">
-      <header className="mb-8">
-        <p className="text-[12px] tracking-[0.24em] text-gold">命盘 · 档案库</p>
-        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="font-display text-3xl font-semibold text-ink">档案库</h1>
+    <div className="mx-auto max-w-5xl px-5 py-14 md:py-24">
+      <header className="mb-12 md:mb-14">
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">命盘 · 档案库</p>
+        <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
+          <h1 className="font-display text-[31px] font-semibold text-ink sm:text-[39px]">档案库</h1>
           {!loading && (
             <span className="tnum text-[13px] text-ink-faint">
               {limit > 0 ? `${count}/${limit}` : `${count} 份档案`}
             </span>
           )}
         </div>
-        <p className="mt-2 text-ink-secondary">保存命主生辰,随时一键载入排盘。</p>
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-secondary md:text-[16px]">保存命主生辰,随时一键载入排盘。</p>
       </header>
 
       {/* 免费层达上限:升级横幅 */}
@@ -147,7 +147,7 @@ export default function ProfilesPage() {
       )}
 
       {loading && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 md:gap-6">
           {Array.from({ length: 3 }).map((_, i) => (
             <ProfileSkeleton key={i} />
           ))}
@@ -155,7 +155,7 @@ export default function ProfilesPage() {
       )}
 
       {!loading && count > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 md:gap-6">
           {profiles.map((p) => (
             <ProfileCard
               key={p.id}
@@ -171,14 +171,14 @@ export default function ProfilesPage() {
 
       {/* 空态 */}
       {!loading && !error && count === 0 && (
-        <div className="rounded-[10px] bg-bg-raised px-6 py-16 text-center shadow-[0_0_0_1px_var(--line)]">
+        <div className="rounded-[10px] bg-bg-raised px-6 py-20 text-center shadow-[0_0_0_1px_var(--line)]">
           <p className="font-display text-xl font-semibold text-ink">还没有命盘档案</p>
           <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">
             去排盘,把命主生辰保存为第一份档案,以后一键载入。
           </p>
           <Link
             href="/chart"
-            className="mt-6 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+            className="glow-gold mt-8 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
           >
             去排盘并保存
           </Link>

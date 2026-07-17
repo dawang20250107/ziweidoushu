@@ -136,10 +136,10 @@ export function PurchaseDialog({
         {/* 头部 */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-[12px] tracking-[0.16em] text-gold">
+            <p className="text-[12px] font-medium tracking-[0.08em] text-gold">
               {product.kind === "subscription" ? "订阅开通" : "次卡购买"}
             </p>
-            <h2 className="mt-1 font-display text-xl font-semibold text-ink">{product.title}</h2>
+            <h2 className="mt-1.5 font-display text-[20px] font-semibold text-ink">{product.title}</h2>
           </div>
           {dismissable && (
             <button
@@ -185,7 +185,7 @@ export function PurchaseDialog({
                 <button
                   type="button"
                   onClick={pay}
-                  className="flex-1 rounded-[6px] bg-gold px-6 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+                  className="glow-gold flex-1 rounded-[6px] bg-gold px-6 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
                 >
                   确认支付
                 </button>

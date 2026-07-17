@@ -47,33 +47,33 @@ export default function FamousPage() {
   const categories = persons ? [...new Set(persons.map((p) => p.category))] : [];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <p className="text-[12px] tracking-[0.24em] text-gold">盘 例 · 实证研究</p>
-      <h1 className="mt-1 font-display text-3xl font-semibold">名人盘库</h1>
-      <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-secondary">
+    <div className="mx-auto max-w-6xl px-4 py-14 md:py-24">
+      <p className="text-[12px] font-medium tracking-[0.24em] text-gold">盘 例 · 实证研究</p>
+      <h1 className="mt-3 font-display text-[31px] font-semibold sm:text-[39px]">名人盘库</h1>
+      <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-secondary md:text-[16px]">
         以公开生辰起盘的名人命例,对照其人生轨迹研习星曜格局的实证表达。
       </p>
 
       {error && (
-        <p className="mt-4 rounded-[6px] bg-bg-raised px-4 py-3 text-[14px] text-danger shadow-[0_0_0_1px_var(--danger)]">
+        <p className="mt-5 rounded-[6px] bg-bg-raised px-4 py-3 text-[14px] text-danger shadow-[0_0_0_1px_var(--danger)]">
           {error}
         </p>
       )}
 
       {!persons && !error && (
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="h-32 animate-pulse rounded-[10px] bg-bg-raised" />
+            <div key={i} className="h-36 animate-pulse rounded-[10px] bg-bg-raised" />
           ))}
         </div>
       )}
 
       {persons && (
-        <div className="mt-6 flex flex-col gap-6">
+        <div className="mt-10 flex flex-col gap-10 md:gap-12">
           {categories.map((cat) => (
             <section key={cat}>
-              <h2 className="mb-2 text-[13px] tracking-[0.12em] text-ink-faint">{cat}</h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <h2 className="mb-4 text-[12px] font-medium tracking-[0.08em] text-ink-secondary">{cat}</h2>
+              <div className="grid gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
                 {persons.filter((p) => p.category === cat).map((p) => {
                   const active = detail?.person.id === p.id;
                   return (
@@ -83,7 +83,7 @@ export default function FamousPage() {
                       onClick={() => open(p)}
                       aria-pressed={active}
                       className={[
-                        "flex flex-col rounded-[10px] bg-bg-raised p-4 text-left transition-shadow",
+                        "lift flex flex-col rounded-[10px] bg-bg-raised p-5 text-left md:p-6",
                         active
                           ? "shadow-[0_0_0_2px_var(--gold)]"
                           : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--gold-dim)]",
@@ -95,9 +95,9 @@ export default function FamousPage() {
                           {p.year} · {HOUR_NAMES[p.hour]}
                         </span>
                       </div>
-                      <p className="mt-1 text-[13px] text-ink-secondary">{p.description}</p>
-                      <p className="mt-2 line-clamp-2 text-[12px] leading-relaxed text-ink-faint">{p.notable}</p>
-                      {loadingID === p.id && <span className="mt-2 text-[12px] text-gold">起盘中…</span>}
+                      <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">{p.description}</p>
+                      <p className="mt-2.5 line-clamp-2 text-[12px] leading-relaxed text-ink-faint">{p.notable}</p>
+                      {loadingID === p.id && <span className="mt-2.5 text-[12px] text-gold">起盘中…</span>}
                     </button>
                   );
                 })}
@@ -108,16 +108,16 @@ export default function FamousPage() {
       )}
 
       {detail && (
-        <div ref={detailRef} className="mt-10 scroll-mt-20">
+        <div ref={detailRef} className="mt-16 scroll-mt-20 md:mt-20">
           <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <h2 className="font-display text-2xl font-semibold">{detail.person.name} 命盘</h2>
+            <h2 className="font-display text-[25px] font-semibold sm:text-[31px]">{detail.person.name} 命盘</h2>
             <span className="text-[13px] text-ink-secondary">
               {detail.person.year}-{detail.person.month}-{detail.person.day} {HOUR_NAMES[detail.person.hour]} ·{" "}
               {detail.person.gender === "male" ? "男" : "女"}命
             </span>
           </div>
-          <p className="mb-4 max-w-3xl text-[13px] leading-relaxed text-ink-faint">{detail.person.notable}</p>
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <p className="mb-6 max-w-3xl text-[13px] leading-relaxed text-ink-faint">{detail.person.notable}</p>
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] md:gap-6">
             <div className="overflow-x-auto">
               <div className="min-w-[640px]">
                 <ChartBoard

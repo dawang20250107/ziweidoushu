@@ -65,8 +65,8 @@ export function BirthFields({
   }, []);
 
   return (
-    <div className="flex-1 rounded-[10px] bg-bg-raised p-4 shadow-[0_0_0_1px_var(--line)]">
-      <div className="mb-3 flex items-center justify-between gap-2">
+    <div className="flex-1 rounded-[10px] bg-bg-raised p-5 shadow-[0_0_0_1px_var(--line)] md:p-6">
+      <div className="mb-4 flex items-center justify-between gap-2">
         <span className="font-display text-[15px] font-medium text-gold">{title}</span>
         {profiles.length > 0 && (
           <select

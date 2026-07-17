@@ -41,21 +41,21 @@ export default function HemingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <p className="text-[12px] tracking-[0.24em] text-gold">合 盘 · 双宫联参</p>
-      <h1 className="mt-1 font-display text-3xl font-semibold">双人合盘</h1>
-      <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-secondary">
+    <div className="mx-auto max-w-6xl px-4 py-14 md:py-24">
+      <p className="text-[12px] font-medium tracking-[0.24em] text-gold">合 盘 · 双宫联参</p>
+      <h1 className="mt-3 font-display text-[31px] font-semibold sm:text-[39px]">双人合盘</h1>
+      <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-secondary md:text-[16px]">
         依倪师口径:看婚姻必夫妻宫与福德宫同参。输入双方生辰,得到两张命盘、
         夫妻宫主星断语与合盘方法论。
       </p>
 
-      <div className="mt-6 flex flex-col gap-4 md:flex-row">
+      <div className="mt-10 flex flex-col gap-5 md:flex-row">
         <BirthFields title="甲方" value={a} onChange={setA} />
         <BirthFields title="乙方" value={b} onChange={setB} />
       </div>
 
       {error && (
-        <p className="mt-4 rounded-[6px] bg-bg-raised px-4 py-3 text-[14px] text-danger shadow-[0_0_0_1px_var(--danger)]">
+        <p className="mt-5 rounded-[6px] bg-bg-raised px-4 py-3 text-[14px] text-danger shadow-[0_0_0_1px_var(--danger)]">
           {error}
         </p>
       )}
@@ -64,26 +64,26 @@ export default function HemingPage() {
         type="button"
         onClick={run}
         disabled={loading}
-        className="mt-4 min-h-[44px] rounded-[6px] bg-gold px-8 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50"
+        className="glow-gold mt-6 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-8 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50 disabled:shadow-none"
       >
         {loading ? "合盘中…" : "开始合盘"}
       </button>
 
       {result && (
-        <div className="mt-8 flex flex-col gap-6">
+        <div className="mt-12 flex flex-col gap-8 md:mt-16">
           {/* 夫妻宫断语(双方并列) */}
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             <SidePanel title={a.name || "甲方"} side={result.a} />
             <SidePanel title={b.name || "乙方"} side={result.b} />
           </div>
 
           {/* 缘分评级标准 */}
-          <section className="rounded-[10px] bg-bg-raised p-5 shadow-[0_0_0_1px_var(--line)]">
-            <h2 className="font-display text-lg font-semibold">缘分评级标准</h2>
-            <p className="mt-1 text-[13px] text-ink-faint">
+          <section className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
+            <h2 className="font-display text-[20px] font-semibold">缘分评级标准</h2>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-faint">
               倪师体系的合盘参照系,对照双方夫妻宫/福德宫星情自评。
             </p>
-            <dl className="mt-3 flex flex-col gap-2">
+            <dl className="mt-4 flex flex-col gap-2">
               {SCORE_ORDER.filter((k) => result.scoreCriteria[k]).map((k) => (
                 <div key={k} className="flex gap-3 rounded-[6px] bg-bg px-3 py-2 shadow-[inset_0_0_0_1px_var(--line)]">
                   <dt className="w-10 shrink-0 font-display text-gold">{k}</dt>
@@ -94,10 +94,10 @@ export default function HemingPage() {
           </section>
 
           {/* 双方盘面 */}
-          <div className="grid gap-6 xl:grid-cols-2">
+          <div className="grid gap-8 xl:grid-cols-2">
             {([["甲方", result.a, a], ["乙方", result.b, b]] as const).map(([label, side, v]) => (
               <section key={label}>
-                <h3 className="mb-2 font-display text-[15px] text-ink-secondary">
+                <h3 className="mb-3 font-display text-[15px] text-ink-secondary">
                   {v.name || label} 命盘
                 </h3>
                 <div className="overflow-x-auto">
@@ -115,14 +115,14 @@ export default function HemingPage() {
           </div>
 
           {/* 方法论(折叠) */}
-          <section className="rounded-[10px] bg-bg-raised p-5 shadow-[0_0_0_1px_var(--line)]">
+          <section className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
             <button
               type="button"
               onClick={() => setShowMethod((s) => !s)}
               aria-expanded={showMethod}
-              className="flex w-full items-center justify-between text-left"
+              className="flex min-h-[44px] w-full items-center justify-between text-left"
             >
-              <span className="font-display text-lg font-semibold">合盘方法论(倪海厦体系)</span>
+              <span className="font-display text-[20px] font-semibold">合盘方法论(倪海厦体系)</span>
               <span className="text-[13px] text-gold">{showMethod ? "收起" : "展开"}</span>
             </button>
             {showMethod && (
@@ -144,9 +144,9 @@ export default function HemingPage() {
 /** 一方的夫妻宫断语面板。 */
 function SidePanel({ title, side }: { title: string; side: HemingSide }) {
   return (
-    <section className="rounded-[10px] bg-bg-raised p-5 shadow-[0_0_0_1px_var(--line)]">
+    <section className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
       <div className="flex items-center gap-2">
-        <h2 className="font-display text-lg font-semibold">{title} · 夫妻宫</h2>
+        <h2 className="font-display text-[20px] font-semibold">{title} · 夫妻宫</h2>
         {side.fuqiBorrowed && (
           <span className="rounded-[2px] px-1.5 py-0.5 text-[11px] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]">
             空宫借对宫

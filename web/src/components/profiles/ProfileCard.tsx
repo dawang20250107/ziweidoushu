@@ -27,10 +27,10 @@ export function ProfileCard({
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <div className="flex flex-col rounded-[6px] bg-bg-raised p-5 shadow-[0_0_0_1px_var(--line)]">
+    <div className="lift flex flex-col rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="truncate font-display text-lg font-semibold text-ink">{profile.label}</h2>
+          <h2 className="truncate font-display text-[20px] font-semibold text-ink">{profile.label}</h2>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span className="rounded-[2px] px-1.5 py-0.5 text-[11px] tracking-[0.08em] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
               {relationLabel(profile.relation)}
@@ -45,9 +45,9 @@ export function ProfileCard({
         </div>
       </div>
 
-      <p className="tnum mt-3 text-[13px] text-ink-secondary">{formatBirthSummary(profile.birthInput)}</p>
+      <p className="tnum mt-4 text-[13px] leading-relaxed text-ink-secondary">{formatBirthSummary(profile.birthInput)}</p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line pt-3">
+      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-line pt-4">
         <button
           type="button"
           onClick={() => onLoad(profile)}

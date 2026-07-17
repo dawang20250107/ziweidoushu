@@ -20,6 +20,9 @@ func (s *Server) handleProducts(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "products_failed", err.Error())
 		return
 	}
+	if products == nil {
+		products = []store.Product{}
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"products":      products,
 		"devPayEnabled": s.cfg.PayDevEnabled,
@@ -76,6 +79,9 @@ func (s *Server) handleListOrders(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "orders_failed", err.Error())
 		return
 	}
+	if orders == nil {
+		orders = []store.Order{} // 契约:空列表输出 [],不输出 null
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"orders": orders})
 }
 
@@ -122,6 +128,9 @@ func (s *Server) handleMyEntitlements(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "entitlements_failed", err.Error())
 		return
+	}
+	if ents == nil {
+		ents = []store.Entitlement{} // 契约:空列表输出 [],不输出 null
 	}
 	credits, err := s.store.CreditBalances(r.Context(), claims.Sub)
 	if err != nil {

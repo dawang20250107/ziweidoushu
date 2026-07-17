@@ -81,8 +81,8 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
   if (messages.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-6 text-center">
-        <p className="font-display text-lg text-ink-secondary">与你的命盘对话</p>
-        <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-ink-faint">
+        <p className="font-display text-xl font-semibold text-ink-secondary">与你的命盘对话</p>
+        <p className="mt-3 max-w-sm text-[14px] leading-relaxed text-ink-faint">
           选择上方主题速问,或直接输入你的疑问 —— 关于性情、姻缘、事业、财帛与流年,皆可就盘发问。
         </p>
       </div>

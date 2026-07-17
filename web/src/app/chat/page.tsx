@@ -131,15 +131,15 @@ function ChatInner() {
 
   if (!birth) {
     return (
-      <div className="mx-auto max-w-md px-4 py-24">
-        <div className="rounded-[10px] bg-bg-raised px-6 py-12 text-center shadow-[0_0_0_1px_var(--line)]">
+      <div className="mx-auto max-w-md px-4 py-24 md:py-32">
+        <div className="rounded-[10px] bg-bg-raised px-6 py-16 text-center shadow-[0_0_0_1px_var(--line)]">
           <p className="font-display text-xl font-semibold text-ink">先去排盘,才能问星</p>
           <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">
             问星以你的命盘为据。先完成排盘,系统会记住你的生辰,再来与命盘对话。
           </p>
           <Link
             href="/chart"
-            className="mt-6 inline-block rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+            className="glow-gold mt-8 inline-flex min-h-[44px] items-center justify-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
           >
             去排盘
           </Link>
@@ -150,7 +150,7 @@ function ChatInner() {
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-3.5rem)] max-w-3xl flex-col px-4">
-      <div className="flex flex-col gap-3 pt-5">
+      <div className="flex flex-col gap-3 pt-6">
         <SubjectBar birth={birth} canClear={messages.length > 0 && !busy} onClear={clear} />
         <TopicChips onPick={sendTopic} disabled={busy} />
       </div>

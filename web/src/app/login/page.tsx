@@ -60,11 +60,11 @@ function LoginForm() {
   const phoneValid = /^1\d{10}$/.test(phone);
 
   return (
-    <div className="mx-auto max-w-sm px-4 py-20">
-      <p className="mb-2 text-center text-[12px] tracking-[0.24em] text-gold">观星台</p>
-      <h1 className="mb-8 text-center font-display text-2xl font-semibold">手机号登录</h1>
+    <div className="mx-auto max-w-sm px-4 py-20 md:py-28">
+      <p className="mb-3 text-center text-[12px] font-medium tracking-[0.24em] text-gold">观星台</p>
+      <h1 className="mb-10 text-center font-display text-[25px] font-semibold sm:text-[31px]">手机号登录</h1>
 
-      <form onSubmit={handleVerify} className="flex flex-col gap-4">
+      <form onSubmit={handleVerify} className="flex flex-col gap-5">
         <label className="flex flex-col gap-1.5">
           <span className="text-[12px] text-ink-faint">手机号</span>
           <input
@@ -107,7 +107,7 @@ function LoginForm() {
             type="button"
             disabled={!phoneValid || busy}
             onClick={handleSend}
-            className="rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-40"
+            className="glow-gold inline-flex min-h-[44px] items-center justify-center rounded-[6px] bg-gold px-6 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-40 disabled:shadow-none"
           >
             {busy ? "发送中…" : "获取验证码"}
           </button>
@@ -116,7 +116,7 @@ function LoginForm() {
             <button
               type="submit"
               disabled={code.length !== 6 || busy}
-              className="rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-40"
+              className="glow-gold inline-flex min-h-[44px] items-center justify-center rounded-[6px] bg-gold px-6 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-40 disabled:shadow-none"
             >
               {busy ? "登录中…" : "登录 / 注册"}
             </button>

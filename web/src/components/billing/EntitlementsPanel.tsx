@@ -16,9 +16,9 @@ export function EntitlementsPanel({ data }: { data: EntitlementsResponse }) {
 
   if (empty) {
     return (
-      <div className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)]">
-        <h2 className="font-display text-lg font-semibold text-ink">我的权益</h2>
-        <div className="mt-4 rounded-[6px] px-4 py-8 text-center shadow-[inset_0_0_0_1px_var(--line)]">
+      <div className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
+        <h2 className="font-display text-[20px] font-semibold text-ink">我的权益</h2>
+        <div className="mt-5 rounded-[6px] px-4 py-10 text-center shadow-[inset_0_0_0_1px_var(--line)]">
           <p className="text-[14px] text-ink-secondary">还没有任何有效权益。</p>
           <Link
             href="/pricing"
@@ -32,11 +32,11 @@ export function EntitlementsPanel({ data }: { data: EntitlementsResponse }) {
   }
 
   return (
-    <div className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)]">
-      <h2 className="font-display text-lg font-semibold text-ink">我的权益</h2>
+    <div className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
+      <h2 className="font-display text-[20px] font-semibold text-ink">我的权益</h2>
 
       {/* 订阅时段 */}
-      <div className="mt-4">
+      <div className="mt-5">
         <p className="text-[12px] tracking-[0.08em] text-ink-faint">订阅时段</p>
         {subs.length > 0 ? (
           <ul className="mt-2 flex flex-col gap-2">

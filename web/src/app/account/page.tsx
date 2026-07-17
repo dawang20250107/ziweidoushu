@@ -90,14 +90,14 @@ export default function AccountPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8 md:py-12">
-      <header className="mb-8">
-        <p className="text-[12px] tracking-[0.24em] text-gold">账户 · 观星台</p>
-        <h1 className="mt-2 font-display text-3xl font-semibold text-ink">我的账户</h1>
+    <div className="mx-auto max-w-3xl px-5 py-14 md:py-24">
+      <header className="mb-12 md:mb-14">
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">账户 · 观星台</p>
+        <h1 className="mt-3 font-display text-[31px] font-semibold text-ink sm:text-[39px]">我的账户</h1>
       </header>
 
       {status === "loading" && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 md:gap-8">
           <AccountBlockSkeleton lines={2} />
           <AccountBlockSkeleton lines={3} />
           <AccountBlockSkeleton lines={4} />
@@ -105,12 +105,12 @@ export default function AccountPage() {
       )}
 
       {status === "unauth" && (
-        <div className="rounded-[10px] bg-bg-raised px-6 py-16 text-center shadow-[0_0_0_1px_var(--line)]">
-          <p className="font-display text-lg text-ink-secondary">登录后查看账户</p>
-          <p className="mt-2 text-[13px] text-ink-faint">会员权益、次数余额与订单记录都在这里。</p>
+        <div className="rounded-[10px] bg-bg-raised px-6 py-20 text-center shadow-[0_0_0_1px_var(--line)]">
+          <p className="font-display text-xl font-semibold text-ink">登录后查看账户</p>
+          <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">会员权益、次数余额与订单记录都在这里。</p>
           <Link
             href="/login?next=/account"
-            className="mt-6 inline-flex min-h-[44px] items-center justify-center rounded-[6px] bg-gold px-6 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+            className="glow-gold mt-8 inline-flex min-h-[44px] items-center justify-center rounded-[6px] bg-gold px-6 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
           >
             去登录
           </Link>
@@ -124,7 +124,7 @@ export default function AccountPage() {
       )}
 
       {status === "ready" && user && ent && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 md:gap-8">
           <AccountUserCard user={user} onLogout={handleLogout} />
           <EntitlementsPanel data={ent} />
           <OrderList orders={orders} titleOf={titleOf} />

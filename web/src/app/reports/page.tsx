@@ -130,15 +130,15 @@ export default function ReportsPage() {
   // ── 未登录 ──
   if (signedIn === false) {
     return (
-      <div className="mx-auto max-w-md px-4 py-24">
-        <div className="rounded-[10px] bg-bg-raised px-6 py-12 text-center shadow-[0_0_0_1px_var(--line)]">
+      <div className="mx-auto max-w-md px-4 py-24 md:py-32">
+        <div className="rounded-[10px] bg-bg-raised px-6 py-16 text-center shadow-[0_0_0_1px_var(--line)]">
           <p className="font-display text-xl font-semibold text-ink">登录后生成深度报告</p>
           <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">
             深度报告以命盘为据,由 AI 撰写长文解读。请先登录。
           </p>
           <Link
             href="/login?next=/reports"
-            className="mt-6 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+            className="glow-gold mt-8 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
           >
             去登录
           </Link>
@@ -148,36 +148,36 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8 md:py-12">
-      <header className="mb-8">
-        <p className="text-[12px] tracking-[0.24em] text-gold">AI · 深度报告</p>
-        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-3">
-          <h1 className="font-display text-3xl font-semibold text-ink">深度报告</h1>
+    <div className="mx-auto max-w-3xl px-5 py-14 md:py-24">
+      <header className="mb-12 md:mb-14">
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">AI · 深度报告</p>
+        <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
+          <h1 className="font-display text-[31px] font-semibold text-ink sm:text-[39px]">深度报告</h1>
           <CreditsBadge credits={credits} />
         </div>
-        <p className="mt-2 text-ink-secondary">选定命主与主题,生成一份长文命理解读。</p>
+        <p className="mt-3 text-[15px] leading-relaxed text-ink-secondary md:text-[16px]">选定命主与主题,生成一份长文命理解读。</p>
       </header>
 
       {initLoading ? (
         <ReportSkeleton label="加载中…" />
       ) : noSource ? (
-        <div className="rounded-[10px] bg-bg-raised px-6 py-16 text-center shadow-[0_0_0_1px_var(--line)]">
+        <div className="rounded-[10px] bg-bg-raised px-6 py-20 text-center shadow-[0_0_0_1px_var(--line)]">
           <p className="font-display text-xl font-semibold text-ink">先排一张命盘</p>
           <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">
             深度报告需要命主生辰。去排盘后,系统会记住你的生辰,或保存为档案供随时选用。
           </p>
           <Link
             href="/chart"
-            className="mt-6 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+            className="glow-gold mt-8 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
           >
             去排盘
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-10 md:gap-12">
           {/* 生辰来源 */}
           <section>
-            <h2 className="mb-3 text-[12px] tracking-[0.08em] text-ink-faint">生辰来源</h2>
+            <h2 className="mb-4 text-[12px] font-medium tracking-[0.08em] text-gold">生辰来源</h2>
             <div className="flex flex-col gap-2">
               {recentBirth && (
                 <SourceRow
@@ -201,7 +201,7 @@ export default function ReportsPage() {
 
           {/* 主题 */}
           <section>
-            <h2 className="mb-3 text-[12px] tracking-[0.08em] text-ink-faint">报告主题</h2>
+            <h2 className="mb-4 text-[12px] font-medium tracking-[0.08em] text-gold">报告主题</h2>
             <div className="flex flex-wrap gap-2">
               {REPORT_TOPICS.map((t) => {
                 const active = topic === t.key;
@@ -238,12 +238,12 @@ export default function ReportsPage() {
                 </Link>
               </div>
             ) : (
-              <div className="flex flex-col items-start gap-2">
+              <div className="flex flex-col items-start gap-2.5">
                 <button
                   type="button"
                   onClick={generate}
                   disabled={generating || !resolvedBirth}
-                  className="inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-6 py-2.5 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50"
+                  className="glow-gold inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-7 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50 disabled:shadow-none"
                 >
                   {generating ? "生成中…" : "生成深度报告"}
                 </button>
@@ -260,7 +260,7 @@ export default function ReportsPage() {
           )}
 
           {!generating && !error && report != null && (
-            <article className="rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8 md:py-8">
+            <article className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)] md:px-10 md:py-10">
               {degraded && (
                 <p className="mb-4 rounded-[4px] bg-bg px-3 py-2 text-[12px] text-warn shadow-[inset_0_0_0_1px_var(--line)]">
                   当前为降级解读(备用模型),内容仅供参考。

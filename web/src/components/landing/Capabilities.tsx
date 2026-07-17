@@ -159,13 +159,13 @@ interface CapabilityRowProps {
 
 function CapabilityRow({ eyebrow, title, body, example, flip = false }: CapabilityRowProps) {
   return (
-    <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+    <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
       <div className={flip ? "lg:order-2" : ""}>
-        <p className="text-[12px] font-medium tracking-[0.16em] text-gold">{eyebrow}</p>
-        <h2 className="mt-3 text-balance font-display text-[26px] font-semibold leading-snug text-ink md:text-[31px]">
+        <p className="text-[12px] font-medium tracking-[0.08em] text-gold">{eyebrow}</p>
+        <h2 className="mt-4 text-balance font-display text-[26px] font-semibold leading-snug text-ink md:text-[31px]">
           {title}
         </h2>
-        <p className="mt-4 max-w-md text-[15px] leading-[1.7] text-ink-secondary">{body}</p>
+        <p className="mt-5 max-w-md text-[15px] leading-[1.75] text-ink-secondary">{body}</p>
       </div>
       <div className={["flex justify-center", flip ? "lg:order-1 lg:justify-start" : "lg:justify-end"].join(" ")}>
         {example}
@@ -177,8 +177,8 @@ function CapabilityRow({ eyebrow, title, body, example, flip = false }: Capabili
 /** 三大能力区:排盘做透 / 古籍丝滑 / AI 问星。 */
 export function Capabilities() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8">
-      <div className="space-y-20 md:space-y-28">
+    <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+      <div className="space-y-24 md:space-y-32">
         <CapabilityRow
           eyebrow="排盘"
           title="从安星到运限,一张盘全交代"
