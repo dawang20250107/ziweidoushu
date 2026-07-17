@@ -106,6 +106,24 @@ func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleRefresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.requireAuth(s.handleLogout))
 	mux.HandleFunc("GET /api/v1/me", s.requireAuth(s.handleMe))
+	mux.HandleFunc("GET /api/v1/me/entitlements", s.requireAuth(s.handleMyEntitlements))
+
+	// 变现:商品(订阅 + 次卡)/ 订单 / dev 支付渠道
+	mux.HandleFunc("GET /api/v1/products", s.handleProducts)
+	mux.HandleFunc("POST /api/v1/orders", s.requireAuth(s.handleCreateOrder))
+	mux.HandleFunc("GET /api/v1/orders", s.requireAuth(s.handleListOrders))
+	mux.HandleFunc("GET /api/v1/orders/{id}", s.requireAuth(s.handleGetOrder))
+	mux.HandleFunc("POST /api/v1/orders/{id}/dev-pay", s.requireAuth(s.handleDevPay))
+
+	// 深度报告(按次付费消费点)
+	mux.HandleFunc("POST /api/v1/ai/report", s.requireAuth(s.handleDeepReport))
+
+	// 命盘档案库
+	mux.HandleFunc("POST /api/v1/profiles", s.requireAuth(s.handleCreateProfile))
+	mux.HandleFunc("GET /api/v1/profiles", s.requireAuth(s.handleListProfiles))
+	mux.HandleFunc("GET /api/v1/profiles/{id}", s.requireAuth(s.handleGetProfile))
+	mux.HandleFunc("DELETE /api/v1/profiles/{id}", s.requireAuth(s.handleDeleteProfile))
+	mux.HandleFunc("POST /api/v1/profiles/{id}/default", s.requireAuth(s.handleSetDefaultProfile))
 
 	// 元信息
 	mux.HandleFunc("GET /api/v1/meta", s.handleMeta)

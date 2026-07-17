@@ -134,12 +134,13 @@ func migrationFiles() ([]string, error) {
 
 // User 用户主档。
 type User struct {
-	ID         string
-	Nickname   string
-	AvatarURL  string
-	Tier       string
-	Status     string
-	SessionVer int
+	ID            string
+	Nickname      string
+	AvatarURL     string
+	Tier          string
+	TierExpiresAt *time.Time // 会员到期(free 为 nil)
+	Status        string
+	SessionVer    int
 }
 
 // ErrNotFound 记录不存在。
@@ -149,10 +150,10 @@ var ErrNotFound = errors.New("record not found")
 func (s *Store) FindOrCreateUserByPhone(ctx context.Context, phone string) (*User, bool, error) {
 	var u User
 	err := s.pool.QueryRow(ctx, `
-		SELECT u.id, u.nickname, u.avatar_url, u.tier, u.status, u.session_ver
+		SELECT u.id, u.nickname, u.avatar_url, u.tier, u.tier_expires_at, u.status, u.session_ver
 		FROM user_identities i JOIN users u ON u.id = i.user_id
 		WHERE i.provider = 'phone' AND i.identifier = $1`, phone).
-		Scan(&u.ID, &u.Nickname, &u.AvatarURL, &u.Tier, &u.Status, &u.SessionVer)
+		Scan(&u.ID, &u.Nickname, &u.AvatarURL, &u.Tier, &u.TierExpiresAt, &u.Status, &u.SessionVer)
 	if err == nil {
 		return &u, false, nil
 	}
@@ -168,8 +169,8 @@ func (s *Store) FindOrCreateUserByPhone(ctx context.Context, phone string) (*Use
 
 	nickname := "星友" + phone[max(0, len(phone)-4):]
 	err = tx.QueryRow(ctx, `INSERT INTO users (nickname) VALUES ($1)
-		RETURNING id, nickname, avatar_url, tier, status, session_ver`, nickname).
-		Scan(&u.ID, &u.Nickname, &u.AvatarURL, &u.Tier, &u.Status, &u.SessionVer)
+		RETURNING id, nickname, avatar_url, tier, tier_expires_at, status, session_ver`, nickname).
+		Scan(&u.ID, &u.Nickname, &u.AvatarURL, &u.Tier, &u.TierExpiresAt, &u.Status, &u.SessionVer)
 	if err != nil {
 		return nil, false, err
 	}
@@ -193,9 +194,9 @@ func (s *Store) FindOrCreateUserByPhone(ctx context.Context, phone string) (*Use
 // GetUser 按 id 取用户。
 func (s *Store) GetUser(ctx context.Context, id string) (*User, error) {
 	var u User
-	err := s.pool.QueryRow(ctx, `SELECT id, nickname, avatar_url, tier, status, session_ver
+	err := s.pool.QueryRow(ctx, `SELECT id, nickname, avatar_url, tier, tier_expires_at, status, session_ver
 		FROM users WHERE id = $1`, id).
-		Scan(&u.ID, &u.Nickname, &u.AvatarURL, &u.Tier, &u.Status, &u.SessionVer)
+		Scan(&u.ID, &u.Nickname, &u.AvatarURL, &u.Tier, &u.TierExpiresAt, &u.Status, &u.SessionVer)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, ErrNotFound
 	}

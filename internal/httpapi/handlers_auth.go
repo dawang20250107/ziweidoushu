@@ -83,10 +83,11 @@ func (s *Server) handleSMSSend(w http.ResponseWriter, r *http.Request) {
 // userView 用户对外视图。
 func userView(u *store.User) map[string]any {
 	return map[string]any{
-		"id":       u.ID,
-		"nickname": u.Nickname,
-		"avatar":   u.AvatarURL,
-		"tier":     u.Tier,
+		"id":            u.ID,
+		"nickname":      u.Nickname,
+		"avatar":        u.AvatarURL,
+		"tier":          u.Tier,
+		"tierExpiresAt": u.TierExpiresAt,
 	}
 }
 

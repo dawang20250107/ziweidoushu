@@ -43,6 +43,8 @@ type Config struct {
 	JWTPrevSecret string
 	// SMSDevEchoCode dev 短信通道下把验证码回显到接口(仅本地/E2E,生产禁开)。
 	SMSDevEchoCode bool
+	// PayDevEnabled dev 支付渠道开关(模拟支付回调即时履约;仅本地/E2E,生产禁开)。
+	PayDevEnabled bool
 
 	AI ai.Config
 }
@@ -63,6 +65,7 @@ func FromEnv() Config {
 		JWTSecret:         os.Getenv("JWT_SECRET"),
 		JWTPrevSecret:     os.Getenv("JWT_SECRET_PREV"),
 		SMSDevEchoCode:    os.Getenv("SMS_DEV_ECHO_CODE") == "1",
+		PayDevEnabled:     os.Getenv("PAY_DEV_ENABLED") == "1",
 		AI:                ai.ConfigFromEnv(),
 	}
 }

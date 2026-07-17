@@ -35,6 +35,9 @@ func NewInterpreter(p Provider, kb *knowledge.Base, store *corpus.Store, cfg Con
 	}
 }
 
+// HasProvider 是否配置了真实 LLM 供应商(false = 只有规则化降级)。
+func (it *Interpreter) HasProvider() bool { return it.provider != nil }
+
 // ProviderName 当前供应商标识,降级模式返回 "fallback/rule-based"。
 func (it *Interpreter) ProviderName() string {
 	if it.provider == nil {

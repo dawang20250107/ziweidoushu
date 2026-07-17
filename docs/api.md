@@ -197,7 +197,69 @@ dev 短信通道 + `SMS_DEV_ECHO_CODE=1` 时附 `devCode`(仅本地)。
 
 ### GET /api/v1/me(需鉴权)
 
-`Authorization: Bearer <access>` → 用户信息(id/昵称/头像/会员层级)。
+`Authorization: Bearer <access>` → 用户信息(id/昵称/头像/会员层级/到期时间)。
+
+---
+
+## 变现:订阅 + 按次付费(需用户体系)
+
+商品双轨:`kind=subscription`(会员时长)与 `kind=credits`(次卡,如深度报告)。
+订单状态机:`created → paying → paid → fulfilled`;超时 `closed`、退款 `refunded`。
+金额一律服务端取自商品表,不信任客户端。
+
+### GET /api/v1/products
+
+上架商品列表 → `{products: [{id, title, kind, tier?, durationDays?, creditType?,
+creditAmount?, priceCents, originalPriceCents?}], devPayEnabled}`。
+
+### POST /api/v1/orders(需鉴权)
+
+`{productId}` → `{order, devPayEnabled}`。订单 2 小时未支付自动关闭。
+微信/支付宝渠道接入后在此返回 prepay 参数。
+
+### GET /api/v1/orders(需鉴权)/ GET /api/v1/orders/{id}(需鉴权)
+
+订单列表(近 50 条)/ 单个订单。
+
+### POST /api/v1/orders/{id}/dev-pay(需鉴权,仅 PAY_DEV_ENABLED=1)
+
+dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺延发放 /
+次数入账)。重复调用幂等。生产环境禁开。
+
+### GET /api/v1/me/entitlements(需鉴权)
+
+`{tier, entitlements: [{tier, startsAt, endsAt}], credits: {deep_report: n}}`。
+订阅续费顺延:新时段起点 = max(now, 当前同层级最晚到期)。
+
+### POST /api/v1/ai/report(需鉴权,消耗 1 次 deep_report)
+
+`{排盘字段, topic?}` → `{report, topic, remainingCredits}`。
+原子扣次 → 生成深度报告;AI 失败自动退还次数。未配置 LLM 时返回 503
+且不扣次数(付费报告不走规则化降级)。次数不足返回 402 `no_credits`。
+
+---
+
+## 命盘档案库(需鉴权)
+
+档案 = 生辰输入 + 排盘快照(引擎版本随存;版本升级后读取时自动按最新口径重排)。
+免费层最多 3 份,pro/master 不限。
+
+### POST /api/v1/profiles
+
+`{label, relation?, isDefault?, 排盘字段}` → `{profile}`。生辰不能排盘则 400;
+超出免费层上限返回 403 `profile_limit`。
+
+### GET /api/v1/profiles
+
+`{profiles: [不含快照的轻量列表], limit}`(limit=0 表示不限)。
+
+### GET /api/v1/profiles/{id}
+
+单个档案,含 `chartSnapshot`(命盘 + 格局)。
+
+### DELETE /api/v1/profiles/{id}
+
+软删除。`POST /api/v1/profiles/{id}/default` 设为默认档案。
 
 ## 运维
 
