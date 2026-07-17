@@ -80,18 +80,28 @@ export async function verifyCode(phone: string, code: string): Promise<AuthUser>
   return data.user;
 }
 
-/** 刷新访问令牌;失败即清会话。 */
-async function refreshAccess(): Promise<boolean> {
-  const refresh = localStorage.getItem(REFRESH_KEY);
-  if (!refresh) return false;
-  try {
-    const data = await post<{ tokens: TokenPair; user: AuthUser }>("/api/v1/auth/refresh", { refresh });
-    saveSession(data.tokens, data.user);
-    return true;
-  } catch {
-    clearSession();
-    return false;
-  }
+/** 刷新访问令牌;失败即清会话。
+ * 单飞:并发调用共享同一次刷新请求。refresh 是旋转式一次性令牌,
+ * 若并发各自刷新,第二个请求会触发服务端复用检测导致全端下线。 */
+let refreshInFlight: Promise<boolean> | null = null;
+
+function refreshAccess(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const refresh = localStorage.getItem(REFRESH_KEY);
+    if (!refresh) return false;
+    try {
+      const data = await post<{ tokens: TokenPair; user: AuthUser }>("/api/v1/auth/refresh", { refresh });
+      saveSession(data.tokens, data.user);
+      return true;
+    } catch {
+      clearSession();
+      return false;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+  return refreshInFlight;
 }
 
 export async function logout(): Promise<void> {

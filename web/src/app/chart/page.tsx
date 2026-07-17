@@ -21,6 +21,8 @@ export default function ChartPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [initialBirth, setInitialBirth] = useState<BirthInfo | null>(null);
+
   const runChart = useCallback(async (b: BirthInfo) => {
     setLoading(true);
     setError("");
@@ -39,6 +41,21 @@ export default function ChartPage() {
       setLoading(false);
     }
   }, []);
+
+  // 挂载时恢复最近一次排盘生辰并自动出盘(档案「载入排盘」/刷新续排共用 ziwei-birth 契约)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("ziwei-birth");
+      if (!raw) return;
+      const b = JSON.parse(raw) as BirthInfo;
+      if (typeof b?.year === "number" && b.year >= 1900 && b.year <= 2100 && b.gender) {
+        setInitialBirth(b);
+        void runChart(b);
+      }
+    } catch {
+      // 本地数据损坏则忽略,走空白表单
+    }
+  }, [runChart]);
 
   // 时间轴选择 → 拉运限(目标日取该年 7 月 15 日午时,避开农历年界)
   useEffect(() => {
@@ -62,7 +79,7 @@ export default function ChartPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <BirthForm loading={loading} onSubmit={runChart} />
+        <BirthForm key={initialBirth ? "restored" : "blank"} initial={initialBirth ?? undefined} loading={loading} onSubmit={runChart} />
         {data && birth && (
           <div className="flex flex-wrap items-center gap-2">
             <SaveProfileButton birth={birth} />
