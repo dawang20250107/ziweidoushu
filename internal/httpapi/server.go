@@ -118,6 +118,11 @@ func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *
 	// 深度报告(按次付费消费点)
 	mux.HandleFunc("POST /api/v1/ai/report", s.requireAuth(s.handleDeepReport))
 
+	// 占卜:起卦免费,AI 解卦按次付费
+	mux.HandleFunc("POST /api/v1/divination/meihua", s.handleMeihua)
+	mux.HandleFunc("POST /api/v1/divination/xiaoliuren", s.handleXiaoLiuRen)
+	mux.HandleFunc("POST /api/v1/ai/divine", s.requireAuth(s.handleDivineAI))
+
 	// 命盘档案库
 	mux.HandleFunc("POST /api/v1/profiles", s.requireAuth(s.handleCreateProfile))
 	mux.HandleFunc("GET /api/v1/profiles", s.requireAuth(s.handleListProfiles))

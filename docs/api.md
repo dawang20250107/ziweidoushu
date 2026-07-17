@@ -280,6 +280,29 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 `{bookSlug, chapterIdx, paragraphId, excerpt}` → `{bookmark}`(摘录截断 ≤200 字,
 同段重复添加幂等);`DELETE /api/v1/me/bookmarks/{id}` → `{deleted: true}`(仅本人)。
 
+## 占卜:梅花易数 + 小六壬
+
+起卦免费;AI 深度解卦按次付费(credit_type=divination,商品 divine_3/divine_10)。
+
+### POST /api/v1/divination/meihua
+
+`{method: "time"|"number", numbers?, castAt?, question?}` → `{result, castAt}`。
+时间起卦按服务端农历推演(年支+月+日→上卦,加时辰→下卦,总和取六余为动爻);
+数字起卦支持两数/三数式。result 含本卦/互卦/变卦/动爻/体用五行生克与吉凶倾向。
+`castAt` 须在近 24 小时内(防伪造历史卦)。正确性由邵康节观梅占黄金测试钉住。
+
+### POST /api/v1/divination/xiaoliuren
+
+小六壬快占(倪师《天纪》课堂教法):`{question?, castAt?}` →
+三步掐指落位(月/日/时)与断语(大安/留连/速喜/赤口/小吉/空亡)。
+
+### POST /api/v1/ai/divine(需鉴权,消耗 1 次 divination)
+
+`{method, numbers?, castAt?, question}`(question 必填)→
+`{result, reading, remainingCredits}`。服务端重推卦象(不信任客户端)、
+引语料 RAG 解卦;AI 失败自动退还;未配置 LLM 返回 503 不扣次;
+次数不足 402 `no_credits`。
+
 ## 研究语料(内部)
 
 `Book.research: true` 的语料(`research/books-json/`,经 `CORPUS_EXTERNAL_DIR`

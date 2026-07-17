@@ -8,6 +8,7 @@ import { UserMenu } from "./UserMenu";
 
 export const NAV_ITEMS = [
   { href: "/chart", label: "排盘" },
+  { href: "/divination", label: "问卦" },
   { href: "/heming", label: "合盘" },
   { href: "/library", label: "古籍" },
   { href: "/chat", label: "问星" },
