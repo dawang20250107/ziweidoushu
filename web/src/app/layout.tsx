@@ -23,6 +23,7 @@ const nav = [
   { href: "/chart", label: "排盘" },
   { href: "/library", label: "古籍" },
   { href: "/chat", label: "问星" },
+  { href: "/pricing", label: "定价" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

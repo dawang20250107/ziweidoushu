@@ -45,7 +45,22 @@ export function UserMenu() {
         )}
       </button>
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 w-32 rounded-[6px] bg-bg-overlay p-1 shadow-[0_0_0_1px_var(--line-strong),0_8px_24px_rgba(0,0,0,0.3)]">
+        <div className="absolute right-0 top-full z-50 mt-1 w-36 rounded-[6px] bg-bg-overlay p-1 shadow-[0_0_0_1px_var(--line-strong),0_8px_24px_rgba(0,0,0,0.3)]">
+          {[
+            { href: "/account", label: "我的账户" },
+            { href: "/profiles", label: "命盘档案" },
+            { href: "/reports", label: "深度报告" },
+          ].map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className="block rounded-[4px] px-3 py-1.5 text-[14px] text-ink-secondary transition-colors hover:bg-bg-raised hover:text-ink"
+            >
+              {item.label}
+            </Link>
+          ))}
+          <div className="mx-2 my-1 h-px bg-line" aria-hidden />
           <button
             type="button"
             onClick={async () => {

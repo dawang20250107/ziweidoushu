@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/dawang20250107/ziweidoushu/data"
 	"github.com/dawang20250107/ziweidoushu/internal/ai"
@@ -85,6 +86,24 @@ func main() {
 		}
 		deps = httpapi.Deps{Auth: authSvc, Store: st}
 		logger.Info("用户体系已启用", "sms", "dev(接入云厂商前不真实发送)")
+
+		// 后台任务:周期关闭超时未支付订单(多实例部署时重复执行无害)
+		go func() {
+			ticker := time.NewTicker(10 * time.Minute)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if n, err := st.CloseExpiredOrders(ctx); err != nil {
+						logger.Warn("关闭超时订单失败", "err", err)
+					} else if n > 0 {
+						logger.Info("已关闭超时订单", "count", n)
+					}
+				}
+			}
+		}()
 	}
 
 	srv := httpapi.New(cfg, logger, store, kb, interp, deps)
