@@ -125,6 +125,13 @@ func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *
 	mux.HandleFunc("DELETE /api/v1/profiles/{id}", s.requireAuth(s.handleDeleteProfile))
 	mux.HandleFunc("POST /api/v1/profiles/{id}/default", s.requireAuth(s.handleSetDefaultProfile))
 
+	// 古籍阅读:跨端续读进度 + 书签
+	mux.HandleFunc("GET /api/v1/me/reading", s.requireAuth(s.handleGetReading))
+	mux.HandleFunc("PUT /api/v1/me/reading/{slug}", s.requireAuth(s.handlePutReading))
+	mux.HandleFunc("GET /api/v1/me/bookmarks", s.requireAuth(s.handleListBookmarks))
+	mux.HandleFunc("POST /api/v1/me/bookmarks", s.requireAuth(s.handleAddBookmark))
+	mux.HandleFunc("DELETE /api/v1/me/bookmarks/{id}", s.requireAuth(s.handleDeleteBookmark))
+
 	// 元信息
 	mux.HandleFunc("GET /api/v1/meta", s.handleMeta)
 
