@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/dawang20250107/ziweidoushu/internal/ai"
+	"github.com/dawang20250107/ziweidoushu/internal/liuyao"
 	"github.com/dawang20250107/ziweidoushu/internal/meihua"
 	"github.com/dawang20250107/ziweidoushu/internal/store"
 )
@@ -15,10 +16,24 @@ import (
 // 起卦与卦象展示免费(引流);AI 深度解卦按次付费(credit_type=divination)。
 
 type divinationRequest struct {
-	Method   string `json:"method"`             // time | number
-	Numbers  []int  `json:"numbers,omitempty"`  // 数字起卦
-	CastAt   int64  `json:"castAt,omitempty"`   // 时间起卦时刻(unix 秒,缺省=当下)
+	Kind     string `json:"kind,omitempty"`     // meihua(默认)| liuyao
+	Method   string `json:"method"`             // 梅花:time | number;六爻:shake | tosses
+	Numbers  []int  `json:"numbers,omitempty"`  // 梅花数字起卦
+	Tosses   []int  `json:"tosses,omitempty"`   // 六爻:六爻背面数(自下而上,每爻 0-3)
+	CastAt   int64  `json:"castAt,omitempty"`   // 起卦时刻(unix 秒,缺省=当下)
 	Question string `json:"question,omitempty"` // 求测之事
+}
+
+// castTime 解析起卦时刻(近 24h 防伪造)。
+func castTime(castAt int64) (time.Time, error) {
+	at := time.Now()
+	if castAt > 0 {
+		at = time.Unix(castAt, 0)
+		if at.After(time.Now().Add(time.Minute)) || time.Since(at) > 24*time.Hour {
+			return at, errors.New("起卦时刻须在近 24 小时内")
+		}
+	}
+	return at, nil
 }
 
 // castMeihua 依请求重推卦象(服务端起卦,客户端不可伪造)。
@@ -31,13 +46,9 @@ func castMeihua(req divinationRequest) (*meihua.Result, error) {
 		}
 		return &r, nil
 	default: // time
-		at := time.Now()
-		if req.CastAt > 0 {
-			at = time.Unix(req.CastAt, 0)
-			// 起卦时刻只允许近 24h 内(防伪造历史卦与未来卦)
-			if at.After(time.Now().Add(time.Minute)) || time.Since(at) > 24*time.Hour {
-				return nil, errors.New("起卦时刻须在近 24 小时内")
-			}
+		at, err := castTime(req.CastAt)
+		if err != nil {
+			return nil, err
 		}
 		r, err := meihua.ByTime(at, req.Question)
 		if err != nil {
@@ -45,6 +56,36 @@ func castMeihua(req divinationRequest) (*meihua.Result, error) {
 		}
 		return &r, nil
 	}
+}
+
+// castLiuYao 六爻起卦(服务端摇卦或按用户报爻重现)。
+func castLiuYao(req divinationRequest) (*liuyao.Result, error) {
+	at, err := castTime(req.CastAt)
+	if err != nil {
+		return nil, err
+	}
+	if req.Method == "tosses" || len(req.Tosses) > 0 {
+		return liuyao.ByTosses(req.Tosses, at, req.Question)
+	}
+	return liuyao.Shake(at, req.Question)
+}
+
+// handleLiuYao 六爻摇卦(免费)。
+func (s *Server) handleLiuYao(w http.ResponseWriter, r *http.Request) {
+	var req divinationRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if len(req.Question) > 200 {
+		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
+		return
+	}
+	result, err := castLiuYao(req)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"result": result, "castAt": time.Now().Unix()})
 }
 
 // handleMeihua 梅花易数起卦(免费)。
@@ -111,9 +152,17 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "ai_unavailable", "AI 服务暂不可用,未扣次数")
 		return
 	}
-	result, err := castMeihua(req)
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
+	// 按占法起卦(服务端重推,客户端不可伪造)
+	var meihuaResult *meihua.Result
+	var liuyaoResult *liuyao.Result
+	var castErr error
+	if req.Kind == "liuyao" {
+		liuyaoResult, castErr = castLiuYao(req)
+	} else {
+		meihuaResult, castErr = castMeihua(req)
+	}
+	if castErr != nil {
+		writeError(w, http.StatusBadRequest, "cast_failed", castErr.Error())
 		return
 	}
 
@@ -127,7 +176,13 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.metrics.aiRequests.Add(1)
-	reading, err := s.interp.Divine(r.Context(), result, nil)
+	var reading ai.Result
+	var err error
+	if liuyaoResult != nil {
+		reading, err = s.interp.DivineLiuYao(r.Context(), liuyaoResult, nil)
+	} else {
+		reading, err = s.interp.Divine(r.Context(), meihuaResult, nil)
+	}
 	if err != nil {
 		s.metrics.aiErrors.Add(1)
 		if rerr := s.store.RefundCredit(context.WithoutCancel(r.Context()), claims.Sub, "divination", "refund:divine"); rerr != nil {
@@ -141,8 +196,12 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	credits, _ := s.store.CreditBalances(r.Context(), claims.Sub)
+	var resultAny any = meihuaResult
+	if liuyaoResult != nil {
+		resultAny = liuyaoResult
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"result":           result,
+		"result":           resultAny,
 		"reading":          reading,
 		"remainingCredits": credits["divination"],
 	})

@@ -54,6 +54,16 @@ func trigramByLines(lines [3]bool) Trigram {
 	panic("unreachable")
 }
 
+// TrigramByLines 三爻(自下而上)→ 八卦。供六爻等姊妹体系复用。
+func TrigramByLines(lines [3]bool) Trigram { return trigramByLines(lines) }
+
+// HexagramNameByNums 上卦/下卦先天数 → 六十四卦名。
+func HexagramNameByNums(upperN, lowerN int) string {
+	u := ((upperN-1)%8 + 8) % 8
+	l := ((lowerN-1)%8 + 8) % 8
+	return hexagramNames[u][l]
+}
+
 // hexagramNames 六十四卦名,[上卦先天数-1][下卦先天数-1]。
 var hexagramNames = [8][8]string{
 	{"乾为天", "天泽履", "天火同人", "天雷无妄", "天风姤", "天水讼", "天山遁", "天地否"},
