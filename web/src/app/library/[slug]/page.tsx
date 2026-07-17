@@ -71,8 +71,8 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
     : "";
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-8 md:py-12">
-      <nav className="mb-5 flex items-center gap-1.5 text-[13px] text-ink-faint" aria-label="面包屑">
+    <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 md:pt-16">
+      <nav className="mb-8 flex items-center gap-1.5 text-[13px] text-ink-faint" aria-label="面包屑">
         <Link href="/library" className="transition-colors hover:text-gold">
           书架
         </Link>
@@ -95,9 +95,10 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
 
       {book && (
         <>
-          <header className="border-b border-line pb-8">
-            <h1 className="font-display text-3xl font-semibold leading-tight text-ink">{book.title}</h1>
-            <div className="tnum mt-3 flex flex-wrap items-center gap-2.5 text-[13px] text-ink-secondary">
+          <header className="border-b border-line pb-10 md:pb-12">
+            <p className="text-[12px] tracking-[0.24em] text-gold">典籍</p>
+            <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.15] text-ink">{book.title}</h1>
+            <div className="tnum mt-4 flex flex-wrap items-center gap-2.5 text-[13px] text-ink-secondary">
               {book.dynasty && <span>{book.dynasty}</span>}
               {book.author && (
                 <>
@@ -113,17 +114,16 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
             </div>
 
             {book.intro && (
-              <p className="mt-5 font-reading text-[15px] leading-[1.9] text-ink-secondary">
+              <p className="mt-6 font-reading text-[15px] leading-[1.9] text-ink-secondary">
                 {book.intro}
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-3">
               {resumeChapter ? (
                 <Link
                   href={resumeHref}
-                  className="rounded-[6px] px-4 py-2 text-[14px] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)] transition-colors hover:text-gold-bright"
-                  style={{ background: "var(--gold-glow)" }}
+                  className="glow-gold inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-5 py-2.5 text-left text-[14px] font-semibold text-[#161206] transition-colors hover:bg-gold-bright"
                 >
                   继续阅读 · 第 {progress!.chapterIdx + 1} 章「{resumeChapter.title}」
                 </Link>
@@ -131,8 +131,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
                 book.chapters.length > 0 && (
                   <Link
                     href={`/library/${slug}/0`}
-                    className="rounded-[6px] px-4 py-2 text-[14px] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)] transition-colors hover:text-gold-bright"
-                    style={{ background: "var(--gold-glow)" }}
+                    className="glow-gold inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-5 py-2.5 text-[14px] font-semibold text-[#161206] transition-colors hover:bg-gold-bright"
                   >
                     开始阅读
                   </Link>
@@ -141,8 +140,8 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
             </div>
           </header>
 
-          <section className="mt-8" aria-label="目录">
-            <h2 className="mb-3 text-[12px] tracking-[0.24em] text-gold">目录</h2>
+          <section className="mt-14 md:mt-16" aria-label="目录">
+            <h2 className="mb-5 text-[12px] tracking-[0.24em] text-gold">目录</h2>
             <ol className="divide-y divide-line">
               {book.chapters.map((ch, i) => {
                 const current = progress?.chapterIdx === i;
@@ -150,7 +149,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
                   <li key={i}>
                     <Link
                       href={`/library/${slug}/${i}`}
-                      className="flex items-baseline gap-3 rounded-[6px] px-2 py-3 transition-colors hover:bg-bg-raised"
+                      className="flex items-baseline gap-3 rounded-[6px] px-3 py-4 transition-colors hover:bg-bg-raised"
                       aria-current={current ? "true" : undefined}
                     >
                       <span

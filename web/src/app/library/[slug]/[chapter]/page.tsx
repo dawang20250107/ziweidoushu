@@ -387,18 +387,19 @@ export default function ReaderPage({
 
         {data && (
           <div key={idx} className="palace-enter">
-            <header className="mb-8 text-center">
-              <p className="tnum text-[12px] tracking-[0.24em] text-gold">
+            <header className="mb-12 text-center md:mb-16">
+              <p className="tnum text-[12px] tracking-[0.28em] text-gold">
                 第 {idx + 1} / {total} 章
               </p>
-              <h1 className="mt-2 font-display text-2xl font-semibold text-ink">
+              <h1 className="mt-4 font-display text-[28px] font-semibold leading-tight text-ink md:text-[32px]">
                 {data.chapter.title}
               </h1>
               {data.chapter.subtitle && (
-                <p className="mt-1 font-reading text-[14px] text-ink-secondary">
+                <p className="mt-2 font-reading text-[14px] text-ink-secondary">
                   {data.chapter.subtitle}
                 </p>
               )}
+              <span className="mx-auto mt-6 block h-px w-10 bg-gold-dim" aria-hidden />
             </header>
 
             <div className="font-reading">
@@ -412,36 +413,43 @@ export default function ReaderPage({
               ))}
             </div>
 
-            <nav
-              className="mt-12 flex items-center justify-between gap-3 border-t border-line pt-6 font-body text-[14px]"
-              aria-label="章节导航"
-            >
-              {hasPrev ? (
+            <nav className="mt-16 border-t border-line pt-10 font-body" aria-label="章节导航">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {hasPrev ? (
+                  <Link
+                    href={prevHref}
+                    className="group flex min-h-[56px] flex-col justify-center rounded-[10px] bg-bg-raised px-5 py-3 shadow-[0_0_0_1px_var(--line)] transition-shadow hover:shadow-[0_0_0_1px_var(--gold-dim)]"
+                  >
+                    <span className="text-[11px] tracking-[0.2em] text-ink-faint">上一章</span>
+                    <span className="tnum mt-1 text-[14px] text-ink-secondary transition-colors group-hover:text-gold">
+                      ← 第 {idx} 章
+                    </span>
+                  </Link>
+                ) : (
+                  <span aria-hidden className="hidden sm:block" />
+                )}
+                {hasNext ? (
+                  <Link
+                    href={nextHref}
+                    className="group flex min-h-[56px] flex-col justify-center rounded-[10px] bg-bg-raised px-5 py-3 text-right shadow-[0_0_0_1px_var(--line)] transition-shadow hover:shadow-[0_0_0_1px_var(--gold-dim)]"
+                  >
+                    <span className="text-[11px] tracking-[0.2em] text-ink-faint">下一章</span>
+                    <span className="tnum mt-1 text-[14px] text-ink-secondary transition-colors group-hover:text-gold">
+                      第 {idx + 2} 章 →
+                    </span>
+                  </Link>
+                ) : (
+                  <span aria-hidden className="hidden sm:block" />
+                )}
+              </div>
+              <div className="mt-6 text-center">
                 <Link
-                  href={prevHref}
-                  className="rounded-[6px] px-3 py-2 text-ink-secondary transition-colors hover:text-gold"
+                  href={`/library/${slug}`}
+                  className="inline-flex min-h-[44px] items-center rounded-[6px] px-4 text-[13px] text-ink-faint transition-colors hover:text-gold"
                 >
-                  ← 上一章
+                  返回目录
                 </Link>
-              ) : (
-                <span aria-hidden />
-              )}
-              <Link
-                href={`/library/${slug}`}
-                className="rounded-[6px] px-3 py-2 text-ink-faint transition-colors hover:text-gold"
-              >
-                目录
-              </Link>
-              {hasNext ? (
-                <Link
-                  href={nextHref}
-                  className="rounded-[6px] px-3 py-2 text-ink-secondary transition-colors hover:text-gold"
-                >
-                  下一章 →
-                </Link>
-              ) : (
-                <span aria-hidden />
-              )}
+              </div>
             </nav>
           </div>
         )}
