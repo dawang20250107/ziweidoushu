@@ -20,6 +20,7 @@ import { ReportText } from "@/components/profiles/ReportText";
 import { HexagramView } from "@/components/divination/HexagramView";
 import { CastRitual } from "@/components/divination/CastRitual";
 import { ShakeRitual } from "@/components/divination/ShakeRitual";
+import { StepShake } from "@/components/divination/StepShake";
 import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
 import { XiaoLiuRen } from "@/components/divination/XiaoLiuRen";
 import { toneBadgeClass } from "@/components/divination/tone";
@@ -27,7 +28,13 @@ import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
 type Kind = "meihua" | "liuyao";
 type CastMethod = "time" | "number";
-type LiuYaoMethod = "shake" | "tosses";
+type LiuYaoMethod = "step" | "shake" | "tosses";
+
+const LY_METHOD_LABEL: Record<LiuYaoMethod, string> = {
+  step: "逐爻摇卦",
+  shake: "铜钱摇卦",
+  tosses: "手动报爻",
+};
 
 type AiErr =
   | { kind: "unauth" }
@@ -63,7 +70,7 @@ export default function DivinationPage() {
   const [question, setQuestion] = useState("");
   const [kind, setKind] = useState<Kind>("meihua");
   const [method, setMethod] = useState<CastMethod>("time");
-  const [lyMethod, setLyMethod] = useState<LiuYaoMethod>("shake");
+  const [lyMethod, setLyMethod] = useState<LiuYaoMethod>("step");
   const [numA, setNumA] = useState("");
   const [numB, setNumB] = useState("");
   const [lyTosses, setLyTosses] = useState<(number | null)[]>(Array(6).fill(null)); // 报爻:初爻→上爻
@@ -132,8 +139,10 @@ export default function DivinationPage() {
   const inputsValid =
     kind === "meihua"
       ? method === "time" || (validNum(numA) !== null && validNum(numB) !== null)
-      : lyMethod === "shake" || lyTosses.every((t) => t !== null);
+      : lyMethod !== "tosses" || lyTosses.every((t) => t !== null);
   const canCast = question.trim().length > 0 && inputsValid && !casting;
+  // 逐爻摇卦由 StepShake 自带掷爻按钮驱动,主 CTA 隐藏
+  const showMainCta = !(kind === "liuyao" && lyMethod === "step");
 
   const cast = useCallback(async () => {
     const q = question.trim();
@@ -190,6 +199,29 @@ export default function DivinationPage() {
       setCasting(false);
     }
   }, [question, kind, method, lyMethod, numA, numB, lyTosses, casting]);
+
+  // 逐爻摇卦完成:按六掷记录装卦(每掷动画即仪式,不再叠加整体动效)
+  const castStep = useCallback(
+    async (tosses: number[]) => {
+      const q = question.trim();
+      if (!q || casting) return;
+      setCasting(true);
+      setCastError(null);
+      setReading(null);
+      setAiError(null);
+      try {
+        const { result: r, castAt: at } = await castLiuYao({ method: "tosses", tosses, question: q });
+        setLyResult(r);
+        setLyCastAt(at);
+      } catch (e) {
+        setLyResult(null);
+        setCastError(e instanceof DivinationError ? e.message : "起卦失败,请重试");
+      } finally {
+        setCasting(false);
+      }
+    },
+    [question, casting],
+  );
 
   const divine = useCallback(async () => {
     if (aiLoading) return;
@@ -315,9 +347,18 @@ export default function DivinationPage() {
           ) : (
             <>
               <div className="flex flex-wrap gap-2">
-                <MethodTab active={lyMethod === "shake"} onClick={() => setLyMethod("shake")} title="一键摇卦" hint="铜钱六掷 · 主推" />
+                <MethodTab active={lyMethod === "step"} onClick={() => setLyMethod("step")} title="逐爻摇卦" hint="铜钱六掷 · 主推" />
+                <MethodTab active={lyMethod === "shake"} onClick={() => setLyMethod("shake")} title="一键摇卦" hint="六爻齐落" />
                 <MethodTab active={lyMethod === "tosses"} onClick={() => setLyMethod("tosses")} title="手动报爻" hint="自摇铜钱按爻录入" />
               </div>
+              {lyMethod === "step" && (
+                <StepShake
+                  key={lyCastAt ?? "fresh"}
+                  canThrow={question.trim().length > 0 && !casting}
+                  disabledHint="先写下所问之事,方可掷爻。"
+                  onComplete={castStep}
+                />
+              )}
               {lyMethod === "tosses" && (
                 <TossEntry tosses={lyTosses} onChange={setLyTosses} />
               )}
@@ -325,23 +366,27 @@ export default function DivinationPage() {
           )}
         </div>
 
-        {/* 起卦按钮(本区唯一金色辉光主 CTA) */}
+        {/* 起卦按钮(本区唯一金色辉光主 CTA;逐爻摇卦时由掷爻按钮承担) */}
         <div className="mt-7 flex flex-col items-start gap-2.5">
-          <button
-            type="button"
-            onClick={cast}
-            disabled={!canCast}
-            className="glow-gold inline-flex min-h-[48px] w-full items-center justify-center rounded-[6px] bg-gold px-8 py-3 text-[16px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-45 disabled:shadow-none sm:w-auto"
-          >
-            {casting ? meta.casting : meta.cta}
-          </button>
-          {!question.trim() && <p className="text-[12px] text-ink-faint">先写下所问之事,方可起卦。</p>}
+          {showMainCta && (
+            <button
+              type="button"
+              onClick={cast}
+              disabled={!canCast}
+              className="glow-gold inline-flex min-h-[48px] w-full items-center justify-center rounded-[6px] bg-gold px-8 py-3 text-[16px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-45 disabled:shadow-none sm:w-auto"
+            >
+              {casting ? meta.casting : meta.cta}
+            </button>
+          )}
+          {showMainCta && !question.trim() && (
+            <p className="text-[12px] text-ink-faint">先写下所问之事,方可起卦。</p>
+          )}
           {castError && <p className="text-[13px] text-danger">{castError}</p>}
         </div>
       </section>
 
-      {/* ── 起卦动效 ── */}
-      {casting && (kind === "liuyao" ? <ShakeRitual /> : <CastRitual />)}
+      {/* ── 起卦动效(逐爻摇卦的仪式在掷钱本身,不再叠加) ── */}
+      {casting && (kind === "liuyao" ? (lyMethod === "step" ? null : <ShakeRitual />) : <CastRitual />)}
 
       {/* ── 卦象展示 ── */}
       {kind === "meihua" && result && !casting && (
@@ -396,7 +441,7 @@ export default function DivinationPage() {
           {/* 起卦信息 */}
           <div className="flex flex-col gap-2">
             <div className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
-              <span>{lyMethod === "tosses" ? "手动报爻" : "铜钱摇卦"}</span>
+              <span>{LY_METHOD_LABEL[lyMethod]}</span>
               <span>· 六爻纳甲</span>
             </div>
             {lyResult.question && (
