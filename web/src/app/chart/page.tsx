@@ -8,6 +8,7 @@ import { BirthForm } from "@/components/chart/BirthForm";
 import { ChartBoard } from "@/components/chart/ChartBoard";
 import { DetailPanel } from "@/components/chart/DetailPanel";
 import { TimelineBar, type TimelineSelection } from "@/components/chart/TimelineBar";
+import { SaveProfileButton } from "@/components/profiles/SaveProfileButton";
 
 /** 排盘工作台:盘面 + 运限时间轴 + 宫位详情。 */
 export default function ChartPage() {
@@ -62,23 +63,26 @@ export default function ChartPage() {
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <BirthForm loading={loading} onSubmit={runChart} />
-        {data && (
-          <div className="flex overflow-hidden rounded-[6px] shadow-[inset_0_0_0_1px_var(--line)]" role="radiogroup" aria-label="显示密度">
-            {(Object.keys(DENSITY_LABELS) as Density[]).map((d) => (
-              <button
-                key={d}
-                type="button"
-                role="radio"
-                aria-checked={density === d}
-                onClick={() => setDensity(d)}
-                className={[
-                  "px-3 py-1.5 text-[13px] transition-colors",
-                  density === d ? "bg-gold font-medium text-[#161206]" : "bg-bg-raised text-ink-secondary hover:text-ink",
-                ].join(" ")}
-              >
-                {DENSITY_LABELS[d]}
-              </button>
-            ))}
+        {data && birth && (
+          <div className="flex flex-wrap items-center gap-2">
+            <SaveProfileButton birth={birth} />
+            <div className="flex overflow-hidden rounded-[6px] shadow-[inset_0_0_0_1px_var(--line)]" role="radiogroup" aria-label="显示密度">
+              {(Object.keys(DENSITY_LABELS) as Density[]).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  role="radio"
+                  aria-checked={density === d}
+                  onClick={() => setDensity(d)}
+                  className={[
+                    "px-3 py-1.5 text-[13px] transition-colors",
+                    density === d ? "bg-gold font-medium text-[#161206]" : "bg-bg-raised text-ink-secondary hover:text-ink",
+                  ].join(" ")}
+                >
+                  {DENSITY_LABELS[d]}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
