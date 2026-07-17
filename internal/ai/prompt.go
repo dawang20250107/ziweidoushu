@@ -118,6 +118,10 @@ func ChartSummary(c *ziwei.Chart) string {
 	sb.WriteString(fmt.Sprintf("- 农历:%s(四柱:%s %s %s %s)\n", c.LunarDateText,
 		c.FourPillars.Year, c.FourPillars.Month, c.FourPillars.Day, c.FourPillars.Hour))
 	sb.WriteString(fmt.Sprintf("- 五行局:%s|命主:%s|身主:%s|生肖:%s\n", c.WuxingJuName, c.MingZhu, c.ShenZhu, c.Zodiac))
+	if c.SiZhu != nil && c.SiZhu.GeJu != nil {
+		sb.WriteString(fmt.Sprintf("- 四柱视角:日主%s%s,月令%s(%s;%s)\n",
+			c.SiZhu.DayMaster, c.SiZhu.DayMasterElement, c.SiZhu.GeJu.Name, c.SiZhu.GeJu.Basis, c.SiZhu.GeJu.Source))
+	}
 	sb.WriteString(fmt.Sprintf("- 命宫:%s宫|身宫:%s宫\n", ziwei.Branches[c.MingGongBranch], ziwei.Branches[c.ShenGongBranch]))
 	if c.CurrentDaXianIndex >= 0 && c.CurrentDaXianIndex < len(c.DaXians) {
 		dx := c.DaXians[c.CurrentDaXianIndex]

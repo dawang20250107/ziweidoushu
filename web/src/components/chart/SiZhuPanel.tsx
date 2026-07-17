@@ -40,7 +40,7 @@ export function SiZhuPanel({ siZhu }: { siZhu: SiZhuView }) {
         aria-expanded={open}
         className="flex min-h-[52px] w-full items-center justify-between px-5 py-3 text-left"
       >
-        <span className="flex items-baseline gap-3">
+        <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <span className="text-[12px] tracking-[0.24em] text-gold">四柱视角</span>
           <span className="text-[13px] text-ink-faint">
             八字与紫微同源同盘 · 日主
@@ -48,6 +48,11 @@ export function SiZhuPanel({ siZhu }: { siZhu: SiZhuView }) {
               {siZhu.dayMaster}{siZhu.dayMasterElement}
             </span>
           </span>
+          {siZhu.geJu && (
+            <span className="rounded-[3px] px-1.5 py-0.5 text-[11px] leading-none text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
+              月令{siZhu.geJu.name}
+            </span>
+          )}
         </span>
         <svg
           width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -90,6 +95,21 @@ export function SiZhuPanel({ siZhu }: { siZhu: SiZhuView }) {
               </div>
             ))}
           </div>
+
+          {/* 月令取格(子平真诠) */}
+          {siZhu.geJu && (
+            <div className="mt-5 rounded-[8px] bg-bg px-4 py-4 shadow-[inset_0_0_0_1px_var(--line)]">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-[12px] tracking-[0.08em] text-ink-faint">月令取格</span>
+                <span className="font-display text-[17px] font-semibold text-ink">{siZhu.geJu.name}</span>
+                <span className="text-[12px] text-ink-faint">{siZhu.geJu.basis}</span>
+              </div>
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-secondary">{siZhu.geJu.note}</p>
+              <p className="mt-1.5 text-[11px] text-ink-faint">
+                {siZhu.geJu.source} · 取格述格局之体,吉凶成败仍须通盘参详
+              </p>
+            </div>
+          )}
 
           {/* 五行分布 */}
           <div className="mt-5">

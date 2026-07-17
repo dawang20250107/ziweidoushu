@@ -84,11 +84,18 @@ export interface SiZhuPillar {
   hidden: HiddenStem[];
   naYin: string;
 }
+export interface SiZhuGeJu {
+  name: string; // 正官格/七杀格/…/建禄格/阳刃格/月劫格/杂气月垣
+  basis: string; // 取格依据
+  note: string; // 格局大意(子平真诠)
+  source: string; // 出处
+}
 export interface SiZhuView {
   dayMaster: string;
   dayMasterElement: string;
   pillars: SiZhuPillar[];
   elementCount: Record<string, number>;
+  geJu?: SiZhuGeJu;
 }
 
 export interface Chart {

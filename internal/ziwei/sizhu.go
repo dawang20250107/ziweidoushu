@@ -21,6 +21,14 @@ type SiZhuPillar struct {
 	NaYin         string       `json:"naYin"`
 }
 
+// SiZhuGeJu 月令取格(《子平真诠》法:八字用神专求月令)。
+type SiZhuGeJu struct {
+	Name   string `json:"name"`   // 正官格/七杀格/…/建禄格/阳刃格/月劫格/杂气月垣
+	Basis  string `json:"basis"`  // 取格依据(本气秉令/本气不透取透干/禄刃)
+	Note   string `json:"note"`   // 格局大意(据子平真诠,非吉凶断定)
+	Source string `json:"source"` // 古籍出处
+}
+
 // SiZhuView 四柱视角。
 type SiZhuView struct {
 	DayMaster        string         `json:"dayMaster"` // 日干
@@ -28,6 +36,7 @@ type SiZhuView struct {
 	Pillars          [4]SiZhuPillar `json:"pillars"`
 	// ElementCount 八字五行分布(四天干 + 四地支本气,共 8 字)。
 	ElementCount map[string]int `json:"elementCount"`
+	GeJu         *SiZhuGeJu     `json:"geJu,omitempty"`
 }
 
 var (
@@ -99,6 +108,82 @@ func shiShen(dayStem, other int) string {
 	}
 }
 
+// ── 月令取格(子平真诠) ─────────────────────────────
+
+// 禄位:甲寅 乙卯 丙巳 丁午 戊巳 己午 庚申 辛酉 壬亥 癸子
+var luBranch = []int{2, 3, 5, 6, 5, 6, 8, 9, 11, 0}
+
+// 阳刃位(阳干):甲卯 丙午 戊午 庚酉 壬子
+var renBranch = map[int]int{0: 3, 2: 6, 4: 6, 6: 9, 8: 0}
+
+// geJuNotes 各格大意与出处(据《子平真诠》诸论,描述取用喜忌倾向,非吉凶断定)。
+var geJuNotes = map[string][2]string{
+	"正官格": {"官星卫身,贵气所系;喜财印相辅、日主健旺,忌伤官克官、刑冲月令。", "《子平真诠·论正官》"},
+	"七杀格": {"杀以攻身,制合得宜反成大贵;喜食神制杀、印绶化杀,忌财党杀而无制。", "《子平真诠·论偏官》"},
+	"正财格": {"财为养命之源;喜身强任财、食伤生财,忌比劫分夺、月令逢冲。", "《子平真诠·论财》"},
+	"偏财格": {"众人之财,善营豪爽;亦须身旺,喜食伤相生,忌劫刃夺财。", "《子平真诠·论财》"},
+	"正印格": {"印绶生身,主庇荫文贵;喜官杀相生、身弱得印,忌财星坏印。", "《子平真诠·论印绶》"},
+	"偏印格": {"枭印机敏孤介;喜以财损印取贵、杀印相生,忌枭神夺食同透。", "《子平真诠·论印绶》"},
+	"食神格": {"食神吐秀,福寿之征;喜生财、身旺,忌偏印夺食、财官并夺其秀。", "《子平真诠·论食神》"},
+	"伤官格": {"伤官秀气所钟,配印或生财则贵;最忌伤官见官,为祸百端。", "《子平真诠·论伤官》"},
+	"建禄格": {"月令建禄,身旺不以禄为用,须于财官食伤中别求用神。", "《子平真诠·论建禄月劫》"},
+	"阳刃格": {"刃者身强之极,喜官杀制刃成威权之贵,忌刃重无制、刃冲岁运。", "《子平真诠·论阳刃》"},
+	"月劫格": {"月劫同建禄论,身旺帮扶有余,别求财官食伤为用。", "《子平真诠·论建禄月劫》"},
+	"杂气月垣": {"四库杂气,财官印所藏;喜所藏之神透干清格,忌壅塞不透。", "《子平真诠·论杂格》"},
+}
+
+// deriveGeJu 依月支藏干定格:本气非比劫则取本气(本气不透而他藏透干者取透者);
+// 本气为比劫则依禄位/刃位论建禄/阳刃/月劫;土日主逢四库月按杂气透干取格。
+func deriveGeJu(dayStem, monthBranch int, transparent map[rune]bool) *SiZhuGeJu {
+	hidden := hiddenStems[monthBranch]
+	benQi := stemIndex(hidden[0])
+	benSS := shiShen(dayStem, benQi)
+
+	mk := func(name, basis string) *SiZhuGeJu {
+		n := geJuNotes[name]
+		return &SiZhuGeJu{Name: name, Basis: basis, Note: n[0], Source: n[1]}
+	}
+
+	if benSS == "比肩" || benSS == "劫财" {
+		if luBranch[dayStem] == monthBranch {
+			return mk("建禄格", "月支为日主禄位")
+		}
+		if rb, ok := renBranch[dayStem]; ok && rb == monthBranch {
+			return mk("阳刃格", "月支为日主刃位")
+		}
+		// 土日主逢辰戌丑未等:杂气,取透干之藏神为格
+		for _, hr := range hidden[1:] {
+			if transparent[hr] {
+				g := mk(shiShen(dayStem, stemIndex(hr))+"格", "杂气月垣,"+string(hr)+"透干取格")
+				return g
+			}
+		}
+		if benSS == "劫财" {
+			return mk("月劫格", "月支本气为劫财")
+		}
+		return mk("杂气月垣", "所藏之神皆不透干")
+	}
+
+	// 本气透干,或月令唯一藏干:径取本气
+	if transparent[hidden[0]] || len(hidden) == 1 {
+		basis := "月支本气秉令"
+		if transparent[hidden[0]] {
+			basis = "月支本气透干"
+		}
+		return mk(benSS+"格", basis)
+	}
+	// 本气不透:取透出之中气/余气(子平真诠:以透出者为格)
+	for _, hr := range hidden[1:] {
+		hs := stemIndex(hr)
+		ss := shiShen(dayStem, hs)
+		if transparent[hr] && ss != "比肩" && ss != "劫财" {
+			return mk(ss+"格", "本气不透,取透干之"+string(hr)+"为格")
+		}
+	}
+	// 皆不透:仍以本气论
+	return mk(benSS+"格", "藏神皆不透,仍以本气论")
+}
+
 // naYin 干支 → 纳音(六十甲子序)。
 func naYin(stem, branch int) string {
 	for j := 0; j < 60; j++ {
@@ -163,5 +248,13 @@ func buildSiZhu(fp FourPillars) *SiZhuView {
 		view.ElementCount[p.BranchElement]++
 		view.Pillars[i] = p
 	}
+
+	// 月令取格:透干以年/月/时三天干论(日干为日主自身,不计)
+	monthBranch := branchIndex([]rune(fp.Month)[1])
+	transparent := map[rune]bool{}
+	for _, i := range []int{0, 1, 3} {
+		transparent[[]rune(pillarStrs[i])[0]] = true
+	}
+	view.GeJu = deriveGeJu(dayStem, monthBranch, transparent)
 	return view
 }
