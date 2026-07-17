@@ -174,6 +174,7 @@ export const TIER_LABEL: Record<Tier, string> = {
 /** 次卡类型中文名。 */
 export const CREDIT_LABEL: Record<string, string> = {
   deep_report: "深度报告",
+  divination: "AI 解卦",
 };
 
 export function creditLabel(type?: string): string {
