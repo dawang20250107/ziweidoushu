@@ -9,6 +9,8 @@ import { BirthForm } from "@/components/chart/BirthForm";
 import { ChartBoard } from "@/components/chart/ChartBoard";
 import { DetailPanel } from "@/components/chart/DetailPanel";
 import { TimelineBar, type TimelineSelection } from "@/components/chart/TimelineBar";
+import { SiZhuPanel } from "@/components/chart/SiZhuPanel";
+import { LuopanCast } from "@/components/chart/LuopanCast";
 import { SaveProfileButton } from "@/components/profiles/SaveProfileButton";
 
 /** 排盘工作台:盘面 + 运限时间轴 + 宫位详情。 */
@@ -21,6 +23,7 @@ export default function ChartPage() {
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [casting, setCasting] = useState(false); // 罗盘起盘仪式中
 
   const [initialBirth, setInitialBirth] = useState<BirthInfo | null>(null);
 
@@ -42,6 +45,19 @@ export default function ChartPage() {
       setLoading(false);
     }
   }, []);
+
+  // 手动排盘:星光击罗盘仪式(≥1.8s);恢复路径与 reduced-motion 直出
+  const castChart = useCallback(async (b: BirthInfo) => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      await runChart(b);
+      return;
+    }
+    setCasting(true);
+    const minShow = new Promise((r) => setTimeout(r, 1800));
+    await Promise.all([runChart(b), minShow]);
+    setCasting(false);
+  }, [runChart]);
 
   // 挂载时恢复最近一次排盘生辰并自动出盘(档案「载入排盘」/刷新续排共用 ziwei-birth 契约)
   useEffect(() => {
@@ -94,7 +110,7 @@ export default function ChartPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <BirthForm key={initialBirth ? "restored" : "blank"} initial={initialBirth ?? undefined} loading={loading} onSubmit={runChart} />
+        <BirthForm key={initialBirth ? "restored" : "blank"} initial={initialBirth ?? undefined} loading={loading} onSubmit={castChart} />
         {data && birth && (
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -168,8 +184,13 @@ export default function ChartPage() {
             </div>
             <DetailPanel chart={data.chart} patterns={data.patterns ?? []} selectedBranch={selectedBranch} />
           </div>
+
+          {/* 四柱视角:八字附加层(可折叠) */}
+          {data.chart.siZhu && <SiZhuPanel siZhu={data.chart.siZhu} />}
         </div>
       )}
+
+      {casting && <LuopanCast />}
     </div>
   );
 }

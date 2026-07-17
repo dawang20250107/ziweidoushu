@@ -68,11 +68,35 @@ export interface BirthInfo {
   longitude?: number;
 }
 
+// ── 四柱视角(八字附加层)────────────────────────────
+export interface HiddenStem {
+  stem: string;
+  element: string;
+  shiShen: string;
+}
+export interface SiZhuPillar {
+  name: string;
+  stem: string;
+  branch: string;
+  stemElement: string;
+  branchElement: string;
+  stemShiShen: string; // 日柱为「日主」
+  hidden: HiddenStem[];
+  naYin: string;
+}
+export interface SiZhuView {
+  dayMaster: string;
+  dayMasterElement: string;
+  pillars: SiZhuPillar[];
+  elementCount: Record<string, number>;
+}
+
 export interface Chart {
   birthInfo: BirthInfo;
   lunarInfo: LunarInfo;
   lunarDateText: string;
   fourPillars: FourPillars;
+  siZhu?: SiZhuView;
   timeName: string;
   zodiac: string;
   sign: string;

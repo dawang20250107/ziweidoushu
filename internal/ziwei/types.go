@@ -120,6 +120,8 @@ type Chart struct {
 	// LunarDateText 农历中文表示,如「一九九〇年五月廿三」。
 	LunarDateText string      `json:"lunarDateText"`
 	FourPillars   FourPillars `json:"fourPillars"`
+	// SiZhu 四柱视角(八字附加层:五行/十神/藏干/纳音),由四柱推导。
+	SiZhu *SiZhuView `json:"siZhu,omitempty"`
 	TimeName      string      `json:"timeName"` // 如「午时」
 	Zodiac        string      `json:"zodiac"`   // 生肖
 	Sign          string      `json:"sign"`     // 星座

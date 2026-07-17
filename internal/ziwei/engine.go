@@ -187,6 +187,7 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 		CurrentAge:         currentAge,
 		CurrentDaXianIndex: currentDX,
 	}
+	chart.SiZhu = buildSiZhu(chart.FourPillars) // 四柱视角(八字同源附加层)
 	return chart, nil
 }
 
