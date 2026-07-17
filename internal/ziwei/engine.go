@@ -99,6 +99,9 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 	palaces := make([]Palace, 12)
 	for i := 0; i < 12; i++ { // i 为宫位索引(寅=0)
 		branch := palaceIndexToBranch(i)
+		if stars[i] == nil {
+			stars[i] = []Star{} // 契约:空宫输出 [] 而非 null(前端可直接迭代)
+		}
 		p := Palace{
 			Branch:         branch,
 			Stem:           fix10(startStem + i),

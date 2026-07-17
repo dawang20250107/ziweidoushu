@@ -83,7 +83,7 @@ export function groupStars(stars: Star[]): {
   const major: Star[] = [];
   const assist: Star[] = [];
   const adjective: Star[] = [];
-  for (const s of stars) {
+  for (const s of stars ?? []) {
     if (s.type === "major") major.push(s);
     else if (s.type === "lucky" || s.type === "sha") assist.push(s);
     else adjective.push(s);
