@@ -5,16 +5,20 @@ import { useRouter } from "next/navigation";
 import { fetchBooks, ApiError } from "@/lib/api";
 import type { BookMeta } from "@/lib/types";
 import { SearchBox } from "@/components/library/SearchBox";
-import { BookCard } from "@/components/library/BookCard";
+import { BookCard, type CardProgress } from "@/components/library/BookCard";
 import { SkeletonCard } from "@/components/library/Skeleton";
+import { loadProgress } from "@/components/library/prefs";
+import { AUTH_EVENT, currentUser } from "@/lib/auth";
+import { listReadingProgress } from "@/lib/reading";
 
-/** 书架:典籍卡片网格 + 顶部检索入口(回车跳检索页)。 */
+/** 书架:典籍卡片网格 + 顶部检索入口(回车跳检索页)+ 每本书阅读进度。 */
 export default function LibraryPage() {
   const router = useRouter();
   const [q, setQ] = useState("");
   const [books, setBooks] = useState<BookMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [progressMap, setProgressMap] = useState<Record<string, CardProgress>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -32,6 +36,45 @@ export default function LibraryPage() {
       cancelled = true;
     };
   }, []);
+
+  // 进度:登录取服务端(跨端),未登录取本地。登录态变化即重算。
+  useEffect(() => {
+    if (books.length === 0) return;
+    let cancelled = false;
+
+    const computeLocal = () => {
+      const map: Record<string, CardProgress> = {};
+      for (const b of books) {
+        const p = loadProgress(b.slug);
+        if (p) map[b.slug] = { chapterIdx: p.chapterIdx, paragraphId: p.paragraphId };
+      }
+      if (!cancelled) setProgressMap(map);
+    };
+
+    const sync = () => {
+      if (currentUser()) {
+        listReadingProgress()
+          .then((list) => {
+            if (cancelled) return;
+            const map: Record<string, CardProgress> = {};
+            for (const p of list) {
+              map[p.bookSlug] = { chapterIdx: p.chapterIdx, paragraphId: p.paragraphId };
+            }
+            setProgressMap(map);
+          })
+          .catch(() => computeLocal());
+      } else {
+        computeLocal();
+      }
+    };
+
+    sync();
+    window.addEventListener(AUTH_EVENT, sync);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(AUTH_EVENT, sync);
+    };
+  }, [books]);
 
   function toSearch(query: string) {
     const s = query.trim();
@@ -71,7 +114,7 @@ export default function LibraryPage() {
       {!loading && books.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2">
           {books.map((b) => (
-            <BookCard key={b.slug} book={b} />
+            <BookCard key={b.slug} book={b} progress={progressMap[b.slug] ?? null} />
           ))}
         </div>
       )}

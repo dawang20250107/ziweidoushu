@@ -261,6 +261,25 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 软删除。`POST /api/v1/profiles/{id}/default` 设为默认档案。
 
+---
+
+## 古籍阅读:跨端续读 + 书签(需鉴权)
+
+### GET /api/v1/me/reading
+
+`{progress: [{bookSlug, chapterIdx, paragraphId, updatedAt}]}`(按最近阅读排序)。
+
+### PUT /api/v1/me/reading/{slug}
+
+`{chapterIdx, paragraphId}` → `{ok: true}`。同书 upsert;前端滚动节流 ≥2s 上报,
+离开章节补发最后位置。未登录时前端以 localStorage 本地记忆兜底。
+
+### GET /api/v1/me/bookmarks?book={slug?}
+
+书签列表(可按书过滤)。`POST /api/v1/me/bookmarks`
+`{bookSlug, chapterIdx, paragraphId, excerpt}` → `{bookmark}`(摘录截断 ≤200 字,
+同段重复添加幂等);`DELETE /api/v1/me/bookmarks/{id}` → `{deleted: true}`(仅本人)。
+
 ## 运维
 
 | 接口 | 说明 |

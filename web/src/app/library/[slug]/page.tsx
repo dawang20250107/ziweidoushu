@@ -6,6 +6,8 @@ import { fetchBook, ApiError } from "@/lib/api";
 import type { Book } from "@/lib/types";
 import { loadProgress, type ReadingProgress } from "@/components/library/prefs";
 import { SkeletonLines } from "@/components/library/Skeleton";
+import { AUTH_EVENT, currentUser } from "@/lib/auth";
+import { listReadingProgress } from "@/lib/reading";
 
 /** 书详情:简介 + 目录(各章段落数)+「继续阅读」(localStorage 进度)。 */
 export default function BookDetailPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -34,8 +36,30 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
     };
   }, [slug]);
 
+  // 进度:登录取服务端(跨端续读),未登录或失败取本地。登录态变化即重算。
   useEffect(() => {
-    setProgress(loadProgress(slug));
+    let cancelled = false;
+    const sync = () => {
+      if (currentUser()) {
+        listReadingProgress()
+          .then((list) => {
+            if (cancelled) return;
+            const hit = list.find((p) => p.bookSlug === slug);
+            setProgress(hit ? { chapterIdx: hit.chapterIdx, paragraphId: hit.paragraphId } : loadProgress(slug));
+          })
+          .catch(() => {
+            if (!cancelled) setProgress(loadProgress(slug));
+          });
+      } else {
+        setProgress(loadProgress(slug));
+      }
+    };
+    sync();
+    window.addEventListener(AUTH_EVENT, sync);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(AUTH_EVENT, sync);
+    };
   }, [slug]);
 
   const totalParagraphs = book?.chapters.reduce((n, c) => n + c.paragraphs.length, 0) ?? 0;
