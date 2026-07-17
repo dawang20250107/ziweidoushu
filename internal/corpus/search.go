@@ -112,8 +112,18 @@ func min32(a, b int) int {
 	return b
 }
 
-// Search 全文检索。返回按原文顺序的命中,limit 上限截断。
+// Search 公开全文检索(研究语料不露出)。返回按原文顺序的命中,limit 上限截断。
 func (s *Store) Search(query string, limit int) []SearchHit {
+	return s.search(query, limit, false)
+}
+
+// SearchAll 全域检索(含研究语料)。仅供 AI 解读引用等内部路径使用,
+// 严禁直接暴露给公开接口。
+func (s *Store) SearchAll(query string, limit int) []SearchHit {
+	return s.search(query, limit, true)
+}
+
+func (s *Store) search(query string, limit int, includeResearch bool) []SearchHit {
 	q := strings.TrimSpace(query)
 	if q == "" {
 		return []SearchHit{}
@@ -127,6 +137,9 @@ func (s *Store) Search(query string, limit int) []SearchHit {
 	for _, id := range v.index.candidates(nq) {
 		ref := v.index.paras[id]
 		book := &v.books[ref.bookIdx]
+		if book.Research && !includeResearch {
+			continue
+		}
 		chapter := &book.Chapters[ref.chapterIdx]
 		para := &chapter.Paragraphs[ref.paraIdx]
 		pos := strings.Index(normalizeQuery(para.Text), nq)

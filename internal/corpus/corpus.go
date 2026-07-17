@@ -45,6 +45,8 @@ type Book struct {
 	Chapters  []Chapter `json:"chapters"`
 	// Source 数据来源:embedded(随二进制打包)| external(外部目录导入)。
 	Source string `json:"source,omitempty"`
+	// Research 研究语料:不进书架、不进公开检索,仅供 AI 解读引用(内部研究)。
+	Research bool `json:"research,omitempty"`
 }
 
 // BookMeta 书目摘要(列表接口用,不携带全文)。
@@ -181,12 +183,15 @@ func (s *Store) view() *snapshot {
 	return s.snap
 }
 
-// Books 全部书目摘要。
+// Books 公开书目摘要(研究语料不露出)。
 func (s *Store) Books() []BookMeta {
 	v := s.view()
 	out := make([]BookMeta, 0, len(v.books))
 	for i := range v.books {
 		b := &v.books[i]
+		if b.Research {
+			continue
+		}
 		paras := 0
 		for _, c := range b.Chapters {
 			paras += len(c.Paragraphs)
@@ -231,10 +236,17 @@ func (s *Store) Stats() map[string]int {
 			}
 		}
 	}
+	research := 0
+	for i := range v.books {
+		if v.books[i].Research {
+			research++
+		}
+	}
 	return map[string]int{
-		"books":      len(v.books),
-		"chapters":   chapters,
-		"paragraphs": paragraphs,
-		"characters": chars,
+		"books":         len(v.books) - research,
+		"researchBooks": research,
+		"chapters":      chapters,
+		"paragraphs":    paragraphs,
+		"characters":    chars,
 	}
 }

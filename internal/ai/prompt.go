@@ -59,12 +59,12 @@ func BuildInterpretPrompt(
 		}
 	}
 
-	// 古籍引文(RAG:按命宫主星检索原文)
+	// 古籍引文(RAG:按命宫主星检索原文;含研究语料——仅内部引用,不对外露出全文)
 	if store != nil && len(mainStars) > 0 {
 		var cites []string
 		seen := map[string]bool{}
 		for _, name := range mainStars {
-			for _, hit := range store.Search(name, 2) {
+			for _, hit := range store.SearchAll(name, 3) {
 				key := hit.ParagraphID
 				if seen[key] {
 					continue

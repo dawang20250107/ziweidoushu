@@ -280,6 +280,12 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 `{bookSlug, chapterIdx, paragraphId, excerpt}` → `{bookmark}`(摘录截断 ≤200 字,
 同段重复添加幂等);`DELETE /api/v1/me/bookmarks/{id}` → `{deleted: true}`(仅本人)。
 
+## 研究语料(内部)
+
+`Book.research: true` 的语料(`research/books-json/`,经 `CORPUS_EXTERNAL_DIR`
+加载)对外完全不可见:不出现在 `/books`、公开 `/search` 不命中、按 slug 直接
+访问返回 404;仅 AI 解读内部检索(SearchAll)可引用其内容片段。
+
 ## 运维
 
 | 接口 | 说明 |

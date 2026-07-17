@@ -151,3 +151,41 @@ func TestConcurrentReadWrite(t *testing.T) {
 	}
 	<-done
 }
+
+func TestResearchIsolation(t *testing.T) {
+	s := newTestStore(t)
+	dir := t.TempDir()
+
+	research := `{
+		"title": "研究断语集", "slug": "r-test01", "dynasty": "研究语料", "author": "内部",
+		"intro": "仅研究", "wordCount": 12, "research": true,
+		"chapters": [{"title": "第 1 部分", "paragraphs": [{"id": "rt-1-1", "idx": 1, "text": "武曲星君研究断语甲乙丙"}]}]
+	}`
+	if err := os.WriteFile(filepath.Join(dir, "r-test01.json"), []byte(research), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.LoadExternalDir(dir); err != nil {
+		t.Fatalf("研究语料导入失败: %v", err)
+	}
+
+	// 1) 书架不露出
+	for _, m := range s.Books() {
+		if m.Slug == "r-test01" {
+			t.Fatal("研究语料不应出现在公开书目")
+		}
+	}
+	// 2) 公开检索不命中
+	if hits := s.Search("研究断语甲乙丙", 10); len(hits) != 0 {
+		t.Fatalf("公开检索不应命中研究语料: %+v", hits)
+	}
+	// 3) 内部全域检索命中(AI 引用路径)
+	hits := s.SearchAll("研究断语甲乙丙", 10)
+	if len(hits) != 1 || hits[0].BookSlug != "r-test01" {
+		t.Fatalf("SearchAll 应命中研究语料: %+v", hits)
+	}
+	// 4) 统计分域
+	st := s.Stats()
+	if st["researchBooks"] != 1 {
+		t.Fatalf("researchBooks 统计: got %d want 1", st["researchBooks"])
+	}
+}

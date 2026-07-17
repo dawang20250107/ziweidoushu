@@ -13,6 +13,10 @@
 - `corpus/` — 142 篇清洗后 UTF-8 文本(约 950 万字符),文件名 `<内容hash8>-<规范名>.txt`
 - `corpus/manifest.json` — 全量清单:来源路径、格式、字符数、来源目录;
   另记录跳过项(62 个扫描版 PDF 待 OCR、占位存根)与 19 组去重映射
+- `books-json/` — 由 `go run ./tools/researchgen` 生成的语料 Book JSON
+  (`research: true`),经 `CORPUS_EXTERNAL_DIR` 指向本目录即热加载。
+  运行时隔离(有测试钉住):书架/公开检索/直接访问全部不露出,
+  仅 AI 解读的内部检索(`SearchAll`)可引用。
 
 ## 提取管线(可复现)
 

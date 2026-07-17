@@ -15,7 +15,7 @@ func (s *Server) handleBooks(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleBook(w http.ResponseWriter, r *http.Request) {
 	book := s.corpus.Book(r.PathValue("slug"))
-	if book == nil {
+	if book == nil || book.Research { // 研究语料不对外露出,视同不存在
 		writeError(w, http.StatusNotFound, "not_found", "未收录该古籍")
 		return
 	}
@@ -29,7 +29,7 @@ func (s *Server) handleChapter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	book, chapter := s.corpus.Chapter(r.PathValue("slug"), idx)
-	if chapter == nil {
+	if chapter == nil || book.Research { // 研究语料不对外露出
 		writeError(w, http.StatusNotFound, "not_found", "古籍或章节不存在")
 		return
 	}
