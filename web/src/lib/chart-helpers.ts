@@ -1,4 +1,5 @@
 /** 星盘渲染辅助:宫格布局、三方四正、亮度/四化配色。 */
+import type { CSSProperties } from "react";
 import { BRANCHES, STEMS } from "./types";
 import type { SiHua, Star } from "./types";
 
@@ -64,6 +65,19 @@ export function sihuaVar(siHua: SiHua): string {
     case "忌":
       return "var(--sihua-ji)";
   }
+}
+
+/**
+ * 四化徽章样式:深空主题下弃实心色块(饱和度过高),改同色淡晕底 + 彩字 +
+ * 半透描边;仍有底色,与流曜纯空心描边保持「实/空」区分。
+ */
+export function sihuaBadgeStyle(siHua: SiHua): CSSProperties {
+  const c = sihuaVar(siHua);
+  return {
+    color: c,
+    background: `color-mix(in srgb, ${c} 16%, transparent)`,
+    boxShadow: `inset 0 0 0 1px color-mix(in srgb, ${c} 45%, transparent)`,
+  };
 }
 
 export function stemName(stem: number): string {

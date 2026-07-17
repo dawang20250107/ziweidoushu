@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Chart, Pattern, Palace } from "@/lib/types";
-import { branchName, brightnessVar, groupStars, sihuaVar, stemName } from "@/lib/chart-helpers";
+import { branchName, brightnessVar, groupStars, sihuaBadgeStyle, stemName } from "@/lib/chart-helpers";
 
 const LEVEL_LABEL: Record<string, { text: string; cls: string }> = {
   excellent: { text: "上格", cls: "text-gold-bright shadow-[inset_0_0_0_1px_var(--gold-dim)]" },
@@ -94,7 +94,7 @@ export function DetailPanel({
                       {s.siHua && (
                         <sup
                           className="ml-0.5 rounded-[2px] px-[3px] text-[10px] font-semibold not-italic"
-                          style={{ background: sihuaVar(s.siHua), color: "var(--bg)" }}
+                          style={sihuaBadgeStyle(s.siHua)}
                         >
                           {s.siHua}
                         </sup>

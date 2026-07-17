@@ -2,7 +2,7 @@
 
 import type { HoroscopeScope, Palace, Star } from "@/lib/types";
 import {
-  branchName, brightnessVar, groupStars, sihuaVar, stemName,
+  branchName, brightnessVar, groupStars, sihuaBadgeStyle, stemName,
   type Density,
 } from "@/lib/chart-helpers";
 
@@ -22,7 +22,7 @@ function StarGlyph({ star, size }: { star: Star; size: "lg" | "md" }) {
       {star.siHua && (
         <sup
           className="ml-px rounded-[2px] px-[3px] text-[10px] font-semibold not-italic"
-          style={{ background: sihuaVar(star.siHua), color: "var(--bg)" }}
+          style={sihuaBadgeStyle(star.siHua)}
         >
           {star.siHua}
         </sup>

@@ -5,6 +5,7 @@ import type { BirthInfo, Gender } from "@/lib/types";
 import { HOUR_NAMES } from "@/lib/types";
 import { currentUser, AUTH_EVENT } from "@/lib/auth";
 import { listProfiles, type Profile, type BirthRequest } from "@/lib/profiles";
+import { DateSelect } from "@/components/ui/DateSelect";
 
 const fieldCls =
   "rounded-[6px] bg-bg px-3 py-2 text-[15px] text-ink shadow-[inset_0_0_0_1px_var(--line)] focus:shadow-[inset_0_0_0_1px_var(--gold-dim)] outline-none transition-shadow";
@@ -100,18 +101,6 @@ export function BirthFields({
           />
         </label>
         <label className="flex flex-col gap-1">
-          <span className="text-[12px] text-ink-faint">公历生日</span>
-          <input
-            type="date"
-            value={value.date}
-            min="1900-01-01"
-            max="2100-12-31"
-            required
-            onChange={(e) => onChange({ ...value, date: e.target.value })}
-            className={`${fieldCls} tnum`}
-          />
-        </label>
-        <label className="flex flex-col gap-1">
           <span className="text-[12px] text-ink-faint">时辰</span>
           <select
             value={value.hour}
@@ -125,7 +114,11 @@ export function BirthFields({
             ))}
           </select>
         </label>
-        <div className="flex flex-col gap-1">
+        <div className="col-span-2 flex flex-col gap-1">
+          <span className="text-[12px] text-ink-faint">公历生日</span>
+          <DateSelect value={value.date} onChange={(date) => onChange({ ...value, date })} />
+        </div>
+        <div className="col-span-2 flex flex-col gap-1">
           <span className="text-[12px] text-ink-faint">性别</span>
           <div className="flex overflow-hidden rounded-[6px] shadow-[inset_0_0_0_1px_var(--line)]">
             {(["male", "female"] as const).map((g) => (

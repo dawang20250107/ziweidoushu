@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { BirthInfo, Gender } from "@/lib/types";
 import { HOUR_NAMES } from "@/lib/types";
+import { DateSelect } from "@/components/ui/DateSelect";
 
 const fieldCls =
   "rounded-[6px] bg-bg px-3 py-2 text-[15px] text-ink shadow-[inset_0_0_0_1px_var(--line)] focus:shadow-[inset_0_0_0_1px_var(--gold-dim)] outline-none transition-shadow";
@@ -46,18 +47,10 @@ export function BirthForm({
           className={`${fieldCls} w-28`}
         />
       </label>
-      <label className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1">
         <span className="text-[12px] text-ink-faint">公历生日</span>
-        <input
-          type="date"
-          value={date}
-          min="1900-01-01"
-          max="2100-12-31"
-          required
-          onChange={(e) => setDate(e.target.value)}
-          className={`${fieldCls} tnum`}
-        />
-      </label>
+        <DateSelect value={date} onChange={setDate} />
+      </div>
       <label className="flex flex-col gap-1">
         <span className="text-[12px] text-ink-faint">时辰</span>
         <select value={hour} onChange={(e) => setHour(Number(e.target.value))} className={fieldCls}>
