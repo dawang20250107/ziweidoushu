@@ -2,35 +2,34 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
-type Theme = "dark" | "light" | "system";
+type Theme = "dark" | "light";
 
 const ThemeContext = createContext<{
   theme: Theme;
   setTheme: (t: Theme) => void;
-}>({ theme: "system", setTheme: () => {} });
+}>({ theme: "dark", setTheme: () => {} });
 
 const STORAGE_KEY = "ziwei-theme";
 
-/** 主题控制:system 跟随系统;dark/light 以 data-theme 强制(token 级覆盖)。 */
+/** 主题控制(v2):玄穹为产品默认(无 data-theme 即深空),宣纸经 data-theme="light" 显式启用。 */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const [theme, setThemeState] = useState<Theme>("dark");
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (saved === "dark" || saved === "light") {
-      setThemeState(saved);
-      document.documentElement.setAttribute("data-theme", saved);
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === "light") {
+      setThemeState("light");
+      document.documentElement.setAttribute("data-theme", "light");
     }
   }, []);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
-    if (t === "system") {
-      localStorage.removeItem(STORAGE_KEY);
-      document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem(STORAGE_KEY, t);
+    if (t === "light") {
+      document.documentElement.setAttribute("data-theme", "light");
     } else {
-      localStorage.setItem(STORAGE_KEY, t);
-      document.documentElement.setAttribute("data-theme", t);
+      document.documentElement.removeAttribute("data-theme");
     }
   }, []);
 
@@ -42,20 +41,19 @@ export function useTheme() {
 }
 
 /** 无闪烁初始化脚本:SSR HTML 里内联执行,先于首帧应用存储的主题。 */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem("${STORAGE_KEY}");if(t==="dark"||t==="light"){document.documentElement.setAttribute("data-theme",t)}}catch(e){}})()`;
+export const themeInitScript = `(function(){try{if(localStorage.getItem("${STORAGE_KEY}")==="light"){document.documentElement.setAttribute("data-theme","light")}}catch(e){}})()`;
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const next = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
-  const label = theme === "dark" ? "玄穹" : theme === "light" ? "宣纸" : "跟随系统";
+  const dark = theme === "dark";
   return (
     <button
       type="button"
-      onClick={() => setTheme(next)}
+      onClick={() => setTheme(dark ? "light" : "dark")}
       className="rounded-[2px] border border-line-strong px-3 py-1 text-[13px] text-ink-secondary transition-colors hover:border-gold-dim hover:text-gold"
-      title="切换主题(玄穹 / 宣纸 / 跟随系统)"
+      title={dark ? "切换到宣纸(浅色阅读)" : "切换到玄穹(深空)"}
     >
-      {label}
+      {dark ? "玄穹" : "宣纸"}
     </button>
   );
 }

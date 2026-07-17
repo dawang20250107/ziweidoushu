@@ -81,3 +81,90 @@ mark {
   border-radius: 2px;
   padding: 0 1px;
 }
+
+/* ── v2:顶级科技感基座 ─────────────────────────── */
+
+/* 文本选区着星曜金晕 */
+::selection {
+  background: rgba(217, 179, 108, 0.28);
+}
+
+/* 细滚动条(深空低调) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 页面切换进场(配 app/template.tsx,每次导航重放) */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: page-in 300ms var(--ease-out) both;
+}
+
+/* 卡片悬停浮起(交互卡片自愿挂载) */
+.lift {
+  transition:
+    transform var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
+}
+.lift:hover {
+  transform: translateY(-2px);
+}
+
+/* 金辉光(仅主 CTA / 激活态使用,克制) */
+.glow-gold {
+  box-shadow: var(--glow-gold);
+}
+.glow-gold-strong {
+  box-shadow: var(--glow-gold-strong);
+}
+
+/* 三方四正连线:入场描线 */
+@keyframes line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.sanfang-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: line-draw 480ms var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .sanfang-line {
+    animation: none;
+  }
+  .sanfang-line {
+    stroke-dashoffset: 0;
+  }
+  .lift,
+  .lift:hover {
+    transition: none;
+    transform: none;
+  }
+}

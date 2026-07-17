@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import { ThemeProvider, ThemeToggle, themeInitScript } from "@/components/theme/ThemeProvider";
+import { StarField } from "@/components/theme/StarField";
 import { UserMenu } from "@/components/theme/UserMenu";
 
 export const metadata: Metadata = {
@@ -13,10 +14,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0e1220" },
-    { media: "(prefers-color-scheme: light)", color: "#f5f0e4" },
-  ],
+  themeColor: "#090c17", // 玄穹为产品默认
 };
 
 const nav = [
@@ -34,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="bg-bg text-ink">
+        <StarField />
         <ThemeProvider>
           <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
             <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
