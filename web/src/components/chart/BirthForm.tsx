@@ -79,7 +79,9 @@ export function BirthForm({
               onClick={() => setGender(g)}
               className={[
                 "px-4 py-2 text-[14px] transition-colors",
-                gender === g ? "bg-gold font-medium text-[#161206]" : "bg-bg text-ink-secondary hover:text-ink",
+                gender === g
+                  ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                  : "bg-bg text-ink-secondary hover:text-ink",
               ].join(" ")}
             >
               {g === "male" ? "男" : "女"}
@@ -90,7 +92,7 @@ export function BirthForm({
       <button
         type="submit"
         disabled={loading}
-        className="rounded-[6px] bg-gold px-6 py-2 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50"
+        className="glow-gold w-full min-h-[44px] rounded-[6px] bg-gold px-6 py-2 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50 disabled:shadow-none sm:w-auto"
       >
         {loading ? "排盘中…" : "排盘"}
       </button>

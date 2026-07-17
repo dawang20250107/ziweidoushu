@@ -1744,6 +1744,12 @@ func DetectPatterns(c *Chart) []Pattern {
 	detectKuiYueTongHui(c, &patterns)
 	detectKeQuanShuangHui(c, &patterns)
 
+	// 契约:Palaces 永不为 nil(JSON 输出 [] 而非 null,前端可直接 .includes)
+	for i := range patterns {
+		if patterns[i].Palaces == nil {
+			patterns[i].Palaces = []string{}
+		}
+	}
 	return patterns
 }
 

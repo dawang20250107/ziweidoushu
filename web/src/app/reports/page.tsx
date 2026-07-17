@@ -214,7 +214,7 @@ export default function ReportsPage() {
                     className={[
                       "min-h-[44px] rounded-[6px] px-4 py-2 text-[14px] transition-colors",
                       active
-                        ? "bg-gold font-medium text-[#161206]"
+                        ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
                         : "bg-bg-raised text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] hover:text-gold hover:shadow-[inset_0_0_0_1px_var(--gold-dim)]",
                     ].join(" ")}
                   >

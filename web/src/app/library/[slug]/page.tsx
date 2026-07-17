@@ -74,7 +74,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
     <div className="mx-auto max-w-3xl px-5 pb-20 pt-10 md:pt-16">
       <nav className="mb-8 flex items-center gap-1.5 text-[13px] text-ink-faint" aria-label="面包屑">
         <Link href="/library" className="transition-colors hover:text-gold">
-          书架
+          古籍
         </Link>
         <span aria-hidden>/</span>
         <span className="truncate text-ink-secondary">{book?.title ?? "…"}</span>

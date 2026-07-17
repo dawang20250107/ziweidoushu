@@ -57,7 +57,7 @@ export function DetailPanel({
   }
 
   const { major, assist, adjective } = groupStars(palace.stars);
-  const related = patterns.filter((p) => p.palaces.includes(palace.name));
+  const related = patterns.filter((p) => (p.palaces ?? []).includes(palace.name));
   const aiQuestion = `请重点分析我命盘的【${palace.name}】(${stemName(palace.stem)}${branchName(palace.branch)}宫)。`;
 
   return (

@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
-import { ThemeProvider, ThemeToggle, themeInitScript } from "@/components/theme/ThemeProvider";
+import { ThemeProvider, themeInitScript } from "@/components/theme/ThemeProvider";
 import { StarField } from "@/components/theme/StarField";
-import { UserMenu } from "@/components/theme/UserMenu";
+import { DesktopNav, MobileNav } from "@/components/theme/NavLinks";
 
 export const metadata: Metadata = {
   title: { default: "观星台 · 紫微斗数", template: "%s · 观星台" },
@@ -17,14 +17,6 @@ export const viewport: Viewport = {
   themeColor: "#090c17", // 玄穹为产品默认
 };
 
-const nav = [
-  { href: "/chart", label: "排盘" },
-  { href: "/heming", label: "合盘" },
-  { href: "/library", label: "古籍" },
-  { href: "/chat", label: "问星" },
-  { href: "/pricing", label: "定价" },
-];
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
@@ -36,23 +28,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
             <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-              <Link href="/" className="font-display text-lg font-semibold tracking-wide text-ink">
-                观星台<span className="ml-2 text-[12px] font-normal tracking-[0.24em] text-gold">紫微斗数</span>
+              <Link href="/" className="whitespace-nowrap font-display text-lg font-semibold tracking-wide text-ink">
+                观星台<span className="ml-2 hidden text-[12px] font-normal tracking-[0.24em] text-gold sm:inline">紫微斗数</span>
               </Link>
-              <nav className="flex items-center gap-1">
-                {nav.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="rounded-[6px] px-3 py-1.5 text-[15px] text-ink-secondary transition-colors hover:bg-bg-raised hover:text-ink"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-                <span className="mx-2 h-4 w-px bg-line" aria-hidden />
-                <ThemeToggle />
-                <UserMenu />
-              </nav>
+              <DesktopNav />
+              <MobileNav />
             </div>
           </header>
           <main>{children}</main>

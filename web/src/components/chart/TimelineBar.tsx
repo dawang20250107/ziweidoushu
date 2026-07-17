@@ -18,7 +18,7 @@ const rowBtn = (active: boolean) =>
   [
     "tnum rounded-[2px] px-2 py-0.5 text-[12px] transition-colors",
     active
-      ? "bg-gold font-medium text-[#161206]"
+      ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[0_0_0_1px_var(--gold-dim)]"
       : "text-ink-secondary shadow-[0_0_0_1px_var(--line)] hover:text-ink",
   ].join(" ");
 

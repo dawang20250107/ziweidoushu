@@ -114,7 +114,9 @@ export default function ChartPage() {
                   onClick={() => setDensity(d)}
                   className={[
                     "px-3 py-1.5 text-[13px] transition-colors",
-                    density === d ? "bg-gold font-medium text-[#161206]" : "bg-bg-raised text-ink-secondary hover:text-ink",
+                    density === d
+                      ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                      : "bg-bg-raised text-ink-secondary hover:text-ink",
                   ].join(" ")}
                 >
                   {DENSITY_LABELS[d]}
@@ -142,17 +144,27 @@ export default function ChartPage() {
         <div className="flex flex-col gap-4">
           <TimelineBar chart={data.chart} selection={timeline} horoscope={horoscope} onChange={setTimeline} />
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="overflow-x-auto">
-              <div className="min-w-[640px]">
-                <ChartBoard
-                  chart={data.chart}
-                  density={density}
-                  selectedBranch={selectedBranch}
-                  onSelectBranch={setSelectedBranch}
-                  horoscope={horoscope}
-                  overlayScopes={overlayScopes}
+            <div>
+              <div className="relative">
+                <div className="overflow-x-auto">
+                  <div className="min-w-[640px]">
+                    <ChartBoard
+                      chart={data.chart}
+                      density={density}
+                      selectedBranch={selectedBranch}
+                      onSelectBranch={setSelectedBranch}
+                      horoscope={horoscope}
+                      overlayScopes={overlayScopes}
+                    />
+                  </div>
+                </div>
+                {/* 移动端:右缘渐隐提示盘面可横向滑动 */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-bg to-transparent md:hidden"
                 />
               </div>
+              <p className="mt-1.5 text-center text-[11px] text-ink-faint md:hidden">左右滑动查看全盘</p>
             </div>
             <DetailPanel chart={data.chart} patterns={data.patterns ?? []} selectedBranch={selectedBranch} />
           </div>

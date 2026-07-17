@@ -61,7 +61,7 @@ function SearchInner() {
     <div className="mx-auto max-w-3xl px-5 py-8 md:py-12">
       <nav className="mb-4 flex items-center gap-1.5 text-[13px] text-ink-faint" aria-label="面包屑">
         <Link href="/library" className="transition-colors hover:text-gold">
-          书架
+          古籍
         </Link>
         <span aria-hidden>/</span>
         <span className="text-ink-secondary">检索</span>

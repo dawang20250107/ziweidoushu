@@ -137,7 +137,7 @@ export function BirthFields({
                 className={[
                   "flex-1 px-4 py-2 text-[14px] transition-colors",
                   value.gender === g
-                    ? "bg-gold font-medium text-[#161206]"
+                    ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
                     : "bg-bg text-ink-secondary hover:text-ink",
                 ].join(" ")}
               >

@@ -31,7 +31,7 @@ export function ResumeHero({ book, progress }: { book: BookMeta; progress: CardP
       <div className="relative max-w-2xl">
         <p className="text-[12px] tracking-[0.24em] text-gold">最近在读</p>
 
-        <h2 className="mt-4 font-display text-4xl font-semibold leading-[1.1] text-ink md:text-5xl">
+        <h2 className="mt-4 font-display text-[31px] font-semibold leading-[1.15] text-ink [text-wrap:balance] sm:text-4xl md:text-5xl">
           {book.title}
         </h2>
 

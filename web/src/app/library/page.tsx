@@ -124,7 +124,7 @@ export default function LibraryPage() {
       <section className="mt-24" aria-label="典籍星牌">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[12px] tracking-[0.24em] text-gold-dim">星牌</p>
+            <p className="text-[12px] tracking-[0.24em] text-gold-dim">古籍</p>
             <h2 className="mt-1.5 font-display text-xl font-semibold text-ink">
               典籍{books.length > 0 ? ` · ${books.length} 卷` : ""}
             </h2>
