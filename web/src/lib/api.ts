@@ -4,7 +4,7 @@
  */
 import type {
   BirthInfo, ChartResponse, Horoscope, BookMeta, Book, Chapter,
-  SearchHit, InterpretResult,
+  SearchHit, InterpretResult, FamousPerson, HemingResponse, Chart, Pattern,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
@@ -60,6 +60,24 @@ export function fetchHoroscope(
   target: { year: number; month: number; day: number; hour: number },
 ): Promise<{ horoscope: Horoscope }> {
   return post<{ horoscope: Horoscope }>("/api/v1/horoscope", { ...birth, target });
+}
+
+// ── 合盘与名人 ────────────────────────────────────────
+
+export function fetchHeming(a: BirthInfo, b: BirthInfo): Promise<HemingResponse> {
+  return post<HemingResponse>("/api/v1/heming", { a, b });
+}
+
+export function fetchFamousList(): Promise<{ persons: FamousPerson[] }> {
+  return get("/api/v1/famous");
+}
+
+export function fetchFamousChart(id: string): Promise<{
+  person: FamousPerson;
+  chart: Chart;
+  patterns: Pattern[];
+}> {
+  return get(`/api/v1/famous/${encodeURIComponent(id)}/chart`);
 }
 
 // ── 古籍 ──────────────────────────────────────────────

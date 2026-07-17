@@ -21,6 +21,7 @@ export const viewport: Viewport = {
 
 const nav = [
   { href: "/chart", label: "排盘" },
+  { href: "/heming", label: "合盘" },
   { href: "/library", label: "古籍" },
   { href: "/chat", label: "问星" },
   { href: "/pricing", label: "定价" },

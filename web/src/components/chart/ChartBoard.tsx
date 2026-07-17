@@ -16,7 +16,7 @@ export interface ChartBoardProps {
   /** 运限叠加(时间轴激活时传入) */
   horoscope?: Horoscope | null;
   /** 叠加显示哪些层(默认大限+流年) */
-  overlayScopes?: Array<"decadal" | "yearly" | "monthly">;
+  overlayScopes?: Array<"decadal" | "yearly" | "monthly" | "daily" | "hourly">;
 }
 
 /** 4×4 星盘:外环十二宫(地支固定位)+ 中宫命主信息。 */

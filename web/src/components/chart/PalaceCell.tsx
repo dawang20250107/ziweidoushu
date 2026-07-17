@@ -113,8 +113,8 @@ export function PalaceCell({
       {/* 运限流曜(空心徽章) */}
       {overlayStars && overlayStars.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1">
-          {overlayStars.map((s) => (
-            <FlowStarBadge key={s.name} name={s.name} />
+          {overlayStars.map((s, i) => (
+            <FlowStarBadge key={`${i}-${s.name}`} name={s.name} />
           ))}
         </div>
       )}

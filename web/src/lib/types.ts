@@ -139,6 +139,48 @@ export interface Horoscope {
   jiangqian12: string[];
 }
 
+// ── 合盘与名人 ────────────────────────────────────────
+
+export interface FamousPerson {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  gender: Gender;
+  notable: string;
+}
+
+/** 夫妻宫星曜断语(倪师口径)。 */
+export interface HemingReading {
+  star: string;
+  summary: string;
+  good: string;
+  bad: string;
+  spouseTraits: string;
+  timing: string;
+  niQuote: string;
+}
+
+export interface HemingSide {
+  chart: Chart;
+  patterns: Pattern[];
+  fuqiStars: string[];
+  /** 夫妻宫空宫时借对宫(官禄宫)主星 */
+  fuqiBorrowed: boolean;
+  readings: HemingReading[];
+}
+
+export interface HemingResponse {
+  a: HemingSide;
+  b: HemingSide;
+  methodology: string;
+  scoreCriteria: Record<string, string>;
+}
+
 // ── 古籍 ──────────────────────────────────────────────
 
 export interface BookMeta {

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { fetchChart, fetchHoroscope, ApiError } from "@/lib/api";
 import type { BirthInfo, ChartResponse, Horoscope } from "@/lib/types";
 import { DENSITY_LABELS, type Density } from "@/lib/chart-helpers";
@@ -57,14 +58,19 @@ export default function ChartPage() {
     }
   }, [runChart]);
 
-  // 时间轴选择 → 拉运限(目标日取该年 7 月 15 日午时,避开农历年界)
+  // 时间轴选择 → 拉运限。未下钻的层取稳定默认(7 月 15 日午时,避开农历年界)。
   useEffect(() => {
     if (!birth || timeline.year == null) {
       setHoroscope(null);
       return;
     }
     let cancelled = false;
-    fetchHoroscope(birth, { year: timeline.year, month: 7, day: 15, hour: 6 })
+    fetchHoroscope(birth, {
+      year: timeline.year,
+      month: timeline.month ?? 7,
+      day: timeline.day ?? 15,
+      hour: timeline.hour ?? 6,
+    })
       .then((resp) => {
         if (!cancelled) setHoroscope(resp.horoscope);
       })
@@ -74,7 +80,16 @@ export default function ChartPage() {
     return () => {
       cancelled = true;
     };
-  }, [birth, timeline.year]);
+  }, [birth, timeline.year, timeline.month, timeline.day, timeline.hour]);
+
+  // 下钻深度决定盘面叠加层
+  const overlayScopes = useMemo(() => {
+    const scopes: Array<"decadal" | "yearly" | "monthly" | "daily" | "hourly"> = ["decadal", "yearly"];
+    if (timeline.month != null) scopes.push("monthly");
+    if (timeline.day != null) scopes.push("daily");
+    if (timeline.hour != null) scopes.push("hourly");
+    return scopes;
+  }, [timeline.month, timeline.day, timeline.hour]);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
@@ -82,6 +97,12 @@ export default function ChartPage() {
         <BirthForm key={initialBirth ? "restored" : "blank"} initial={initialBirth ?? undefined} loading={loading} onSubmit={runChart} />
         {data && birth && (
           <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/famous"
+              className="inline-flex min-h-[44px] items-center rounded-[6px] bg-bg-raised px-4 py-2 text-[14px] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] transition-colors hover:text-gold hover:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+            >
+              名人盘库
+            </Link>
             <SaveProfileButton birth={birth} />
             <div className="flex overflow-hidden rounded-[6px] shadow-[inset_0_0_0_1px_var(--line)]" role="radiogroup" aria-label="显示密度">
               {(Object.keys(DENSITY_LABELS) as Density[]).map((d) => (
@@ -119,7 +140,7 @@ export default function ChartPage() {
 
       {data && (
         <div className="flex flex-col gap-4">
-          <TimelineBar chart={data.chart} selection={timeline} onChange={setTimeline} />
+          <TimelineBar chart={data.chart} selection={timeline} horoscope={horoscope} onChange={setTimeline} />
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="overflow-x-auto">
               <div className="min-w-[640px]">
@@ -129,6 +150,7 @@ export default function ChartPage() {
                   selectedBranch={selectedBranch}
                   onSelectBranch={setSelectedBranch}
                   horoscope={horoscope}
+                  overlayScopes={overlayScopes}
                 />
               </div>
             </div>
