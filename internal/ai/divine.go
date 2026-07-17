@@ -43,17 +43,23 @@ func BuildDivinePrompt(r *meihua.Result, store *corpus.Store) Request {
 		r.TiTrigram.Name, r.TiTrigram.Element, r.YongTrigram.Name, r.YongTrigram.Element,
 		r.Relation, r.Verdict))
 
-	// 语料引文(含研究语料;仅内部引用)
+	// 语料引文(含研究语料;仅内部引用)。
+	// 每书限引 1 条:同一典籍在检索中易霸榜,分散引用面让断辞更立体。
 	if store != nil {
 		var cites []string
-		seen := map[string]bool{}
-		for _, q := range []string{r.Ben.Name, r.Bian.Name, r.TiTrigram.Name + "卦"} {
-			for _, hit := range store.SearchAll(q, 2) {
-				if seen[hit.ParagraphID] {
+		seenPara := map[string]bool{}
+		seenBook := map[string]int{}
+		for _, q := range []string{r.Ben.Name, r.Bian.Name, r.Hu.Name, r.TiTrigram.Name + "卦"} {
+			for _, hit := range store.SearchAll(q, 6) {
+				if seenPara[hit.ParagraphID] || seenBook[hit.BookSlug] >= 1 {
 					continue
 				}
-				seen[hit.ParagraphID] = true
+				seenPara[hit.ParagraphID] = true
+				seenBook[hit.BookSlug]++
 				cites = append(cites, fmt.Sprintf("- 《%s·%s》:%s", hit.BookTitle, hit.ChapterTitle, truncateRunes(hit.Text, 80)))
+				if len(cites) >= 6 {
+					break
+				}
 			}
 		}
 		if len(cites) > 0 {

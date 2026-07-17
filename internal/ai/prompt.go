@@ -59,18 +59,23 @@ func BuildInterpretPrompt(
 		}
 	}
 
-	// 古籍引文(RAG:按命宫主星检索原文;含研究语料——仅内部引用,不对外露出全文)
+	// 古籍引文(RAG:按命宫主星检索原文;含研究语料——仅内部引用,不对外露出全文)。
+	// 每星每书限引 1 条,分散引用面防单书霸榜。
 	if store != nil && len(mainStars) > 0 {
 		var cites []string
 		seen := map[string]bool{}
 		for _, name := range mainStars {
-			for _, hit := range store.SearchAll(name, 3) {
-				key := hit.ParagraphID
-				if seen[key] {
+			seenBook := map[string]int{}
+			for _, hit := range store.SearchAll(name, 8) {
+				if seen[hit.ParagraphID] || seenBook[hit.BookSlug] >= 1 {
 					continue
 				}
-				seen[key] = true
+				seen[hit.ParagraphID] = true
+				seenBook[hit.BookSlug]++
 				cites = append(cites, fmt.Sprintf("- 《%s·%s》:%s", hit.BookTitle, hit.ChapterTitle, truncateRunes(hit.Text, 80)))
+				if len(seenBook) >= 3 {
+					break
+				}
 			}
 		}
 		if len(cites) > 0 {

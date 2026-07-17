@@ -993,6 +993,118 @@
    "format": ".pdf",
    "chars": 230130,
    "topdir": "紫微斗数"
+  },
+  {
+   "file": "cf031d65-公笃相法.txt",
+   "source": "upload-gongdu-xiangfa.txt",
+   "format": ".txt",
+   "chars": 169541,
+   "topdir": "相法"
+  },
+  {
+   "file": "b4a2f0ad-伊川易传-程颐.txt",
+   "source": "upload-yijing.txt",
+   "format": ".txt",
+   "chars": 52814,
+   "topdir": "易学"
+  },
+  {
+   "file": "214cbffc-八字基础.txt",
+   "source": "batch2/x-f4/八字/八字基础.doc",
+   "format": ".doc",
+   "chars": 82101,
+   "topdir": "八字"
+  },
+  {
+   "file": "c893a4d0-大六壬64课经精讲解注.txt",
+   "source": "batch2/x-f3/大六壬/大六壬64课经精讲解注.doc",
+   "format": ".doc",
+   "chars": 176468,
+   "topdir": "大六壬"
+  },
+  {
+   "file": "8f0ea8f2-六壬初学者的学习之路----------写给初学.txt",
+   "source": "batch2/x-f3/大六壬/六壬初学者的学习之路----------写给初学.doc",
+   "format": ".doc",
+   "chars": 1517,
+   "topdir": "大六壬"
+  },
+  {
+   "file": "f56fdc66-王虎应_《增删卜易评释》.txt",
+   "source": "batch2/x-f2/六爻/王虎应  《增删卜易评释》.pdf",
+   "format": ".pdf",
+   "chars": 211540,
+   "topdir": "六爻"
+  },
+  {
+   "file": "8ab3b9e0-麻衣道者_《火珠林》.txt",
+   "source": "batch2/x-f2/六爻/麻衣道者  《火珠林》.pdf",
+   "format": ".pdf",
+   "chars": 35986,
+   "topdir": "六爻"
+  },
+  {
+   "file": "bd9c7aaa-清_野鶴老人_《增删卜易》.txt",
+   "source": "batch2/x-f2/六爻/清 野鶴老人 《增删卜易》.pdf",
+   "format": ".pdf",
+   "chars": 296384,
+   "topdir": "六爻"
+  },
+  {
+   "file": "8f9f8091-六爻基础入门_2019修订版_.txt",
+   "source": "batch2/x-f2/六爻/六爻基础入门（2019修订版）.pdf",
+   "format": ".pdf",
+   "chars": 198739,
+   "topdir": "六爻"
+  },
+  {
+   "file": "ccce5ba4-清_野鶴老人_《增删卜易》(附白话).txt",
+   "source": "batch2/x-f2/六爻/清 野鶴老人 《增删卜易》(附白话).pdf",
+   "format": ".pdf",
+   "chars": 312129,
+   "topdir": "六爻"
+  },
+  {
+   "file": "0022afc6-王維德_《卜筮正宗》_绝对完美版_.txt",
+   "source": "batch2/x-f2/六爻/王維德  《卜筮正宗》【绝对完美版】.pdf",
+   "format": ".pdf",
+   "chars": 190825,
+   "topdir": "六爻"
+  },
+  {
+   "file": "025c72e2-壬归.txt",
+   "source": "batch2/x-f3/大六壬/壬归.pdf",
+   "format": ".pdf",
+   "chars": 33402,
+   "topdir": "大六壬"
+  },
+  {
+   "file": "33475608-北海闲人-大六壬理法易简.txt",
+   "source": "batch2/x-f3/大六壬/北海闲人-大六壬理法易简.pdf",
+   "format": ".pdf",
+   "chars": 212721,
+   "topdir": "大六壬"
+  },
+  {
+   "file": "cab0cd99-徐乐吾_《子平真诠评注》.txt",
+   "source": "batch2/x-f4/八字/徐乐吾  《子平真诠评注》.pdf",
+   "format": ".pdf",
+   "chars": 116461,
+   "topdir": "八字"
+  },
+  {
+   "file": "6e971452-韦千里_《千里命稿》.txt",
+   "source": "batch2/x-f4/八字/韦千里  《千里命稿》.pdf",
+   "format": ".pdf",
+   "chars": 111645,
+   "topdir": "八字"
+  },
+  {
+   "file": "1f9b55a3-四柱八字基础知识大全.txt",
+   "source": "batch2/x-f4/八字/四柱八字基础知识大全.pdf",
+   "format": ".pdf",
+   "chars": 938236,
+   "topdir": "八字"
   }
  ],
  "skipped": [
@@ -1442,5 +1554,12 @@
    "【04】《天纪》听课笔记/天机道听课笔记.doc",
    "【00】《天纪》听课笔记/天机道笔记及资料/天机道听课笔记.doc"
   ]
+ ],
+ "batches": [
+  {
+   "batch": 2,
+   "docs": 16,
+   "chars": 3140509
+  }
  ]
 }
