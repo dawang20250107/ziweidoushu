@@ -203,6 +203,8 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 		DayBranch: string(branches[dayBranch]),
 		RiJian:    string(branches[dayBranch]),
 		MonthJian: string(monthJian),
+		// 静卦时也须输出 [] 而非 null(JSON 列表契约)
+		MovingNums: []int{},
 	}
 	if len(movingSet) > 0 {
 		bl := meihua.TrigramByLines([3]bool{bianLines[0], bianLines[1], bianLines[2]})

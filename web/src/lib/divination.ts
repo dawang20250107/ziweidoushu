@@ -66,6 +66,40 @@ export interface XiaoLiuRenResult {
   path: LiuRenPos[]; // 三步完整落位 ×3
 }
 
+// ── 六爻纳甲(与 Go 后端 liuyao 包逐字段对应)──────────
+
+/** 六爻一爻(装卦后)。bianYao 仅动爻有,为变卦对应爻。 */
+export interface LiuYaoYao {
+  pos: number; // 1-6 自下而上
+  yang: boolean;
+  moving: boolean;
+  stem: string; // 纳甲天干
+  branch: string; // 纳甲地支
+  element: string; // 金/木/水/火/土
+  liuQin: string; // 六亲:父母/兄弟/子孙/妻财/官鬼
+  liuShen: string; // 六神:青龙/朱雀/勾陈/腾蛇/白虎/玄武
+  isShi: boolean; // 世
+  isYing: boolean; // 应
+  bianYao?: LiuYaoYao;
+}
+
+/** 六爻装卦结果。yaos 自下而上(index 0 = 初爻)。 */
+export interface LiuYaoResult {
+  question?: string;
+  lunarText: string; // 「六月初三日(甲子日)」
+  dayStem: string;
+  dayBranch: string;
+  monthJian: string; // 月建地支
+  riJian: string; // 日辰地支
+  benName: string;
+  bianName?: string; // 有动爻才有
+  palace: string; // 「乾宫」
+  palaceSeq: string; // 八纯卦/一世卦…游魂卦/归魂卦
+  yaos: LiuYaoYao[]; // ×6
+  movingNums: number[]; // 动爻位置(空=静卦)
+  tosses?: number[]; // 摇卦原始记录(每爻背面数 0-3),回传同一卦的凭据
+}
+
 /** AI 解卦读物。 */
 export interface DivineReading {
   text: string;
@@ -120,11 +154,28 @@ export interface CastInput {
   question?: string;
 }
 
+export interface LiuYaoCastInput {
+  method: "shake" | "tosses"; // 服务端摇卦 | 报爻(自摇铜钱录入)
+  tosses?: number[]; // ×6 每爻背面数 0-3,自下而上
+  castAt?: number; // unix 秒(回传同一卦时用)
+  question?: string;
+}
+
 // ── 接口 ──────────────────────────────────────────────
 
 /** 梅花易数起卦(免费,匿名)。返回卦象与服务端起卦时刻 castAt。 */
 export async function castMeihua(input: CastInput): Promise<{ result: MeihuaResult; castAt: number }> {
   const res = await fetch(`${BASE}/api/v1/divination/meihua`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify(input),
+  });
+  return parse(res);
+}
+
+/** 六爻起卦(免费,匿名):摇卦或报爻。返回装卦结果与服务端起卦时刻 castAt。 */
+export async function castLiuYao(input: LiuYaoCastInput): Promise<{ result: LiuYaoResult; castAt: number }> {
+  const res = await fetch(`${BASE}/api/v1/divination/liuyao`, {
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(input),
@@ -150,6 +201,21 @@ export async function divineAI(
     method: "POST",
     headers: JSON_HEADERS,
     body: JSON.stringify(input),
+  });
+  return parse(res);
+}
+
+/**
+ * AI 六爻解卦(需登录,消耗 1 次 divination)。
+ * 同一卦契约:必须回传起卦返回的 tosses + castAt(method 固定 "tosses"),服务端按记录重装此卦。
+ */
+export async function divineLiuYaoAI(
+  input: { tosses: number[]; castAt: number; question: string },
+): Promise<{ result: LiuYaoResult; reading: DivineReading; remainingCredits: number }> {
+  const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ kind: "liuyao", method: "tosses", ...input }),
   });
   return parse(res);
 }
@@ -186,3 +252,20 @@ export function luckTone(luck: LiuRenPos["luck"]): Tone {
 export function trigramLine(h: Hexagram): string {
   return `上${h.upper.name}${h.upper.nature} · 下${h.lower.name}${h.lower.nature}`;
 }
+
+/** 五行 → 语义色变量(与四柱视角同映射:木青 火朱 土赭 金曜 水墨蓝)。 */
+export const ELEMENT_VAR: Record<string, string> = {
+  木: "var(--ok)",
+  火: "var(--danger)",
+  土: "var(--warn)",
+  金: "var(--gold)",
+  水: "var(--info)",
+};
+
+/** 摇卦背面数 → 爻象文案(1背少阳 2背少阴 3背老阳动 0背老阴动)。 */
+export const TOSS_OPTIONS: { backs: number; label: string; hint: string }[] = [
+  { backs: 1, label: "一背", hint: "少阳" },
+  { backs: 2, label: "两背", hint: "少阴" },
+  { backs: 3, label: "三背", hint: "老阳 · 动" },
+  { backs: 0, label: "无背", hint: "老阴 · 动" },
+];

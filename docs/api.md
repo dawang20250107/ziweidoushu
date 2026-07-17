@@ -280,7 +280,7 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 `{bookSlug, chapterIdx, paragraphId, excerpt}` → `{bookmark}`(摘录截断 ≤200 字,
 同段重复添加幂等);`DELETE /api/v1/me/bookmarks/{id}` → `{deleted: true}`(仅本人)。
 
-## 占卜:梅花易数 + 小六壬
+## 占卜:梅花易数 + 六爻纳甲 + 小六壬
 
 起卦免费;AI 深度解卦按次付费(credit_type=divination,商品 divine_3/divine_10)。
 
@@ -291,6 +291,15 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 数字起卦支持两数/三数式。result 含本卦/互卦/变卦/动爻/体用五行生克与吉凶倾向。
 `castAt` 须在近 24 小时内(防伪造历史卦)。正确性由邵康节观梅占黄金测试钉住。
 
+### POST /api/v1/divination/liuyao
+
+`{method: "shake"|"tosses", tosses?, castAt?, question?}` → `{result, castAt}`。
+`shake` 为服务端 crypto/rand 模拟三枚铜钱六掷;`tosses` 为报爻起卦,六爻背面数
+自下而上各 0-3(1背少阳/2背少阴/3背老阳动/0背老阴动)。result 为完整装卦:
+本卦/变卦名、八宫宫属与世次(纯卦~归魂)、逐爻纳甲干支五行/六亲/六神/世应/
+动变爻,及月建日辰与摇卦原始记录 `tosses`(回传同一卦的凭据)。静卦
+`movingNums` 恒为 `[]`。正确性由《卜筮正宗》八宫六十四卦定表逐卦对照钉住。
+
 ### POST /api/v1/divination/xiaoliuren
 
 小六壬快占(倪师《天纪》课堂教法):`{question?, castAt?}` →
@@ -298,10 +307,11 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 ### POST /api/v1/ai/divine(需鉴权,消耗 1 次 divination)
 
-`{method, numbers?, castAt?, question}`(question 必填)→
-`{result, reading, remainingCredits}`。服务端重推卦象(不信任客户端)、
-引语料 RAG 解卦;AI 失败自动退还;未配置 LLM 返回 503 不扣次;
-次数不足 402 `no_credits`。
+`{kind?: "meihua"|"liuyao", method, numbers?, tosses?, castAt?, question}`
+(question 必填,kind 缺省 meihua)→ `{result, reading, remainingCredits}`。
+服务端按 kind 重推卦象(不信任客户端;六爻须回传起卦返回的 tosses+castAt
+以复原同一卦)、引语料 RAG 解卦;AI 失败自动退还;未配置 LLM 返回 503
+不扣次;次数不足 402 `no_credits`。
 
 ## 研究语料(内部)
 

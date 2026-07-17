@@ -1,6 +1,8 @@
 package liuyao
 
 import (
+	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -172,6 +174,19 @@ func TestByTosses(t *testing.T) {
 	}
 	if _, err := ByTosses([]int{4, 1, 1, 1, 1, 1}, at, ""); err == nil {
 		t.Fatal("非法背面数应拒绝")
+	}
+}
+
+// TestStaticGuaJSONContract 静卦 movingNums 序列化为 [] 而非 null(前端列表契约)。
+func TestStaticGuaJSONContract(t *testing.T) {
+	all := [6]bool{true, true, true, true, true, true}
+	r := mustAssemble(t, all, nil)
+	b, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(b), `"movingNums":[]`) {
+		t.Fatalf("静卦 movingNums 应为 []: %s", b)
 	}
 }
 

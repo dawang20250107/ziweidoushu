@@ -5,21 +5,29 @@ import Link from "next/link";
 import { AUTH_EVENT, currentUser } from "@/lib/auth";
 import {
   castMeihua,
+  castLiuYao,
   divineAI,
+  divineLiuYaoAI,
   fetchDivinationCredits,
   RELATION_TONE,
+  TOSS_OPTIONS,
   DivinationError,
   type CastInput,
   type MeihuaResult,
+  type LiuYaoResult,
 } from "@/lib/divination";
 import { ReportText } from "@/components/profiles/ReportText";
 import { HexagramView } from "@/components/divination/HexagramView";
 import { CastRitual } from "@/components/divination/CastRitual";
+import { ShakeRitual } from "@/components/divination/ShakeRitual";
+import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
 import { XiaoLiuRen } from "@/components/divination/XiaoLiuRen";
 import { toneBadgeClass } from "@/components/divination/tone";
 import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
+type Kind = "meihua" | "liuyao";
 type CastMethod = "time" | "number";
+type LiuYaoMethod = "shake" | "tosses";
 
 type AiErr =
   | { kind: "unauth" }
@@ -28,25 +36,46 @@ type AiErr =
   | { kind: "network"; message: string };
 
 const MAX_Q = 200;
-const CAST_ANIM_MS = 1400; // 起卦动效总时长封顶
+// 起卦动效总时长封顶(六爻六位落定稍长)
+const CAST_ANIM_MS: Record<Kind, number> = { meihua: 1400, liuyao: 1600 };
 
-/** 问卦:梅花易数起卦 + 卦象展示 + AI 深度解卦,附小六壬快占。 */
+const KIND_META: Record<Kind, { eyebrow: string; cta: string; casting: string; aiHint: string }> = {
+  meihua: {
+    eyebrow: "占卜 · 梅花易数",
+    cta: "起卦",
+    casting: "起卦中…",
+    aiHint: "依本卦 / 互卦 / 变卦与体用生克逐层解读",
+  },
+  liuyao: {
+    eyebrow: "占卜 · 六爻纳甲",
+    cta: "摇卦",
+    casting: "摇卦中…",
+    aiHint: "依用神 / 世应 / 六亲六神与动变断成败应期",
+  },
+};
+
+/** 问卦:梅花易数 / 六爻纳甲起卦 + 卦象展示 + AI 深度解卦,附小六壬快占。 */
 export default function DivinationPage() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const [credits, setCredits] = useState<number | null>(null); // null=未知/未登录
 
   // 起卦输入
   const [question, setQuestion] = useState("");
+  const [kind, setKind] = useState<Kind>("meihua");
   const [method, setMethod] = useState<CastMethod>("time");
+  const [lyMethod, setLyMethod] = useState<LiuYaoMethod>("shake");
   const [numA, setNumA] = useState("");
   const [numB, setNumB] = useState("");
+  const [lyTosses, setLyTosses] = useState<(number | null)[]>(Array(6).fill(null)); // 报爻:初爻→上爻
 
-  // 起卦态
+  // 起卦态(结果按占法各自留存)
   const [casting, setCasting] = useState(false);
   const [castError, setCastError] = useState<string | null>(null);
   const [result, setResult] = useState<MeihuaResult | null>(null);
   const [castAt, setCastAt] = useState<number | null>(null); // 时间卦:回传同一卦
   const [castNumbers, setCastNumbers] = useState<number[] | null>(null); // 数字卦:回传同一卦
+  const [lyResult, setLyResult] = useState<LiuYaoResult | null>(null);
+  const [lyCastAt, setLyCastAt] = useState<number | null>(null); // 六爻:tosses+castAt 回传同一卦
 
   // AI 解卦态
   const [aiLoading, setAiLoading] = useState(false);
@@ -73,15 +102,26 @@ export default function DivinationPage() {
     return () => window.removeEventListener(AUTH_EVENT, sync);
   }, []);
 
+  const shownResult = kind === "meihua" ? result : lyResult;
+
   // 结果就绪后滚入
   useEffect(() => {
-    if (result && !casting && resultRef.current) {
+    if (shownResult && !casting && resultRef.current) {
       resultRef.current.scrollIntoView({
         behavior: prefersReducedMotion() ? "auto" : "smooth",
         block: "start",
       });
     }
-  }, [result, casting]);
+  }, [shownResult, casting]);
+
+  // 切换占法:清 AI 态与错误(各占法卦象留存)
+  const switchKind = (k: Kind) => {
+    if (k === kind) return;
+    setKind(k);
+    setCastError(null);
+    setReading(null);
+    setAiError(null);
+  };
 
   const validNum = (s: string): number | null => {
     if (!/^\d{1,3}$/.test(s)) return null;
@@ -89,15 +129,18 @@ export default function DivinationPage() {
     return n >= 1 && n <= 999 ? n : null;
   };
 
-  const numbersValid = method === "time" || (validNum(numA) !== null && validNum(numB) !== null);
-  const canCast = question.trim().length > 0 && numbersValid && !casting;
+  const inputsValid =
+    kind === "meihua"
+      ? method === "time" || (validNum(numA) !== null && validNum(numB) !== null)
+      : lyMethod === "shake" || lyTosses.every((t) => t !== null);
+  const canCast = question.trim().length > 0 && inputsValid && !casting;
 
   const cast = useCallback(async () => {
     const q = question.trim();
     if (!q || casting) return;
 
     let numbers: number[] | undefined;
-    if (method === "number") {
+    if (kind === "meihua" && method === "number") {
       const a = validNum(numA);
       const b = validNum(numB);
       if (a === null || b === null) {
@@ -105,6 +148,10 @@ export default function DivinationPage() {
         return;
       }
       numbers = [a, b];
+    }
+    if (kind === "liuyao" && lyMethod === "tosses" && lyTosses.some((t) => t === null)) {
+      setCastError("请为六爻逐一录入背面数");
+      return;
     }
 
     setCasting(true);
@@ -115,39 +162,66 @@ export default function DivinationPage() {
     const reduced = prefersReducedMotion();
     const startedAt = Date.now();
     try {
-      const input: CastInput =
-        method === "number" ? { method: "number", numbers, question: q } : { method: "time", question: q };
-      const { result: r, castAt: at } = await castMeihua(input);
-      // 起卦动效最短展示时长(尊重 reduced-motion 直接出结果)
-      const wait = (reduced ? 0 : CAST_ANIM_MS) - (Date.now() - startedAt);
-      if (wait > 0) await new Promise((res) => setTimeout(res, wait));
-      setResult(r);
-      setCastAt(at);
-      setCastNumbers(numbers ?? null);
+      if (kind === "liuyao") {
+        const input =
+          lyMethod === "tosses"
+            ? { method: "tosses" as const, tosses: lyTosses.map((t) => t ?? 0), question: q }
+            : { method: "shake" as const, question: q };
+        const { result: r, castAt: at } = await castLiuYao(input);
+        const wait = (reduced ? 0 : CAST_ANIM_MS.liuyao) - (Date.now() - startedAt);
+        if (wait > 0) await new Promise((res) => setTimeout(res, wait));
+        setLyResult(r);
+        setLyCastAt(at);
+      } else {
+        const input: CastInput =
+          method === "number" ? { method: "number", numbers, question: q } : { method: "time", question: q };
+        const { result: r, castAt: at } = await castMeihua(input);
+        const wait = (reduced ? 0 : CAST_ANIM_MS.meihua) - (Date.now() - startedAt);
+        if (wait > 0) await new Promise((res) => setTimeout(res, wait));
+        setResult(r);
+        setCastAt(at);
+        setCastNumbers(numbers ?? null);
+      }
     } catch (e) {
-      setResult(null);
+      if (kind === "liuyao") setLyResult(null);
+      else setResult(null);
       setCastError(e instanceof DivinationError ? e.message : "起卦失败,请重试");
     } finally {
       setCasting(false);
     }
-  }, [question, method, numA, numB, casting]);
+  }, [question, kind, method, lyMethod, numA, numB, lyTosses, casting]);
 
   const divine = useCallback(async () => {
-    if (!result || aiLoading) return;
-    const q = result.question ?? question.trim();
-    if (!q) return;
-    setAiLoading(true);
+    if (aiLoading) return;
     setAiError(null);
     setReading(null);
+    setAiLoading(true);
     try {
-      // 关键契约:回传与所见「同一卦」——时间卦传 castAt,数字卦传 numbers。
-      const input: CastInput & { question: string } =
-        result.method === "number"
-          ? { method: "number", numbers: castNumbers ?? result.numbers, question: q }
-          : { method: "time", castAt: castAt ?? undefined, question: q };
-      const { reading: rd, remainingCredits } = await divineAI(input);
-      setReading(rd.text);
-      setCredits(remainingCredits);
+      if (kind === "liuyao") {
+        // 关键契约:回传起卦返回的 tosses + castAt,服务端按记录重装同一卦。
+        if (!lyResult?.tosses || lyCastAt == null) return;
+        const q = lyResult.question ?? question.trim();
+        if (!q) return;
+        const { reading: rd, remainingCredits } = await divineLiuYaoAI({
+          tosses: lyResult.tosses,
+          castAt: lyCastAt,
+          question: q,
+        });
+        setReading(rd.text);
+        setCredits(remainingCredits);
+      } else {
+        if (!result) return;
+        const q = result.question ?? question.trim();
+        if (!q) return;
+        // 关键契约:回传与所见「同一卦」——时间卦传 castAt,数字卦传 numbers。
+        const input: CastInput & { question: string } =
+          result.method === "number"
+            ? { method: "number", numbers: castNumbers ?? result.numbers, question: q }
+            : { method: "time", castAt: castAt ?? undefined, question: q };
+        const { reading: rd, remainingCredits } = await divineAI(input);
+        setReading(rd.text);
+        setCredits(remainingCredits);
+      }
     } catch (e) {
       if (e instanceof DivinationError) {
         if (e.status === 401) setAiError({ kind: "unauth" });
@@ -162,13 +236,15 @@ export default function DivinationPage() {
     } finally {
       setAiLoading(false);
     }
-  }, [result, aiLoading, question, castAt, castNumbers]);
+  }, [kind, result, lyResult, lyCastAt, aiLoading, question, castAt, castNumbers]);
+
+  const meta = KIND_META[kind];
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-14 md:py-20">
       {/* ── 页头 ── */}
       <header>
-        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">占卜 · 梅花易数</p>
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">{meta.eyebrow}</p>
         <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
           <h1 className="font-display text-[39px] font-semibold text-ink sm:text-[49px]">问卦</h1>
           {signedIn && <CreditsBadge credits={credits} />}
@@ -198,21 +274,54 @@ export default function DivinationPage() {
           </span>
         </div>
 
-        {/* 起卦方式 */}
+        {/* 占法 */}
+        <div className="mt-6">
+          <p className="mb-3 text-[12px] font-medium tracking-[0.08em] text-gold">占法</p>
+          <div className="flex flex-wrap gap-2">
+            <MethodTab
+              active={kind === "meihua"}
+              onClick={() => switchKind("meihua")}
+              title="梅花易数"
+              hint="心易时数 · 体用生克"
+            />
+            <MethodTab
+              active={kind === "liuyao"}
+              onClick={() => switchKind("liuyao")}
+              title="六爻纳甲"
+              hint="铜钱摇卦 · 装卦断事"
+            />
+          </div>
+        </div>
+
+        {/* 起卦方式(按占法) */}
         <div className="mt-6">
           <p className="mb-3 text-[12px] font-medium tracking-[0.08em] text-gold">起卦方式</p>
-          <div className="flex flex-wrap gap-2">
-            <MethodTab active={method === "time"} onClick={() => setMethod("time")} title="以此时起卦" hint="时间卦 · 主推" />
-            <MethodTab active={method === "number"} onClick={() => setMethod("number")} title="报数起卦" hint="两数 1-999" />
-          </div>
-          {method === "number" && (
-            <div className="mt-4 flex items-center gap-3">
-              <NumField label="上卦数" value={numA} onChange={setNumA} />
-              <span className="mt-5 text-ink-faint" aria-hidden>
-                ·
-              </span>
-              <NumField label="下卦数" value={numB} onChange={setNumB} />
-            </div>
+          {kind === "meihua" ? (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <MethodTab active={method === "time"} onClick={() => setMethod("time")} title="以此时起卦" hint="时间卦 · 主推" />
+                <MethodTab active={method === "number"} onClick={() => setMethod("number")} title="报数起卦" hint="两数 1-999" />
+              </div>
+              {method === "number" && (
+                <div className="mt-4 flex items-center gap-3">
+                  <NumField label="上卦数" value={numA} onChange={setNumA} />
+                  <span className="mt-5 text-ink-faint" aria-hidden>
+                    ·
+                  </span>
+                  <NumField label="下卦数" value={numB} onChange={setNumB} />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <MethodTab active={lyMethod === "shake"} onClick={() => setLyMethod("shake")} title="一键摇卦" hint="铜钱六掷 · 主推" />
+                <MethodTab active={lyMethod === "tosses"} onClick={() => setLyMethod("tosses")} title="手动报爻" hint="自摇铜钱按爻录入" />
+              </div>
+              {lyMethod === "tosses" && (
+                <TossEntry tosses={lyTosses} onChange={setLyTosses} />
+              )}
+            </>
           )}
         </div>
 
@@ -224,7 +333,7 @@ export default function DivinationPage() {
             disabled={!canCast}
             className="glow-gold inline-flex min-h-[48px] w-full items-center justify-center rounded-[6px] bg-gold px-8 py-3 text-[16px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-45 disabled:shadow-none sm:w-auto"
           >
-            {casting ? "起卦中…" : "起卦"}
+            {casting ? meta.casting : meta.cta}
           </button>
           {!question.trim() && <p className="text-[12px] text-ink-faint">先写下所问之事,方可起卦。</p>}
           {castError && <p className="text-[13px] text-danger">{castError}</p>}
@@ -232,10 +341,10 @@ export default function DivinationPage() {
       </section>
 
       {/* ── 起卦动效 ── */}
-      {casting && <CastRitual />}
+      {casting && (kind === "liuyao" ? <ShakeRitual /> : <CastRitual />)}
 
       {/* ── 卦象展示 ── */}
-      {result && !casting && (
+      {kind === "meihua" && result && !casting && (
         <div ref={resultRef} className="page-enter mt-12 scroll-mt-20">
           {/* 起卦信息 */}
           <div className="flex flex-col gap-2">
@@ -275,6 +384,40 @@ export default function DivinationPage() {
               loading={aiLoading}
               reading={reading}
               error={aiError}
+              hint={meta.aiHint}
+              onDivine={divine}
+            />
+          </div>
+        </div>
+      )}
+
+      {kind === "liuyao" && lyResult && !casting && (
+        <div ref={resultRef} className="page-enter mt-12 scroll-mt-20">
+          {/* 起卦信息 */}
+          <div className="flex flex-col gap-2">
+            <div className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
+              <span>{lyMethod === "tosses" ? "手动报爻" : "铜钱摇卦"}</span>
+              <span>· 六爻纳甲</span>
+            </div>
+            {lyResult.question && (
+              <p className="font-reading text-[16px] text-ink-secondary">所问:{lyResult.question}</p>
+            )}
+          </div>
+
+          {/* 装卦盘面 */}
+          <div className="mt-8">
+            <LiuYaoPan result={lyResult} />
+          </div>
+
+          {/* ── AI 深度解卦 ── */}
+          <div className="mt-8">
+            <AiSection
+              signedIn={signedIn}
+              credits={credits}
+              loading={aiLoading}
+              reading={reading}
+              error={aiError}
+              hint={meta.aiHint}
               onDivine={divine}
             />
           </div>
@@ -354,6 +497,51 @@ function NumField({ label, value, onChange }: { label: string; value: string; on
   );
 }
 
+const YAO_NAMES = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"];
+
+/** 六爻报爻录入:初爻在上(先摇先录),每爻四选一(背面数)。 */
+function TossEntry({ tosses, onChange }: { tosses: (number | null)[]; onChange: (t: (number | null)[]) => void }) {
+  const set = (i: number, backs: number) => {
+    const next = [...tosses];
+    next[i] = backs;
+    onChange(next);
+  };
+  return (
+    <div className="mt-4 flex flex-col gap-2">
+      <p className="text-[12px] leading-relaxed text-ink-faint">
+        以三枚铜钱自摇六次,自初爻起逐次录入每掷的背面枚数(字面朝上不计)。
+      </p>
+      {YAO_NAMES.map((name, i) => (
+        <div key={name} className="flex items-center gap-2.5">
+          <span className="w-9 shrink-0 text-[12px] text-ink-secondary">{name}</span>
+          <div className="flex flex-1 flex-wrap gap-1.5">
+            {TOSS_OPTIONS.map((opt) => {
+              const active = tosses[i] === opt.backs;
+              return (
+                <button
+                  key={opt.backs}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => set(i, opt.backs)}
+                  className={[
+                    "flex min-h-[38px] flex-col items-center justify-center rounded-[4px] px-2.5 py-1 transition-shadow",
+                    active
+                      ? "bg-[var(--gold-glow)] shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                      : "bg-bg shadow-[inset_0_0_0_1px_var(--line)] hover:shadow-[inset_0_0_0_1px_var(--line-strong)]",
+                  ].join(" ")}
+                >
+                  <span className={`text-[12px] leading-tight ${active ? "text-gold" : "text-ink"}`}>{opt.label}</span>
+                  <span className="text-[10px] leading-tight text-ink-faint">{opt.hint}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** 体用生克卡。 */
 function TiYongCard({ result }: { result: MeihuaResult }) {
   const rel = RELATION_TONE[result.relation];
@@ -419,6 +607,7 @@ function AiSection({
   loading,
   reading,
   error,
+  hint,
   onDivine,
 }: {
   signedIn: boolean | null;
@@ -426,6 +615,7 @@ function AiSection({
   loading: boolean;
   reading: string | null;
   error: AiErr | null;
+  hint: string;
   onDivine: () => void;
 }) {
   // 已出结果
@@ -503,7 +693,8 @@ function AiSection({
         AI 深度解卦(消耗 1 次)
       </button>
       <p className="text-[12px] text-ink-faint">
-        依本卦 / 互卦 / 变卦与体用生克逐层解读{credits != null ? `,当前剩余 ${credits} 次` : ""}。
+        {hint}
+        {credits != null ? `,当前剩余 ${credits} 次` : ""}。
       </p>
     </div>
   );
