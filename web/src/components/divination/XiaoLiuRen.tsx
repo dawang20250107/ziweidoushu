@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { castXiaoLiuRen, luckTone, type XiaoLiuRenResult } from "@/lib/divination";
-import { DivinationError } from "@/lib/divination";
+import { castXiaoLiuRen, luckTone, DivinationError, type XiaoLiuRenResult } from "@/lib/divination";
 import { toneBadgeClass, toneTextClass } from "./tone";
 
 /**

@@ -8,7 +8,6 @@ import {
   divineAI,
   fetchDivinationCredits,
   RELATION_TONE,
-  trigramLine,
   DivinationError,
   type CastInput,
   type MeihuaResult,
