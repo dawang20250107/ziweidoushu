@@ -117,8 +117,11 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 		}
 		sb.WriteString("——" + r.YongShenBasis + "。事类识别或有出入,若与所测事理不符,以你按经义取用为准。\n")
 		if r.YuanShen != "" {
-			sb.WriteString(fmt.Sprintf("元神%s%s、忌神%s%s、仇神%s(生用者元,克用者忌,生忌克元者仇;元忌之有力无力依旺衰动变标注论)。\n",
+			sb.WriteString(fmt.Sprintf("元神%s%s、忌神%s%s、仇神%s(生用者元,克用者忌,生忌克元者仇)。\n",
 				r.YuanShen, posText(r.YuanShenPos), r.JiShen, posText(r.JiShenPos), r.ChouShen))
+			sb.WriteString(fmt.Sprintf("元神力量:%s;忌神力量:%s——按增删卜易有力/无力条目机械对照,",
+				liuyao.PowerText(r.YuanShenPower), liuyao.PowerText(r.JiShenPower)))
+			sb.WriteString("总贵用神有气:用神无根则元神有力亦难生,忌神无力亦休喜,请合观用神旺衰定之。\n")
 		}
 	}
 

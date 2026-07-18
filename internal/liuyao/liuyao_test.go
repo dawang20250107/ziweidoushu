@@ -343,6 +343,61 @@ func TestYongShenSuggest(t *testing.T) {
 	}
 }
 
+// TestPowerZengShanExample 增删卜易原例:巳月乙未日自占病「大过之鼎」。
+// 书断「用神无根」:世爻亥水囚于巳月、被未日土克;元神酉金动而化回头生
+// (有力亦难生,因用神无根);上爻忌神未土旺动。逐层对照引擎输出。
+func TestPowerZengShanExample(t *testing.T) {
+	// 泽风大过:内巽外兑;五爻○酉化未、上爻×未化巳 → 火风鼎
+	lines := [6]bool{false, true, true, true, true, false}
+	r, err := assemble(lines, []int{5, 6}, 1, 7, '巳') // 乙未日
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.BenName != "泽风大过" || r.BianName != "火风鼎" || r.Palace != "震宫" {
+		t.Fatalf("卦名: %s→%s(%s)", r.BenName, r.BianName, r.Palace)
+	}
+	r.Question = "自占病"
+	r.applyYongShen()
+	r.applyPower()
+
+	// 用神=世爻(4爻父母亥水):囚于巳月、日克
+	if r.YongShen != "世爻" || len(r.YongShenPos) != 1 || r.YongShenPos[0] != 4 {
+		t.Fatalf("用神: %s %v", r.YongShen, r.YongShenPos)
+	}
+	shi := r.Yaos[3]
+	if shi.LiuQin != "父母" || shi.MonthState != "囚" || shi.DayRelation != "克" {
+		t.Fatalf("世爻亥水: %s %s 日%s", shi.LiuQin, shi.MonthState, shi.DayRelation)
+	}
+	// 元神官鬼(3、5);五爻酉金动化未土回头生 → 有力;三爻静而休囚 → 无力
+	if r.YuanShen != "官鬼" || len(r.YuanShenPower) != 2 {
+		t.Fatalf("元神: %s %v", r.YuanShen, r.YuanShenPower)
+	}
+	for _, n := range r.YuanShenPower {
+		if n.Pos == 5 && n.Verdict != "有力" {
+			t.Fatalf("五爻酉金动化回头生应有力: %+v", n)
+		}
+		if n.Pos == 3 && n.Verdict != "无力" {
+			t.Fatalf("三爻酉金静而休囚应无力: %+v", n)
+		}
+	}
+	// 忌神妻财(1、6):上爻未土虽旺动,与元神酉金同动 → 贪生忘克,无力
+	// (忌无力七;忌生元、元生用成连续相生,正合书断「元神有力」之理)
+	if r.JiShen != "妻财" {
+		t.Fatalf("忌神: %s", r.JiShen)
+	}
+	for _, n := range r.JiShenPower {
+		if n.Pos == 6 {
+			if n.Verdict != "无力" || len(n.Reasons) == 0 || !strings.Contains(n.Reasons[0], "贪生") {
+				t.Fatalf("上爻未土应贪生忘克无力: %+v", n)
+			}
+		}
+	}
+	// 上爻未化巳:土绝于巳论生不论绝 → 回头生
+	if r.Yaos[5].BianRelation != "回头生" {
+		t.Fatalf("未化巳: %s", r.Yaos[5].BianRelation)
+	}
+}
+
 // TestShake 服务端摇卦:结构合法(可多次)。
 func TestShake(t *testing.T) {
 	at := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)

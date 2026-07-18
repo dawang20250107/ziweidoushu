@@ -174,6 +174,10 @@ type Result struct {
 	JiShen      string `json:"jiShen,omitempty"`
 	JiShenPos   []int  `json:"jiShenPos"`
 	ChouShen    string `json:"chouShen,omitempty"`
+
+	// 元忌力量评估(增删有力/无力条目对照,见 power.go;倾向供参,判定在解卦层)
+	YuanShenPower []PowerNote `json:"yuanShenPower"`
+	JiShenPower   []PowerNote `json:"jiShenPower"`
 }
 
 var seqNames = []string{"八纯卦", "一世卦", "二世卦", "三世卦", "四世卦", "五世卦", "游魂卦", "归魂卦"}
@@ -524,6 +528,7 @@ func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
 	r.LunarText = lt
 	r.Tosses = append([]int(nil), tosses...)
 	r.applyYongShen()
+	r.applyPower()
 	return r, nil
 }
 
