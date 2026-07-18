@@ -20,6 +20,18 @@ const liuYaoSystemPrompt = `你是精研火珠林法的六爻解卦人,宗《增
 克害;应期(冲空实空/墓库冲开/破待填合等)结合古籍参考推断。
 行文简体中文,条理清晰、不故弄玄虚;不确定处直言;结尾提醒占卜为传统文化参考。`
 
+// posText 爻位列表 →「(第 1、5 爻)」;空为不上卦。
+func posText(pos []int) string {
+	if len(pos) == 0 {
+		return "(不上卦)"
+	}
+	parts := make([]string, len(pos))
+	for i, p := range pos {
+		parts[i] = fmt.Sprintf("%d", p)
+	}
+	return "(第 " + strings.Join(parts, "、") + " 爻)"
+}
+
 // yaoLine 单爻描述行。
 func yaoLine(y liuyao.Yao) string {
 	mark := ""
@@ -104,6 +116,10 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 			sb.WriteString("(用神不上卦,须论伏神)")
 		}
 		sb.WriteString("——" + r.YongShenBasis + "。事类识别或有出入,若与所测事理不符,以你按经义取用为准。\n")
+		if r.YuanShen != "" {
+			sb.WriteString(fmt.Sprintf("元神%s%s、忌神%s%s、仇神%s(生用者元,克用者忌,生忌克元者仇;元忌之有力无力依旺衰动变标注论)。\n",
+				r.YuanShen, posText(r.YuanShenPos), r.JiShen, posText(r.JiShenPos), r.ChouShen))
+		}
 	}
 
 	// 语料引文:每书限一条,分散引用面

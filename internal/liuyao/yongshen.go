@@ -50,15 +50,48 @@ func SuggestYongShen(question string) (name, basis string) {
 	return "世爻", "自占吉凶,以世爻为用神(增删卜易)"
 }
 
-// applyYongShen 填入建议与所在爻位(用神不上卦则位置为空,伏神之法由解卦层论)。
+// qinShengBy 生我者(六亲相生环:父母→兄弟→子孙→妻财→官鬼→父母)。
+// 元忌仇链即沿环逆推:生用者元、生元者忌(克用)、生忌者仇(克元)——
+// 增删卜易·元神章「假令金为用神,生金者土,土为元神;克金者火,火为忌神;
+// 克土生火者木,木为仇神」。
+var qinSheng = map[string]string{"父母": "兄弟", "兄弟": "子孙", "子孙": "妻财", "妻财": "官鬼", "官鬼": "父母"}
+
+func qinShengBy(qin string) string {
+	for a, b := range qinSheng {
+		if b == qin {
+			return a
+		}
+	}
+	return ""
+}
+
+// applyYongShen 填入用神建议、爻位与元忌仇链(用神不上卦则位置为空,伏神之法由解卦层论)。
 func (r *Result) applyYongShen() {
 	name, basis := SuggestYongShen(r.Question)
 	r.YongShen = name
 	r.YongShenBasis = basis
 	r.YongShenPos = []int{}
+
+	// 元忌仇以用神六亲论;世爻用神按世爻所临六亲推链
+	chainQin := name
 	for _, y := range r.Yaos {
 		if (name == "世爻" && y.IsShi) || (name != "世爻" && y.LiuQin == name) {
 			r.YongShenPos = append(r.YongShenPos, y.Pos)
+		}
+		if name == "世爻" && y.IsShi {
+			chainQin = y.LiuQin
+		}
+	}
+	r.YuanShen = qinShengBy(chainQin)
+	r.JiShen = qinShengBy(r.YuanShen)
+	r.ChouShen = qinShengBy(r.JiShen)
+	r.YuanShenPos, r.JiShenPos = []int{}, []int{}
+	for _, y := range r.Yaos {
+		if y.LiuQin == r.YuanShen {
+			r.YuanShenPos = append(r.YuanShenPos, y.Pos)
+		}
+		if y.LiuQin == r.JiShen {
+			r.JiShenPos = append(r.JiShenPos, y.Pos)
 		}
 	}
 }

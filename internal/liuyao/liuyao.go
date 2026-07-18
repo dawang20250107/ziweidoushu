@@ -167,6 +167,13 @@ type Result struct {
 	YongShen      string `json:"yongShen,omitempty"`
 	YongShenBasis string `json:"yongShenBasis,omitempty"`
 	YongShenPos   []int  `json:"yongShenPos"` // 用神所在爻位;空=用神不上卦(伏神之法另论)
+
+	// 元忌仇链(生用者元、克用者忌、生忌克元者仇——增删卜易·元神章)
+	YuanShen    string `json:"yuanShen,omitempty"`
+	YuanShenPos []int  `json:"yuanShenPos"`
+	JiShen      string `json:"jiShen,omitempty"`
+	JiShenPos   []int  `json:"jiShenPos"`
+	ChouShen    string `json:"chouShen,omitempty"`
 }
 
 var seqNames = []string{"八纯卦", "一世卦", "二世卦", "三世卦", "四世卦", "五世卦", "游魂卦", "归魂卦"}

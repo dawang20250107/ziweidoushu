@@ -167,6 +167,14 @@ export function LiuYaoPan({ result }: { result: LiuYaoResult }) {
                 : ""}
           </span>
         )}
+        {result.yuanShen && (
+          <span title={`仇神 ${result.chouShen ?? ""}——生用者元,克用者忌,生忌克元者仇(增删卜易·元神章)`}>
+            · 元神 {result.yuanShen}
+            {(result.yuanShenPos ?? []).length > 0 ? `(${(result.yuanShenPos ?? []).join("、")})` : "(不上卦)"}
+            {" "}· 忌神 {result.jiShen}
+            {(result.jiShenPos ?? []).length > 0 ? `(${(result.jiShenPos ?? []).join("、")})` : "(不上卦)"}
+          </span>
+        )}
       </div>
 
       {/* 爻列表(自上而下) */}

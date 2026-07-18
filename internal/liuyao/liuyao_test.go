@@ -322,6 +322,13 @@ func TestYongShenSuggest(t *testing.T) {
 	if r.YongShen != "妻财" || len(r.YongShenPos) != 2 || r.YongShenPos[0] != 1 || r.YongShenPos[1] != 5 {
 		t.Fatalf("泰卦问财用神: %s %v", r.YongShen, r.YongShenPos)
 	}
+	// 元忌仇链:用财 → 元子孙(6)、忌兄弟(3、4)、仇父母(不上卦)
+	if r.YuanShen != "子孙" || len(r.YuanShenPos) != 1 || r.YuanShenPos[0] != 6 {
+		t.Fatalf("元神: %s %v", r.YuanShen, r.YuanShenPos)
+	}
+	if r.JiShen != "兄弟" || len(r.JiShenPos) != 2 || r.ChouShen != "父母" {
+		t.Fatalf("忌仇: %s %v %s", r.JiShen, r.JiShenPos, r.ChouShen)
+	}
 	// 无事类 → 世爻(泰为三世卦,世在 3)
 	r2, err := ByTosses([]int{1, 1, 1, 2, 2, 2}, at, "")
 	if err != nil {
@@ -329,6 +336,10 @@ func TestYongShenSuggest(t *testing.T) {
 	}
 	if r2.YongShen != "世爻" || len(r2.YongShenPos) != 1 || r2.YongShenPos[0] != 3 {
 		t.Fatalf("默认世爻用神: %s %v", r2.YongShen, r2.YongShenPos)
+	}
+	// 世爻(泰三爻兄弟)推链:元父母(不上卦)、忌官鬼(2)、仇妻财
+	if r2.YuanShen != "父母" || len(r2.YuanShenPos) != 0 || r2.JiShen != "官鬼" || r2.ChouShen != "妻财" {
+		t.Fatalf("世爻链: 元%s%v 忌%s 仇%s", r2.YuanShen, r2.YuanShenPos, r2.JiShen, r2.ChouShen)
 	}
 }
 

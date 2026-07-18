@@ -109,6 +109,11 @@ export interface LiuYaoResult {
   yongShen?: string; // 用神建议(六亲名或「世爻」)
   yongShenBasis?: string; // 经义依据
   yongShenPos?: number[]; // 用神所在爻位;空=不上卦
+  yuanShen?: string; // 元神(生用神者)
+  yuanShenPos?: number[];
+  jiShen?: string; // 忌神(克用神者)
+  jiShenPos?: number[];
+  chouShen?: string; // 仇神(生忌克元者)
 }
 
 /** AI 解卦读物。 */
