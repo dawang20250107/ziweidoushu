@@ -5,7 +5,8 @@ import type { Paragraph } from "@/lib/types";
 
 type Layer = "" | "translation" | "niNote";
 
-const chipCls = "rounded-[2px] px-2 py-0.5 text-[12px] tracking-[0.08em] transition-colors";
+// 移动端触控目标加高,sm 起收回紧凑密度
+const chipCls = "rounded-[2px] px-2 py-1.5 text-[12px] tracking-[0.08em] transition-colors sm:py-0.5";
 
 /**
  * 单段正文:锚点 id="p-{id}" 供定位/金晕;有 translation/niNote 时段尾显示切换,

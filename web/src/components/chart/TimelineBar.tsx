@@ -16,7 +16,8 @@ export interface TimelineSelection {
 
 const rowBtn = (active: boolean) =>
   [
-    "tnum rounded-[2px] px-2 py-0.5 text-[12px] transition-colors",
+    // 移动端触控目标加高(py-1.5≈32px),sm 起收回紧凑密度
+    "tnum rounded-[2px] px-2 py-1.5 text-[12px] transition-colors sm:py-0.5",
     active
       ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[0_0_0_1px_var(--gold-dim)]"
       : "text-ink-secondary shadow-[0_0_0_1px_var(--line)] hover:text-ink",
@@ -54,7 +55,7 @@ export function TimelineBar({
           <button
             type="button"
             onClick={() => onChange({ year: new Date().getFullYear() })}
-            className="rounded-[2px] border border-line-strong px-2 py-0.5 text-[12px] text-ink-secondary transition-colors hover:border-gold-dim hover:text-gold"
+            className="rounded-[2px] border border-line-strong px-2.5 py-1.5 text-[12px] text-ink-secondary transition-colors hover:border-gold-dim hover:text-gold sm:py-0.5"
           >
             今年
           </button>
@@ -62,7 +63,7 @@ export function TimelineBar({
             <button
               type="button"
               onClick={() => onChange({ year: null })}
-              className="rounded-[2px] border border-line-strong px-2 py-0.5 text-[12px] text-ink-secondary transition-colors hover:border-gold-dim hover:text-gold"
+              className="rounded-[2px] border border-line-strong px-2.5 py-1.5 text-[12px] text-ink-secondary transition-colors hover:border-gold-dim hover:text-gold sm:py-0.5"
             >
               回本命盘
             </button>

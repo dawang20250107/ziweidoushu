@@ -44,7 +44,8 @@ export function BookmarkDrawer({
 
   return (
     <div
-      className={`fixed inset-0 z-50 ${open ? "" : "pointer-events-none"}`}
+      // overflow-hidden:收起态面板 translate-x-full 移出视口,不裁剪会把页面横向撑宽
+      className={`fixed inset-0 z-50 overflow-hidden ${open ? "" : "pointer-events-none"}`}
       aria-hidden={!open}
     >
       {/* 遮罩 */}
@@ -73,7 +74,7 @@ export function BookmarkDrawer({
             type="button"
             onClick={onClose}
             aria-label="关闭"
-            className="rounded-[6px] px-2.5 py-1 text-[13px] text-ink-faint transition-colors hover:text-gold"
+            className="min-h-[38px] rounded-[6px] px-2.5 py-1 text-[13px] text-ink-faint transition-colors hover:text-gold sm:min-h-0"
           >
             关闭
           </button>

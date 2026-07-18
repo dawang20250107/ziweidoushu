@@ -61,7 +61,7 @@ export function ReaderToolbar({
               type="button"
               onClick={onOpenBookmarks}
               aria-label="书签"
-              className="flex items-center gap-1 rounded-[6px] px-2.5 py-1 text-[13px] text-ink-secondary transition-colors hover:text-gold"
+              className="flex min-h-[38px] items-center gap-1 rounded-[6px] px-2.5 py-1 text-[13px] text-ink-secondary transition-colors hover:text-gold sm:min-h-0"
             >
               书签
               {bookmarkCount > 0 && (
@@ -86,7 +86,7 @@ export function ReaderToolbar({
                 aria-label={`字号${SIZE_LABEL[s]}`}
                 onClick={() => onSize(s)}
                 className={[
-                  "px-3 py-1 text-[13px] transition-colors",
+                  "min-h-[38px] px-3 py-1 text-[13px] transition-colors sm:min-h-0",
                   size === s ? "text-gold" : "text-ink-secondary hover:text-ink",
                 ].join(" ")}
                 style={size === s ? { background: "var(--gold-glow)" } : undefined}
