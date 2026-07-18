@@ -455,6 +455,18 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 	return r, nil
 }
 
+// ── 研究校验导出(tools/liuyaoverify 以书校机)──────────────
+
+// AssembleForResearch 直连装卦:月支+日干支即可,无需历日(书中占例只记月日)。
+func AssembleForResearch(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian rune) (*Result, error) {
+	return assemble(lines, moving, dayStem, dayBranch, monthJian)
+}
+
+// XunKongForResearch 六甲旬空两支索引。
+func XunKongForResearch(dayStem, dayBranch int) (int, int) {
+	return xunKongBranches(dayStem, dayBranch)
+}
+
 // ── 起卦入口 ─────────────────────────────────────────────────
 
 // tossToYao 背面数 → (阳爻, 动)。1背=少阳、2背=少阴、3背=老阳动、0背=老阴动。
