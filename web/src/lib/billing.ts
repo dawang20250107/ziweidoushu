@@ -196,10 +196,13 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
 export const PRO_BENEFITS = ["无限命盘档案", "深度运限下钻", "古籍全文检索"];
 export const MASTER_BENEFITS = ["Pro 全部权益", "双人合盘分析", "优先 AI 解读队列"];
 export const CREDIT_BENEFITS = ["深度报告 AI 生成", "生成失败自动退还", "购买次数永久有效"];
+export const DIVINE_BENEFITS = ["AI 深度解卦(梅花/六爻)", "解卦失败自动退还", "购买次数永久有效"];
 
 /** 依产品推导权益点列表。 */
 export function benefitsFor(product: Product): string[] {
-  if (product.kind === "credits") return CREDIT_BENEFITS;
+  if (product.kind === "credits") {
+    return product.creditType === "divination" ? DIVINE_BENEFITS : CREDIT_BENEFITS;
+  }
   return product.tier === "master" ? MASTER_BENEFITS : PRO_BENEFITS;
 }
 
