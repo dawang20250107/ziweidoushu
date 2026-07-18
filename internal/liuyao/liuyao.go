@@ -139,6 +139,9 @@ type Yao struct {
 	DayRelation string `json:"dayRelation,omitempty"` // 日辰对爻:临/冲/合/扶/生/克/泄/耗
 	AnDong      bool   `json:"anDong,omitempty"`      // 暗动(静爻旺相逢日冲)
 	RiPo        bool   `json:"riPo,omitempty"`        // 日破(静爻休囚死逢日冲)
+
+	DayStage     string `json:"dayStage,omitempty"`     // 对日辰四态:长生/帝旺/墓/绝(野鹤口径)
+	BianRelation string `json:"bianRelation,omitempty"` // 动爻之变:化进神/化退神/伏吟/反吟/化长生/化墓/化绝/化合/回头生/回头克
 }
 
 // Result 六爻装卦结果。
@@ -194,6 +197,69 @@ func xunKongBranches(dayStem, dayBranch int) (int, int) {
 	}
 	a := (10 - 2*(j/10) + 24) % 12
 	return a, (a + 1) % 12
+}
+
+// ── 生旺墓绝与动变作用(research/liuyao-dongbian.md)──────────
+// 十二长生野鹤只验四态(「余得验者,止验生旺墓绝,其余不验」);
+// 土长生在申为野鹤以天时占验裁定(水土同宫)。索引=五行(木火土金水)。
+
+var (
+	csBranch  = []int{11, 2, 8, 5, 8} // 长生:木亥 火寅 土申 金巳 水申
+	dwBranch  = []int{3, 6, 0, 9, 0}  // 帝旺:木卯 火午 土子 金酉 水子
+	muBranch  = []int{7, 10, 4, 1, 4} // 墓:木未 火戌 土辰 金丑 水辰
+	jueBranch = []int{8, 11, 5, 2, 5} // 绝:木申 火亥 土巳 金寅 水巳
+	// 进神对(增删卜易):寅→卯 巳→午 申→酉 亥→子 丑→辰 辰→未 未→戌
+	jinShen = map[int]int{2: 3, 5: 6, 8: 9, 11: 0, 1: 4, 4: 7, 7: 10}
+	// 退神对:子→亥 卯→寅 午→巳 酉→申 辰→丑 未→辰 戌→未
+	tuiShen = map[int]int{0: 11, 3: 2, 6: 5, 9: 8, 4: 1, 7: 4, 10: 7}
+)
+
+// dayStage 爻对日辰之四态(长生/帝旺/墓/绝);土绝于巳论生不论绝,不标。
+func dayStage(el, dayBranch int) string {
+	switch dayBranch {
+	case csBranch[el]:
+		return "长生"
+	case dwBranch[el]:
+		return "帝旺"
+	case muBranch[el]:
+		return "墓"
+	case jueBranch[el]:
+		if el == 2 { // 土绝于巳:巳火反能生土,论生不论绝
+			return ""
+		}
+		return "绝"
+	}
+	return ""
+}
+
+// bianRelation 动爻与变爻作用。优先级:伏吟(同支)> 进/退神 > 反吟(冲)>
+// 化长生(金化巳论长生不论克)> 化墓 > 化绝(土化巳论生不论绝)> 化合 >
+// 回头生 > 回头克;化泄/化耗不标。
+func bianRelation(benB, bianB int) string {
+	be, ve := branchElement[benB], branchElement[bianB]
+	switch {
+	case bianB == benB:
+		return "伏吟"
+	case jinShen[benB] == bianB && be == ve:
+		return "化进神"
+	case tuiShen[benB] == bianB && be == ve:
+		return "化退神"
+	case (benB+6)%12 == bianB:
+		return "反吟"
+	case bianB == csBranch[be]:
+		return "化长生"
+	case bianB == muBranch[be]:
+		return "化墓"
+	case bianB == jueBranch[be] && be != 2:
+		return "化绝"
+	case liuHe[benB] == bianB:
+		return "化合"
+	case (ve+1)%5 == be:
+		return "回头生"
+	case (ve+2)%5 == be:
+		return "回头克"
+	}
+	return ""
 }
 
 // dayRelation 日辰对爻:临(同支)/冲/合优先,余按五行生克。
@@ -331,6 +397,7 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 		kongA, kongB := xunKongBranches(dayStem, dayBranch)
 		yao.XunKong = bIdx == kongA || bIdx == kongB
 		yao.DayRelation = dayRelation(dayBranch, bIdx)
+		yao.DayStage = dayStage(branchElement[bIdx], dayBranch)
 		if !yao.Moving && yao.DayRelation == "冲" {
 			if yao.MonthState == "旺" || yao.MonthState == "相" {
 				yao.AnDong = true
@@ -362,6 +429,7 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 				Element: elementNames[branchElement[bbIdx]],
 				LiuQin:  liuQin(palaceEl, branchElement[bbIdx]),
 			}
+			yao.BianRelation = bianRelation(bIdx, bbIdx)
 		}
 		r.Yaos[i] = yao
 		if yao.Moving {

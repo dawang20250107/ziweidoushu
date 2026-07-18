@@ -26,6 +26,9 @@ function StateMarks({ yao }: { yao: LiuYaoYao }) {
   if (yao.yuePo) flags.push({ ch: "破", cls: "text-danger", label: "月破" });
   if (yao.riPo) flags.push({ ch: "破", cls: "text-danger", label: "日破" });
   if (yao.anDong) flags.push({ ch: "暗", cls: "text-gold", label: "暗动" });
+  if (yao.dayStage === "长生") flags.push({ ch: "长", cls: "text-ok", label: "日辰长生" });
+  if (yao.dayStage === "墓") flags.push({ ch: "墓", cls: "text-warn", label: "日辰入墓" });
+  if (yao.dayStage === "绝") flags.push({ ch: "绝", cls: "text-danger", label: "日辰临绝" });
   return (
     <span className="ml-1 inline-flex items-center gap-0.5 align-middle">
       {yao.monthState && (
@@ -67,6 +70,30 @@ function YaoBar({ yao }: { yao: LiuYaoYao }) {
       <span className="w-3 shrink-0 text-center text-[12px] leading-none text-gold" aria-hidden>
         {yao.moving ? (yao.yang ? "○" : "×") : ""}
       </span>
+    </span>
+  );
+}
+
+/** 动变作用徽记(单字,悬停见全称)。 */
+const BIAN_MARK: Record<string, { ch: string; cls: string }> = {
+  化进神: { ch: "进", cls: "text-gold" },
+  化退神: { ch: "退", cls: "text-warn" },
+  伏吟: { ch: "伏", cls: "text-warn" },
+  反吟: { ch: "反", cls: "text-danger" },
+  化长生: { ch: "长", cls: "text-ok" },
+  化墓: { ch: "墓", cls: "text-warn" },
+  化绝: { ch: "绝", cls: "text-danger" },
+  化合: { ch: "合", cls: "text-ok" },
+  回头生: { ch: "生", cls: "text-ok" },
+  回头克: { ch: "克", cls: "text-danger" },
+};
+
+function BianMark({ relation }: { relation?: string }) {
+  if (!relation || !BIAN_MARK[relation]) return null;
+  const m = BIAN_MARK[relation];
+  return (
+    <span className={`ml-0.5 text-[10px] leading-none ${m.cls}`} title={relation} aria-label={relation}>
+      {m.ch}
     </span>
   );
 }
@@ -161,6 +188,7 @@ export function LiuYaoPan({ result }: { result: LiuYaoResult }) {
                     <span aria-hidden className="mr-1 text-gold">→</span>
                     {y.bianYao.liuQin}{" "}
                     <GanZhi stem={y.bianYao.stem} branch={y.bianYao.branch} element={y.bianYao.element} size={11} />
+                    <BianMark relation={y.bianRelation} />
                   </>
                 ) : null}
               </span>
@@ -172,7 +200,8 @@ export function LiuYaoPan({ result }: { result: LiuYaoResult }) {
       {/* 图例 */}
       <p className="mt-5 text-[11px] leading-relaxed text-ink-faint">
         自上而下为上爻至初爻;○ 老阳动、× 老阴动,动爻化出右侧变爻。干支旁小字为对月建旺衰
-        (旺相休囚死),空=旬空、破=月破/日破、暗=暗动(增删卜易口径)。六神依日辰{result.dayStem}日起。
+        (旺相休囚死),空=旬空、破=月破/日破、暗=暗动、长/墓/绝=对日辰四态;变爻旁
+        进/退/伏/反/长/墓/绝/合/生/克为动变作用(增删卜易口径,悬停见全称)。六神依日辰{result.dayStem}日起。
       </p>
     </div>
   );

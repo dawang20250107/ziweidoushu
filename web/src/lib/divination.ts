@@ -87,6 +87,8 @@ export interface LiuYaoYao {
   dayRelation?: string; // 日辰对爻:临/冲/合/扶/生/克/泄/耗
   anDong?: boolean; // 暗动
   riPo?: boolean; // 日破
+  dayStage?: string; // 对日辰四态:长生/帝旺/墓/绝
+  bianRelation?: string; // 动爻之变:化进神/化退神/伏吟/反吟/化长生/化墓/化绝/化合/回头生/回头克
 }
 
 /** 六爻装卦结果。yaos 自下而上(index 0 = 初爻)。 */

@@ -227,6 +227,59 @@ func TestWangShuaiAnnotations(t *testing.T) {
 	}
 }
 
+// TestDongBianAnnotations 生旺墓绝四态与动变作用(规则见 research/liuyao-dongbian.md)。
+func TestDongBianAnnotations(t *testing.T) {
+	// 日辰四态(野鹤口径:金巳生 酉旺 丑墓 寅绝;土绝巳论生不论绝)
+	stageCases := []struct {
+		el, db int
+		want   string
+	}{
+		{3, 5, "长生"}, {3, 9, "帝旺"}, {3, 1, "墓"}, {3, 2, "绝"}, // 金
+		{0, 11, "长生"}, {0, 7, "墓"}, {0, 8, "绝"}, // 木
+		{2, 5, ""}, {2, 8, "长生"}, {2, 4, "墓"}, // 土:绝于巳不标
+		{4, 4, "墓"}, {4, 5, "绝"}, // 水
+		{1, 6, "帝旺"}, {3, 0, ""}, // 非四态位不标
+	}
+	for _, c := range stageCases {
+		if got := dayStage(c.el, c.db); got != c.want {
+			t.Fatalf("dayStage(%d,%d)=%q want %q", c.el, c.db, got, c.want)
+		}
+	}
+	// 动变作用与优先级
+	bianCases := []struct {
+		ben, bian int
+		want      string
+	}{
+		{2, 3, "化进神"}, {3, 2, "化退神"}, // 寅→卯 / 卯→寅
+		{1, 4, "化进神"}, {10, 7, "化退神"}, // 丑→辰 / 戌→未(土)
+		{6, 6, "伏吟"},                    // 午→午
+		{2, 8, "反吟"}, {5, 11, "反吟"},    // 寅→申 / 巳→亥(冲优先于绝)
+		{9, 5, "化长生"},                  // 酉金→巳:论长生不论克
+		{6, 10, "化墓"}, {9, 1, "化墓"},    // 午→戌(火墓)/ 酉→丑(金墓,墓优先于回头生)
+		{6, 11, "化绝"}, {3, 8, "化绝"},    // 午→亥(绝优先于回头克)/ 卯→申
+		{0, 1, "化合"},                    // 子→丑(合优先于回头克)
+		{7, 5, "回头生"}, // 未土→巳:土绝巳论生
+		{0, 4, "化墓"},  // 子水→辰:辰乃水墓,墓优先于回头克
+		{5, 0, "回头克"}, // 巳火→子水
+		{8, 0, ""},     // 申金→子:化泄不标
+	}
+	for _, c := range bianCases {
+		if got := bianRelation(c.ben, c.bian); got != c.want {
+			t.Fatalf("bianRelation(%d,%d)=%q want %q", c.ben, c.bian, got, c.want)
+		}
+	}
+	// 集成:乾动初爻(甲子日寅月)→ 姤,子化辛丑=化合
+	all := [6]bool{true, true, true, true, true, true}
+	r := mustAssemble(t, all, []int{1})
+	if r.Yaos[0].BianRelation != "化合" {
+		t.Fatalf("乾初动子化丑: %q", r.Yaos[0].BianRelation)
+	}
+	// 甲子日:土爻(辰/戌)帝旺于子(野鹤「土长生于申,旺于子」),申金爻非四态位
+	if r.Yaos[5].DayStage != "帝旺" || r.Yaos[2].DayStage != "帝旺" || r.Yaos[4].DayStage != "" {
+		t.Fatalf("子日四态: 戌%q 辰%q 申%q", r.Yaos[5].DayStage, r.Yaos[2].DayStage, r.Yaos[4].DayStage)
+	}
+}
+
 // TestStaticGuaJSONContract 静卦 movingNums 序列化为 [] 而非 null(前端列表契约)。
 func TestStaticGuaJSONContract(t *testing.T) {
 	all := [6]bool{true, true, true, true, true, true}

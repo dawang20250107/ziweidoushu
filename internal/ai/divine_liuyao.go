@@ -14,8 +14,10 @@ const liuYaoSystemPrompt = `你是精研火珠林法的六爻解卦人,宗《增
 先取用神(按所测事项取对应六亲,说明取用理由),看用神旺衰、动爻生克冲合、
 世应关系,断成败应期;引用给出的古籍参考须注明出处。
 装卦已按经文标注客观事实层:各爻对月建旺衰(旺相休囚死)、日辰作用
-(临/冲/合/扶/生/克/泄/耗)与月破、旬空、暗动、日破——旺衰与空破以
-标注为准,不必自行推算,径直据此论生扶克害与应期。
+(临/冲/合/扶/生/克/泄/耗)、日辰四态(长生/帝旺/墓/绝,野鹤口径)、
+月破、旬空、暗动、日破,动爻另标动变作用(化进退神/伏吟反吟/化长生
+墓绝合/回头生克)——以上以标注为准,不必自行推算,径直据此论生扶
+克害;应期(冲空实空/墓库冲开/破待填合等)结合古籍参考推断。
 行文简体中文,条理清晰、不故弄玄虚;不确定处直言;结尾提醒占卜为传统文化参考。`
 
 // yaoLine 单爻描述行。
@@ -32,6 +34,9 @@ func yaoLine(y liuyao.Yao) string {
 		shape = "▅▅ ▅▅"
 	}
 	s := fmt.Sprintf("%s %s %s%s(%s·%s,日%s)%s", y.LiuShen, y.LiuQin, y.Stem, y.Branch, y.Element, y.MonthState, y.DayRelation, mark)
+	if y.DayStage != "" {
+		s += " 日辰" + y.DayStage
+	}
 	if y.YuePo {
 		s += " 月破"
 	}
@@ -48,6 +53,9 @@ func yaoLine(y liuyao.Yao) string {
 		s += " ×动"
 		if y.BianYao != nil {
 			s += fmt.Sprintf(" → 变 %s %s%s(%s)", y.BianYao.LiuQin, y.BianYao.Stem, y.BianYao.Branch, y.BianYao.Element)
+		}
+		if y.BianRelation != "" {
+			s += " " + y.BianRelation
 		}
 	}
 	return fmt.Sprintf("第%d爻 %s  %s", y.Pos, shape, s)
