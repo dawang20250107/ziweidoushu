@@ -159,7 +159,8 @@ export default function ChartPage() {
       {data && (
         <div className="flex flex-col gap-4">
           <TimelineBar chart={data.chart} selection={timeline} horoscope={horoscope} onChange={setTimeline} />
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          {/* 移动端必须显式 1 列 minmax(0,1fr):否则 auto 轨道被盘面 min-w 撑开,页面整体横向溢出 */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div>
               <div className="relative">
                 <div className="overflow-x-auto">
