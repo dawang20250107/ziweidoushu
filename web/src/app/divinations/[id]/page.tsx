@@ -95,6 +95,11 @@ function RecordView({ record }: { record: DivinationRecord }) {
             {DIVINATION_KIND_LABEL[record.kind] ?? record.kind}
           </span>
           <span className="tnum text-[12px] tracking-[0.06em] text-ink-faint">{formatDivinationTime(record.castAt)}</span>
+          {record.kind === "meihua" && (record.payload as MeihuaResult | undefined)?.lunarText && (
+            <span className="tnum text-[12px] tracking-[0.06em] text-ink-faint">
+              · 农历 {(record.payload as MeihuaResult).lunarText}
+            </span>
+          )}
         </div>
         <h1 className="mt-3 font-display text-[27px] font-semibold leading-snug text-ink sm:text-[31px]">
           {record.summary}

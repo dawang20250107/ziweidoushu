@@ -447,6 +447,7 @@ export default function DivinationPage() {
               reading={reading}
               error={aiError}
               hint={meta.aiHint}
+              archived={!!mhRecordId}
               onDivine={divine}
             />
           </div>
@@ -480,6 +481,7 @@ export default function DivinationPage() {
               reading={reading}
               error={aiError}
               hint={meta.aiHint}
+              archived={!!lyRecordId}
               onDivine={divine}
             />
           </div>
@@ -670,6 +672,7 @@ function AiSection({
   reading,
   error,
   hint,
+  archived,
   onDivine,
 }: {
   signedIn: boolean | null;
@@ -678,6 +681,7 @@ function AiSection({
   reading: string | null;
   error: AiErr | null;
   hint: string;
+  archived?: boolean;
   onDivine: () => void;
 }) {
   // 已出结果
@@ -687,7 +691,14 @@ function AiSection({
         <p className="mb-5 text-[12px] font-medium tracking-[0.24em] text-gold">AI 深度解卦</p>
         <ReportText text={reading} />
         <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-          {credits != null && <span className="tnum text-[12px] text-ink-faint">解卦剩余 {credits} 次</span>}
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {credits != null && <span className="tnum text-[12px] text-ink-faint">解卦剩余 {credits} 次</span>}
+            {archived && (
+              <Link href="/divinations" className="text-[12px] text-gold transition-opacity hover:opacity-80">
+                已存入卦档 · 查看
+              </Link>
+            )}
+          </span>
           <span className="text-[11px] leading-relaxed text-ink-faint">占卜为传统文化参考,不构成决策建议。</span>
         </div>
       </article>

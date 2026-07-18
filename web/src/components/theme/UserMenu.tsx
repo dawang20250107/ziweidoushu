@@ -49,6 +49,7 @@ export function UserMenu() {
           {[
             { href: "/account", label: "我的账户" },
             { href: "/profiles", label: "命盘档案" },
+            { href: "/divinations", label: "卦档" },
             { href: "/reports", label: "深度报告" },
           ].map((item) => (
             <Link
