@@ -111,10 +111,10 @@ export interface DivineReading {
 /** 卦档记录。列表态无 payload/reading;详情态 payload 为对应卦象 JSON。 */
 export interface DivinationRecord {
   id: string;
-  kind: "meihua" | "liuyao";
+  kind: "meihua" | "liuyao" | "xiaoliuren";
   question: string;
-  summary: string; // 「地天泰 → 山风蛊」/「泽火革 · 用克体」
-  payload?: MeihuaResult | LiuYaoResult;
+  summary: string; // 「地天泰 → 山风蛊」/「泽火革 · 用克体」/「速喜 · 吉」
+  payload?: MeihuaResult | LiuYaoResult | XiaoLiuRenResult;
   reading?: string;
   readingProvider?: string;
   hasReading: boolean;
@@ -210,11 +210,13 @@ export async function castLiuYao(
   return parse(res);
 }
 
-/** 小六壬快占(免费,匿名)。 */
-export async function castXiaoLiuRen(input?: { question?: string; castAt?: number }): Promise<{ result: XiaoLiuRenResult }> {
+/** 小六壬快占(免费,匿名可用;登录则自动存入卦档)。 */
+export async function castXiaoLiuRen(
+  input?: { question?: string; castAt?: number },
+): Promise<{ result: XiaoLiuRenResult; recordId?: string }> {
   const res = await fetch(`${BASE}/api/v1/divination/xiaoliuren`, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: await castHeaders(),
     body: JSON.stringify(input ?? {}),
   });
   return parse(res);
@@ -247,12 +249,14 @@ export async function divineLiuYaoAI(
   return parse(res);
 }
 
-/** 卦档列表(需登录)。 */
+/** 卦档列表(需登录)。kind 缺省为全部占法。 */
 export async function listDivinations(
   limit = 50,
   offset = 0,
+  kind?: DivinationRecord["kind"],
 ): Promise<{ records: DivinationRecord[]; total: number }> {
-  const res = await authFetch(`${BASE}/api/v1/me/divinations?limit=${limit}&offset=${offset}`);
+  const kindQ = kind ? `&kind=${kind}` : "";
+  const res = await authFetch(`${BASE}/api/v1/me/divinations?limit=${limit}&offset=${offset}${kindQ}`);
   const data = await parse<{ records?: DivinationRecord[]; total?: number }>(res);
   return { records: data.records ?? [], total: data.total ?? 0 };
 }

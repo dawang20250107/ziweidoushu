@@ -26,12 +26,16 @@ func TestDivinationRecordLifecycle(t *testing.T) {
 	}
 
 	// 列表:两条,未解卦
-	records, total, err := st.ListDivinations(ctx, user.ID, 50, 0)
+	records, total, err := st.ListDivinations(ctx, user.ID, "", 50, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if total != 2 || len(records) != 2 {
 		t.Fatalf("total=%d len=%d", total, len(records))
+	}
+	// 按占法筛选
+	if _, n, err := st.ListDivinations(ctx, user.ID, "liuyao", 50, 0); err != nil || n != 1 {
+		t.Fatalf("liuyao 筛选 total=%d err=%v", n, err)
 	}
 	for _, r := range records {
 		if r.HasReading {
@@ -75,7 +79,7 @@ func TestDivinationRecordLifecycle(t *testing.T) {
 	if _, err := st.GetDivination(ctx, user.ID, id); !errors.Is(err, ErrNotFound) {
 		t.Fatal("删除后应不可见")
 	}
-	if _, total, _ := st.ListDivinations(ctx, user.ID, 50, 0); total != 1 {
+	if _, total, _ := st.ListDivinations(ctx, user.ID, "", 50, 0); total != 1 {
 		t.Fatalf("删除后 total=%d", total)
 	}
 }
@@ -93,7 +97,7 @@ func TestDivinationRecordCap(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	_, total, err := st.ListDivinations(ctx, user.ID, 1, 0)
+	_, total, err := st.ListDivinations(ctx, user.ID, "", 1, 0)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -315,12 +315,14 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 ### 卦档(登录后自动存档)
 
-登录用户起卦(梅花/六爻)时服务端自动存档并在起卦响应中附 `recordId`;
-AI 解卦请求携带 `recordId` 则解卦文本回填该档(匿名起卦后才登录的场景,
-解卦时自动补建一条带解卦的档)。每用户保留最近 200 条,超出截断最旧。
+登录用户起卦(梅花/六爻/小六壬)时服务端自动存档并在起卦响应中附
+`recordId`;AI 解卦请求携带 `recordId` 则解卦文本回填该档(匿名起卦后
+才登录的场景,解卦时自动补建一条带解卦的档)。每用户保留最近 200 条,
+超出截断最旧。
 
-- `GET /api/v1/me/divinations?limit&offset` → `{records, total}`
-  (轻量列表:kind/question/summary/hasReading/castAt,无卦象与解卦全文)
+- `GET /api/v1/me/divinations?limit&offset&kind` → `{records, total}`
+  (轻量列表:kind/question/summary/hasReading/castAt,无卦象与解卦全文;
+  `kind` 可选 meihua|liuyao|xiaoliuren,缺省全部)
 - `GET /api/v1/me/divinations/{id}` → `{record}`(含 payload 卦象与 reading)
 - `DELETE /api/v1/me/divinations/{id}` → `{deleted: true}`(仅本人)
 

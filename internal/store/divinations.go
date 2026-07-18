@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -60,17 +61,23 @@ func (s *Store) AttachDivinationReading(ctx context.Context, userID, recordID, r
 	return nil
 }
 
-// ListDivinations 卦档列表(轻量:不含卦象与解卦全文)。
-func (s *Store) ListDivinations(ctx context.Context, userID string, limit, offset int) ([]DivinationRecord, int, error) {
+// ListDivinations 卦档列表(轻量:不含卦象与解卦全文)。kind 为空表示全部占法。
+func (s *Store) ListDivinations(ctx context.Context, userID, kind string, limit, offset int) ([]DivinationRecord, int, error) {
+	where := `WHERE user_id = $1`
+	args := []any{userID}
+	if kind != "" {
+		where += ` AND kind = $2`
+		args = append(args, kind)
+	}
 	var total int
-	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM divination_records
-		WHERE user_id = $1`, userID).Scan(&total); err != nil {
+	if err := s.pool.QueryRow(ctx, `SELECT count(*) FROM divination_records `+where, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	rows, err := s.pool.Query(ctx, `SELECT id, kind, question, summary,
+	listSQL := fmt.Sprintf(`SELECT id, kind, question, summary,
 		reading IS NOT NULL AND reading <> '', cast_at, created_at
-		FROM divination_records WHERE user_id = $1
-		ORDER BY created_at DESC LIMIT $2 OFFSET $3`, userID, limit, offset)
+		FROM divination_records %s
+		ORDER BY created_at DESC LIMIT $%d OFFSET $%d`, where, len(args)+1, len(args)+2)
+	rows, err := s.pool.Query(ctx, listSQL, append(args, limit, offset)...)
 	if err != nil {
 		return nil, 0, err
 	}

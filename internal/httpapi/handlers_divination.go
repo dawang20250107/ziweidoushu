@@ -194,7 +194,13 @@ func (s *Server) handleXiaoLiuRen(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"result": result})
+	recordID := s.saveDivinationRecord(r, "xiaoliuren", req.Question,
+		result.Result.Name+" · "+result.Result.Luck, result, time.Now())
+	resp := map[string]any{"result": result}
+	if recordID != "" {
+		resp["recordId"] = recordID
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // handleDivineAI AI 深度解卦:消耗 1 次 divination;AI 失败自动退还。
@@ -307,7 +313,11 @@ func (s *Server) handleListDivinations(w http.ResponseWriter, r *http.Request) {
 			offset = n
 		}
 	}
-	records, total, err := s.store.ListDivinations(r.Context(), claims.Sub, limit, offset)
+	kind := r.URL.Query().Get("kind")
+	if kind != "meihua" && kind != "liuyao" && kind != "xiaoliuren" {
+		kind = "" // 非法/缺省一律全部
+	}
+	records, total, err := s.store.ListDivinations(r.Context(), claims.Sub, kind, limit, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "list_failed", err.Error())
 		return

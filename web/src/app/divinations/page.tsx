@@ -15,6 +15,7 @@ export default function DivinationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [kindFilter, setKindFilter] = useState<DivinationRecord["kind"] | "">("");
 
   const PAGE = 100;
 
@@ -25,20 +26,21 @@ export default function DivinationsPage() {
       return;
     }
     setSignedIn(true);
-    listDivinations(PAGE, 0)
+    setRecords(null);
+    listDivinations(PAGE, 0, kindFilter || undefined)
       .then((r) => {
         setRecords(r.records);
         setTotal(r.total);
         setError(null);
       })
       .catch((e) => setError(e instanceof DivinationError ? e.message : "卦档加载失败,请刷新重试"));
-  }, []);
+  }, [kindFilter]);
 
   const loadMore = async () => {
     if (!records || loadingMore) return;
     setLoadingMore(true);
     try {
-      const r = await listDivinations(PAGE, records.length);
+      const r = await listDivinations(PAGE, records.length, kindFilter || undefined);
       setRecords((prev) => [...(prev ?? []), ...r.records]);
       setTotal(r.total);
     } catch {
@@ -83,7 +85,34 @@ export default function DivinationsPage() {
         </p>
       </header>
 
-      <div className="mt-10">
+      {/* 占法筛选 */}
+      {signedIn && (
+        <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="按占法筛选">
+          {([["", "全部"], ["meihua", "梅花易数"], ["liuyao", "六爻纳甲"], ["xiaoliuren", "小六壬"]] as const).map(
+            ([k, label]) => {
+              const active = kindFilter === k;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setKindFilter(k)}
+                  className={[
+                    "min-h-[38px] rounded-[6px] px-3.5 py-1.5 text-[13px] transition-shadow",
+                    active
+                      ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                      : "bg-bg-raised text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] hover:text-ink",
+                  ].join(" ")}
+                >
+                  {label}
+                </button>
+              );
+            },
+          )}
+        </div>
+      )}
+
+      <div className="mt-6">
         {signedIn === false && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[6px] bg-bg-raised px-4 py-3 shadow-[inset_0_0_0_1px_var(--gold-dim)]">
             <p className="text-[14px] text-ink-secondary">登录后即可查看你的卦档。</p>

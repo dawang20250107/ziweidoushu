@@ -7,11 +7,13 @@ import { AUTH_EVENT, currentUser } from "@/lib/auth";
 import {
   getDivination,
   deleteDivination,
+  luckTone,
   RELATION_TONE,
   DivinationError,
   type DivinationRecord,
   type LiuYaoResult,
   type MeihuaResult,
+  type XiaoLiuRenResult,
 } from "@/lib/divination";
 import { DIVINATION_KIND_LABEL, formatDivinationTime } from "@/components/divination/format";
 import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
@@ -137,9 +139,13 @@ function RecordView({ record }: { record: DivinationRecord }) {
       <div className="mt-8">
         {record.kind === "liuyao" && record.payload && <LiuYaoPan result={record.payload as LiuYaoResult} />}
         {record.kind === "meihua" && record.payload && <MeihuaView result={record.payload as MeihuaResult} />}
+        {record.kind === "xiaoliuren" && record.payload && (
+          <XiaoLiuRenView result={record.payload as XiaoLiuRenResult} />
+        )}
       </div>
 
-      {/* AI 解卦全文 */}
+      {/* AI 解卦全文(小六壬为快占,无解卦消费点) */}
+      {record.kind !== "xiaoliuren" && (
       <div className="mt-8">
         {record.hasReading && record.reading ? (
           <article className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)] md:px-10 md:py-10">
@@ -153,6 +159,41 @@ function RecordView({ record }: { record: DivinationRecord }) {
           <p className="text-[13px] text-ink-faint">此卦未做 AI 解卦。解卦须在起卦当下进行,新问题可去问卦重占。</p>
         )}
       </div>
+      )}
+    </div>
+  );
+}
+
+/** 小六壬重现:三步掐指落位 + 断语。 */
+function XiaoLiuRenView({ result }: { result: XiaoLiuRenResult }) {
+  const steps = ["月", "日", "时"];
+  return (
+    <div className="rounded-[10px] bg-bg-raised px-5 py-7 shadow-[0_0_0_1px_var(--line)] sm:px-8">
+      <p className="tnum text-[12px] tracking-[0.06em] text-ink-faint">起算 {result.lunarText}</p>
+      <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
+        {result.path.map((p, i) => (
+          <span key={i} className="flex items-center gap-3">
+            <span className="flex flex-col items-center gap-1">
+              <span className="text-[11px] text-ink-faint">{steps[i]}</span>
+              <span
+                className={`rounded-[4px] px-2.5 py-1 font-display text-[17px] font-medium ${toneBadgeClass(luckTone(p.luck))}`}
+              >
+                {p.name}
+              </span>
+            </span>
+            {i < result.path.length - 1 && (
+              <span aria-hidden className="text-[13px] text-ink-faint">→</span>
+            )}
+          </span>
+        ))}
+      </div>
+      <div className="mt-6 flex flex-wrap items-baseline gap-3">
+        <span className="font-display text-[27px] font-semibold text-ink">{result.result.name}</span>
+        <span className={`rounded-[2px] px-2 py-0.5 text-[13px] font-medium ${toneBadgeClass(luckTone(result.result.luck))}`}>
+          {result.result.luck}
+        </span>
+      </div>
+      <p className="mt-2 text-[14px] leading-relaxed text-ink-secondary">{result.result.meaning}</p>
     </div>
   );
 }
