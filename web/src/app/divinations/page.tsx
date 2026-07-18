@@ -14,6 +14,9 @@ export default function DivinationsPage() {
   const [total, setTotal] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const PAGE = 100;
 
   const load = useCallback(() => {
     if (!currentUser()) {
@@ -22,7 +25,7 @@ export default function DivinationsPage() {
       return;
     }
     setSignedIn(true);
-    listDivinations(100, 0)
+    listDivinations(PAGE, 0)
       .then((r) => {
         setRecords(r.records);
         setTotal(r.total);
@@ -30,6 +33,20 @@ export default function DivinationsPage() {
       })
       .catch((e) => setError(e instanceof DivinationError ? e.message : "卦档加载失败,请刷新重试"));
   }, []);
+
+  const loadMore = async () => {
+    if (!records || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const r = await listDivinations(PAGE, records.length);
+      setRecords((prev) => [...(prev ?? []), ...r.records]);
+      setTotal(r.total);
+    } catch {
+      setError("加载失败,请重试");
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     load();
@@ -142,6 +159,19 @@ export default function DivinationsPage() {
               </li>
             ))}
           </ul>
+        )}
+
+        {signedIn && records != null && records.length < total && (
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="min-h-[44px] rounded-[6px] bg-bg-raised px-5 py-2 text-[13px] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] transition-colors hover:text-ink disabled:opacity-50"
+            >
+              {loadingMore ? "加载中…" : `加载更多(还有 ${total - records.length} 卦)`}
+            </button>
+          </div>
         )}
       </div>
     </div>

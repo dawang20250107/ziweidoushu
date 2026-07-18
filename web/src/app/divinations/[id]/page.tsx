@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { AUTH_EVENT, currentUser } from "@/lib/auth";
 import {
   getDivination,
+  deleteDivination,
   RELATION_TONE,
   DivinationError,
   type DivinationRecord,
@@ -87,10 +88,33 @@ export default function DivinationDetailPage() {
 }
 
 function RecordView({ record }: { record: DivinationRecord }) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+
+  const remove = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      await deleteDivination(record.id);
+      router.push("/divinations");
+    } catch {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="mt-6">
-      <header>
-        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+      <header className="relative">
+        <button
+          type="button"
+          onClick={remove}
+          disabled={deleting}
+          aria-label="删除此卦档"
+          className="absolute right-0 top-0 min-h-[44px] rounded-[4px] px-2 py-1 text-[12px] text-ink-faint transition-colors hover:text-danger disabled:opacity-50"
+        >
+          {deleting ? "删除中…" : "删除"}
+        </button>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 pr-14">
           <span className="rounded-[2px] px-1.5 py-0.5 text-[11px] leading-none tracking-[0.06em] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
             {DIVINATION_KIND_LABEL[record.kind] ?? record.kind}
           </span>
