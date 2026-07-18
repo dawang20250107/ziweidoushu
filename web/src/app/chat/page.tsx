@@ -132,6 +132,7 @@ function ChatInner() {
   if (!birth) {
     return (
       <div className="mx-auto max-w-md px-4 py-24 md:py-32">
+        <h1 className="sr-only">问星 · 命盘 AI 对话</h1>
         <div className="rounded-[10px] bg-bg-raised px-6 py-16 text-center shadow-[0_0_0_1px_var(--line)]">
           <p className="font-display text-xl font-semibold text-ink">先去排盘,才能问星</p>
           <p className="mt-3 text-[14px] leading-relaxed text-ink-secondary">
@@ -150,6 +151,7 @@ function ChatInner() {
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-3.5rem)] max-w-3xl flex-col px-4">
+      <h1 className="sr-only">问星 · 命盘 AI 对话</h1>
       <div className="flex flex-col gap-3 pt-6">
         <SubjectBar birth={birth} canClear={messages.length > 0 && !busy} onClear={clear} />
         <TopicChips onPick={sendTopic} disabled={busy} />

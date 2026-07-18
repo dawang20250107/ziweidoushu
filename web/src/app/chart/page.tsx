@@ -109,6 +109,7 @@ export default function ChartPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
+      <h1 className="sr-only">紫微斗数排盘工作台</h1>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <BirthForm key={initialBirth ? "restored" : "blank"} initial={initialBirth ?? undefined} loading={loading} onSubmit={castChart} />
         {data && birth && (

@@ -59,6 +59,7 @@ function SearchInner() {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-8 md:py-12">
+      <h1 className="sr-only">古籍全文检索</h1>
       <nav className="mb-4 flex items-center gap-1.5 text-[13px] text-ink-faint" aria-label="面包屑">
         <Link href="/library" className="transition-colors hover:text-gold">
           古籍
