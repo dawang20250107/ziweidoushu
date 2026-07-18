@@ -111,7 +111,8 @@ export function HeroChart() {
       {/* 星象微光:单色柔光,非渐变强调 */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -inset-6 -z-10"
+        // 右缘不出血:absolute 向右溢出会把移动端页面撑宽(径向渐变 70% 已淡出,视觉无损)
+        className="pointer-events-none absolute -inset-y-6 -left-6 right-0 -z-10"
         style={{
           background: "radial-gradient(60% 55% at 65% 30%, var(--gold-glow), transparent 70%)",
         }}

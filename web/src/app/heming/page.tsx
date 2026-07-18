@@ -93,8 +93,8 @@ export default function HemingPage() {
             </dl>
           </section>
 
-          {/* 双方盘面 */}
-          <div className="grid gap-8 xl:grid-cols-2">
+          {/* 双方盘面(移动端显式 1 列:auto 轨道会被盘面 min-w 撑开导致整页溢出) */}
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
             {([["甲方", result.a, a], ["乙方", result.b, b]] as const).map(([label, side, v]) => (
               <section key={label}>
                 <h3 className="mb-3 font-display text-[15px] text-ink-secondary">
