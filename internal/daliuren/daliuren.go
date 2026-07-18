@@ -40,15 +40,15 @@ type Ke struct {
 
 // Result 一课的起课结果。
 type Result struct {
-	DayStem    string   `json:"dayStem"`
-	DayBranch  string   `json:"dayBranch"`
-	HourBranch string   `json:"hourBranch"` // 占时地支
-	MonthGen   string   `json:"monthGen"`   // 月将
+	DayStem    string `json:"dayStem"`
+	DayBranch  string `json:"dayBranch"`
+	HourBranch string `json:"hourBranch"` // 占时地支
+	MonthGen   string `json:"monthGen"`   // 月将
 	// TianPan[i] = 地盘 i 位上所乘的天盘之神(月将加时排布)
 	TianPan [12]string `json:"tianPan"`
-	Ke      [4]Ke      `json:"ke"`         // 四课(自第一至第四)
-	Chuan   [3]string  `json:"chuan"`      // 三传(初/中/末)
-	KeType  string     `json:"keType"`     // 课体:贼克/比用/涉害/遥克/昴星/别责/八专/伏吟/返吟
+	Ke      [4]Ke      `json:"ke"`     // 四课(自第一至第四)
+	Chuan   [3]string  `json:"chuan"`  // 三传(初/中/末)
+	KeType  string     `json:"keType"` // 课体:贼克/比用/涉害/遥克/昴星/别责/八专/伏吟/返吟
 }
 
 // tianPanOf 天盘布局:月将加于占时之上,顺行十二地支。
@@ -57,7 +57,7 @@ func tianPanOf(monthGen, hour int) [12]int {
 	var tp [12]int
 	// 月将落在地盘「占时」位;地盘 hour 位天盘=monthGen,地盘 (hour+k) 位天盘=monthGen+k
 	for i := 0; i < 12; i++ {
-		tp[i] = ((monthGen + (i - hour)) % 12 + 12) % 12
+		tp[i] = ((monthGen+(i-hour))%12 + 12) % 12
 	}
 	return tp
 }
