@@ -106,6 +106,9 @@ export interface LiuYaoResult {
   yaos: LiuYaoYao[]; // ×6
   movingNums: number[]; // 动爻位置(空=静卦)
   tosses?: number[]; // 摇卦原始记录(每爻背面数 0-3),回传同一卦的凭据
+  yongShen?: string; // 用神建议(六亲名或「世爻」)
+  yongShenBasis?: string; // 经义依据
+  yongShenPos?: number[]; // 用神所在爻位;空=不上卦
 }
 
 /** AI 解卦读物。 */

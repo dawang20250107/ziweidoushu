@@ -151,12 +151,22 @@ export function LiuYaoPan({ result }: { result: LiuYaoResult }) {
         )}
       </div>
 
-      {/* 断卦基准:月建 / 日辰 */}
+      {/* 断卦基准:月建 / 日辰 / 用神建议 */}
       <div className="tnum mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
         <span>农历 {result.lunarText}</span>
         <span>· 月建 {result.monthJian}</span>
         <span>· 日辰 {result.dayStem}{result.dayBranch}</span>
         {movingNums.length === 0 && <span>· 六爻安静</span>}
+        {result.yongShen && (
+          <span title={result.yongShenBasis}>
+            · 用神建议 <span className="text-gold">{result.yongShen}</span>
+            {(result.yongShenPos ?? []).length > 0
+              ? `(第 ${(result.yongShenPos ?? []).join("、")} 爻)`
+              : result.yongShen !== "世爻"
+                ? "(不上卦)"
+                : ""}
+          </span>
+        )}
       </div>
 
       {/* 爻列表(自上而下) */}

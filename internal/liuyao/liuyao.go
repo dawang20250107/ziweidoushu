@@ -162,6 +162,11 @@ type Result struct {
 
 	// Tosses 摇卦原始记录(每爻背面数 0-3;报数起卦为空)
 	Tosses []int `json:"tosses,omitempty"`
+
+	// 用神建议(事类→六亲映射,见 yongshen.go;仅建议,解卦层可按事理改取)
+	YongShen      string `json:"yongShen,omitempty"`
+	YongShenBasis string `json:"yongShenBasis,omitempty"`
+	YongShenPos   []int  `json:"yongShenPos"` // 用神所在爻位;空=用神不上卦(伏神之法另论)
 }
 
 var seqNames = []string{"八纯卦", "一世卦", "二世卦", "三世卦", "四世卦", "五世卦", "游魂卦", "归魂卦"}
@@ -511,6 +516,7 @@ func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
 	r.Question = question
 	r.LunarText = lt
 	r.Tosses = append([]int(nil), tosses...)
+	r.applyYongShen()
 	return r, nil
 }
 

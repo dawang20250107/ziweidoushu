@@ -293,6 +293,45 @@ func TestStaticGuaJSONContract(t *testing.T) {
 	}
 }
 
+// TestYongShenSuggest 用神事类映射(人物优先于事类)与装卦定位。
+func TestYongShenSuggest(t *testing.T) {
+	cases := []struct{ q, want string }{
+		{"此番求职能否成", "官鬼"},
+		{"投资能否获利", "妻财"},
+		{"母亲病情如何", "父母"},
+		{"儿子考试能否上榜", "子孙"}, // 所占之人定用神,非事类
+		{"明日有雨否", "父母"},
+		{"明日天晴否", "子孙"},
+		{"老屋翻修可动工否", "父母"},
+		{"丈夫升迁如何", "官鬼"},
+		{"此事可成否", "世爻"},
+	}
+	for _, c := range cases {
+		if got, _ := SuggestYongShen(c.q); got != c.want {
+			t.Fatalf("%q → %s want %s", c.q, got, c.want)
+		}
+	}
+	// 集成:地天泰(坤宫,世3)问财 → 妻财爻位 1、5(甲子水/癸亥水)
+	lunar := calendar.NewLunar(2024, 1, 1, 10, 0, 0)
+	solar := lunar.GetSolar()
+	at := time.Date(solar.GetYear(), time.Month(solar.GetMonth()), solar.GetDay(), 10, 0, 0, 0, time.Local)
+	r, err := ByTosses([]int{1, 1, 1, 2, 2, 2}, at, "投资能否获利")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.YongShen != "妻财" || len(r.YongShenPos) != 2 || r.YongShenPos[0] != 1 || r.YongShenPos[1] != 5 {
+		t.Fatalf("泰卦问财用神: %s %v", r.YongShen, r.YongShenPos)
+	}
+	// 无事类 → 世爻(泰为三世卦,世在 3)
+	r2, err := ByTosses([]int{1, 1, 1, 2, 2, 2}, at, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r2.YongShen != "世爻" || len(r2.YongShenPos) != 1 || r2.YongShenPos[0] != 3 {
+		t.Fatalf("默认世爻用神: %s %v", r2.YongShen, r2.YongShenPos)
+	}
+}
+
 // TestShake 服务端摇卦:结构合法(可多次)。
 func TestShake(t *testing.T) {
 	at := time.Date(2026, 7, 17, 12, 0, 0, 0, time.UTC)

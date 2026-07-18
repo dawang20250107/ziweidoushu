@@ -92,6 +92,19 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 	for i := 5; i >= 0; i-- {
 		sb.WriteString(yaoLine(r.Yaos[i]) + "\n")
 	}
+	if r.YongShen != "" {
+		sb.WriteString("\n用神建议:" + r.YongShen)
+		if len(r.YongShenPos) > 0 {
+			pos := make([]string, len(r.YongShenPos))
+			for i, p := range r.YongShenPos {
+				pos[i] = fmt.Sprintf("%d", p)
+			}
+			sb.WriteString("(第 " + strings.Join(pos, "、") + " 爻)")
+		} else if r.YongShen != "世爻" {
+			sb.WriteString("(用神不上卦,须论伏神)")
+		}
+		sb.WriteString("——" + r.YongShenBasis + "。事类识别或有出入,若与所测事理不符,以你按经义取用为准。\n")
+	}
 
 	// 语料引文:每书限一条,分散引用面
 	if it.store != nil {
