@@ -20,6 +20,7 @@ var (
 	stems    = []rune("甲乙丙丁戊己庚辛壬癸")
 	branches = []rune("子丑寅卯辰巳午未申酉戌亥")
 	// 地支五行:木0 火1 土2 金3 水4(与 sizhu 同序)
+	// 基础表:与 liuyao/daliuren/ziwei(sizhu) 三处刻意各自持有(引擎解耦);口径须一致(子水始,木0火1土2金3水4),改此须同步余处,各引擎黄金基准会捕获不一致。
 	branchElement = []int{4, 2, 0, 0, 2, 1, 1, 2, 3, 3, 2, 4}
 	elementNames  = []string{"木", "火", "土", "金", "水"}
 	// 八卦宫五行(先天数序 乾兑离震巽坎艮坤)
@@ -121,17 +122,17 @@ func init() {
 // 旺衰/旬空/日辰作用为装卦即算的客观标注层(依《增删卜易》《卜筮正宗》,
 // 规则考据见 research/liuyao-wangshuai.md)。
 type Yao struct {
-	Pos      int    `json:"pos"`  // 1-6
-	Yang     bool   `json:"yang"` // 阳爻
-	Moving   bool   `json:"moving"`
-	Stem     string `json:"stem"`   // 纳甲天干
-	Branch   string `json:"branch"` // 纳甲地支
-	Element  string `json:"element"`
-	LiuQin   string `json:"liuQin"`  // 六亲
-	LiuShen  string `json:"liuShen"` // 六神(按日干)
-	IsShi    bool   `json:"isShi"`   // 世
-	IsYing   bool   `json:"isYing"`  // 应
-	BianYao  *Yao   `json:"bianYao,omitempty"` // 动爻之变(仅动爻有,变卦对应爻)
+	Pos     int    `json:"pos"`  // 1-6
+	Yang    bool   `json:"yang"` // 阳爻
+	Moving  bool   `json:"moving"`
+	Stem    string `json:"stem"`   // 纳甲天干
+	Branch  string `json:"branch"` // 纳甲地支
+	Element string `json:"element"`
+	LiuQin  string `json:"liuQin"`            // 六亲
+	LiuShen string `json:"liuShen"`           // 六神(按日干)
+	IsShi   bool   `json:"isShi"`             // 世
+	IsYing  bool   `json:"isYing"`            // 应
+	BianYao *Yao   `json:"bianYao,omitempty"` // 动爻之变(仅动爻有,变卦对应爻)
 
 	MonthState  string `json:"monthState"`            // 对月建旺衰:旺/相/休/囚/死
 	YuePo       bool   `json:"yuePo,omitempty"`       // 月破(爻支冲月建)
@@ -346,7 +347,7 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 
 	r := &Result{
 		BenName:   meihua.HexagramNameByNums(upper.Num, lower.Num),
-		Palace:    meihua.TrigramByNum(entry.palace + 1).Name + "宫",
+		Palace:    meihua.TrigramByNum(entry.palace+1).Name + "宫",
 		PalaceSeq: seqNames[entry.seq],
 		DayStem:   string(stems[dayStem]),
 		DayBranch: string(branches[dayBranch]),
