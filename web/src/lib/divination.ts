@@ -81,6 +81,12 @@ export interface LiuYaoYao {
   isShi: boolean; // 世
   isYing: boolean; // 应
   bianYao?: LiuYaoYao;
+  monthState?: string; // 对月建旺衰:旺/相/休/囚/死
+  yuePo?: boolean; // 月破
+  xunKong?: boolean; // 旬空
+  dayRelation?: string; // 日辰对爻:临/冲/合/扶/生/克/泄/耗
+  anDong?: boolean; // 暗动
+  riPo?: boolean; // 日破
 }
 
 /** 六爻装卦结果。yaos 自下而上(index 0 = 初爻)。 */

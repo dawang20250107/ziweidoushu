@@ -177,6 +177,56 @@ func TestByTosses(t *testing.T) {
 	}
 }
 
+// TestWangShuaiAnnotations 旺衰/旬空/月破/日辰作用标注(规则见 research/liuyao-wangshuai.md)。
+func TestWangShuaiAnnotations(t *testing.T) {
+	all := [6]bool{true, true, true, true, true, true}
+	// 甲子日、月建寅,乾为天:爻支自下而上 子寅辰午申戌
+	r := mustAssemble(t, all, nil)
+	want := []struct {
+		state, dayRel             string
+		yuePo, kong, anDong, riPo bool
+	}{
+		{"休", "临", false, false, false, false}, // 子水:水生木令为休;临日辰
+		{"旺", "生", false, false, false, false}, // 寅木:当令;日辰子水生之
+		{"死", "耗", false, false, false, false}, // 辰土:木令克土;爻克日为耗
+		{"相", "冲", false, false, true, false},  // 午火:令生为相;子冲午,旺相静爻=暗动
+		{"囚", "泄", true, false, false, false},  // 申金:克令为囚;寅申冲=月破;爻生日为泄
+		{"死", "耗", false, true, false, false},  // 戌土:死;甲子旬戌亥空
+	}
+	for i, w := range want {
+		y := r.Yaos[i]
+		if y.MonthState != w.state || y.DayRelation != w.dayRel ||
+			y.YuePo != w.yuePo || y.XunKong != w.kong || y.AnDong != w.anDong || y.RiPo != w.riPo {
+			t.Fatalf("第 %d 爻标注: state=%s rel=%s 破%v 空%v 暗%v 日破%v, want %+v",
+				i+1, y.MonthState, y.DayRelation, y.YuePo, y.XunKong, y.AnDong, y.RiPo, w)
+		}
+	}
+	// 增删卜易:「静爻休囚,日辰冲之,曰日破」——子月午火死地,子日冲之
+	r2, err := assemble(all, nil, 0, 0, '子')
+	if err != nil {
+		t.Fatal(err)
+	}
+	if y := r2.Yaos[3]; !y.RiPo || y.AnDong || y.MonthState != "死" {
+		t.Fatalf("子月子日午爻应为日破: %+v", y)
+	}
+	// 动爻逢日冲不入暗动/日破(另论)
+	r3, err := assemble(all, []int{4}, 0, 0, '寅')
+	if err != nil {
+		t.Fatal(err)
+	}
+	if y := r3.Yaos[3]; y.AnDong || y.RiPo {
+		t.Fatalf("动爻不应标暗动/日破: %+v", y)
+	}
+	// 六甲旬空诀全表对照
+	wantKong := [6][2]int{{10, 11}, {8, 9}, {6, 7}, {4, 5}, {2, 3}, {0, 1}}
+	for xun := 0; xun < 6; xun++ {
+		a, b := xunKongBranches(0, (xun*10)%12)
+		if a != wantKong[xun][0] || b != wantKong[xun][1] {
+			t.Fatalf("第 %d 旬空亡: got %d,%d want %v", xun, a, b, wantKong[xun])
+		}
+	}
+}
+
 // TestStaticGuaJSONContract 静卦 movingNums 序列化为 [] 而非 null(前端列表契约)。
 func TestStaticGuaJSONContract(t *testing.T) {
 	all := [6]bool{true, true, true, true, true, true}

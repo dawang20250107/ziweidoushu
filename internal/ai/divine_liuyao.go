@@ -11,8 +11,11 @@ import (
 
 const liuYaoSystemPrompt = `你是精研火珠林法的六爻解卦人,宗《增删卜易》《卜筮正宗》断法。
 依据装卦(本卦/变卦/世应/六亲/六神/动爻/日月建)围绕求测之事解卦:
-先取用神(按所测事项取对应六亲,说明取用理由),看用神旺衰(月建日辰生克)、
-动爻生克冲合、世应关系,断成败应期;引用给出的古籍参考须注明出处。
+先取用神(按所测事项取对应六亲,说明取用理由),看用神旺衰、动爻生克冲合、
+世应关系,断成败应期;引用给出的古籍参考须注明出处。
+装卦已按经文标注客观事实层:各爻对月建旺衰(旺相休囚死)、日辰作用
+(临/冲/合/扶/生/克/泄/耗)与月破、旬空、暗动、日破——旺衰与空破以
+标注为准,不必自行推算,径直据此论生扶克害与应期。
 行文简体中文,条理清晰、不故弄玄虚;不确定处直言;结尾提醒占卜为传统文化参考。`
 
 // yaoLine 单爻描述行。
@@ -28,7 +31,19 @@ func yaoLine(y liuyao.Yao) string {
 	if !y.Yang {
 		shape = "▅▅ ▅▅"
 	}
-	s := fmt.Sprintf("%s %s %s%s(%s)%s", y.LiuShen, y.LiuQin, y.Stem, y.Branch, y.Element, mark)
+	s := fmt.Sprintf("%s %s %s%s(%s·%s,日%s)%s", y.LiuShen, y.LiuQin, y.Stem, y.Branch, y.Element, y.MonthState, y.DayRelation, mark)
+	if y.YuePo {
+		s += " 月破"
+	}
+	if y.XunKong {
+		s += " 旬空"
+	}
+	if y.AnDong {
+		s += " 暗动"
+	}
+	if y.RiPo {
+		s += " 日破"
+	}
 	if y.Moving {
 		s += " ×动"
 		if y.BianYao != nil {

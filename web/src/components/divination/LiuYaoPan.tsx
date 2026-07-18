@@ -19,6 +19,29 @@ function GanZhi({ stem, branch, element, size = 13 }: { stem: string; branch: st
   );
 }
 
+/** 旺衰小字 + 空/破/暗徽记(装卦客观标注层,依增删卜易口径)。 */
+function StateMarks({ yao }: { yao: LiuYaoYao }) {
+  const flags: { ch: string; cls: string; label: string }[] = [];
+  if (yao.xunKong) flags.push({ ch: "空", cls: "text-warn", label: "旬空" });
+  if (yao.yuePo) flags.push({ ch: "破", cls: "text-danger", label: "月破" });
+  if (yao.riPo) flags.push({ ch: "破", cls: "text-danger", label: "日破" });
+  if (yao.anDong) flags.push({ ch: "暗", cls: "text-gold", label: "暗动" });
+  return (
+    <span className="ml-1 inline-flex items-center gap-0.5 align-middle">
+      {yao.monthState && (
+        <span className="text-[10px] leading-none text-ink-faint" title={`对月建${yao.monthState}`}>
+          {yao.monthState}
+        </span>
+      )}
+      {flags.map((f, i) => (
+        <span key={i} className={`text-[10px] leading-none ${f.cls}`} title={f.label} aria-label={f.label}>
+          {f.ch}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 /** 爻画:阳实阴断;动爻着金并标 ○(老阳)/×(老阴)。 */
 function YaoBar({ yao }: { yao: LiuYaoYao }) {
   const fill = yao.moving ? "var(--gold)" : "var(--ink)";
@@ -74,8 +97,8 @@ export function LiuYaoPan({ result }: { result: LiuYaoResult }) {
   const rows = [...(result.yaos ?? [])].sort((a, b) => b.pos - a.pos);
   // 动变列取定宽,保证六行爻画右缘对齐(每行各自成 grid,max-content 会因内容宽度不一错位)
   const cols = hasBian
-    ? "grid-cols-[30px_32px_50px_minmax(56px,1fr)_22px_92px] sm:grid-cols-[34px_36px_54px_minmax(72px,1fr)_24px_108px]"
-    : "grid-cols-[30px_32px_50px_minmax(56px,1fr)_22px] sm:grid-cols-[34px_36px_54px_minmax(72px,1fr)_24px]";
+    ? "grid-cols-[30px_32px_72px_minmax(44px,1fr)_22px_92px] sm:grid-cols-[34px_36px_84px_minmax(64px,1fr)_24px_108px]"
+    : "grid-cols-[30px_32px_72px_minmax(44px,1fr)_22px] sm:grid-cols-[34px_36px_84px_minmax(64px,1fr)_24px]";
 
   return (
     <div className="rounded-[10px] bg-bg-raised px-4 py-7 shadow-[0_0_0_1px_var(--line)] sm:px-7 md:px-9">
@@ -123,7 +146,10 @@ export function LiuYaoPan({ result }: { result: LiuYaoResult }) {
           >
             <span className="text-[11px] leading-none text-ink-faint">{y.liuShen}</span>
             <span className="text-[12px] leading-none text-ink-secondary">{y.liuQin}</span>
-            <GanZhi stem={y.stem} branch={y.branch} element={y.element} />
+            <span className="whitespace-nowrap leading-none">
+              <GanZhi stem={y.stem} branch={y.branch} element={y.element} />
+              <StateMarks yao={y} />
+            </span>
             <YaoBar yao={y} />
             <span className="flex justify-center">
               <ShiYing yao={y} />
@@ -145,7 +171,8 @@ export function LiuYaoPan({ result }: { result: LiuYaoResult }) {
 
       {/* 图例 */}
       <p className="mt-5 text-[11px] leading-relaxed text-ink-faint">
-        自上而下为上爻至初爻;○ 老阳动、× 老阴动,动爻化出右侧变爻。六神依日辰{result.dayStem}日起。
+        自上而下为上爻至初爻;○ 老阳动、× 老阴动,动爻化出右侧变爻。干支旁小字为对月建旺衰
+        (旺相休囚死),空=旬空、破=月破/日破、暗=暗动(增删卜易口径)。六神依日辰{result.dayStem}日起。
       </p>
     </div>
   );

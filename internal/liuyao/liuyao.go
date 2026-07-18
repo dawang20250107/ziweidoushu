@@ -118,6 +118,8 @@ func init() {
 // ── 装卦 ─────────────────────────────────────────────────────
 
 // Yao 一爻(自下而上第 Pos 爻)。
+// 旺衰/旬空/日辰作用为装卦即算的客观标注层(依《增删卜易》《卜筮正宗》,
+// 规则考据见 research/liuyao-wangshuai.md)。
 type Yao struct {
 	Pos      int    `json:"pos"`  // 1-6
 	Yang     bool   `json:"yang"` // 阳爻
@@ -130,6 +132,13 @@ type Yao struct {
 	IsShi    bool   `json:"isShi"`   // 世
 	IsYing   bool   `json:"isYing"`  // 应
 	BianYao  *Yao   `json:"bianYao,omitempty"` // 动爻之变(仅动爻有,变卦对应爻)
+
+	MonthState  string `json:"monthState"`            // 对月建旺衰:旺/相/休/囚/死
+	YuePo       bool   `json:"yuePo,omitempty"`       // 月破(爻支冲月建)
+	XunKong     bool   `json:"xunKong,omitempty"`     // 旬空(按日干支所在旬)
+	DayRelation string `json:"dayRelation,omitempty"` // 日辰对爻:临/冲/合/扶/生/克/泄/耗
+	AnDong      bool   `json:"anDong,omitempty"`      // 暗动(静爻旺相逢日冲)
+	RiPo        bool   `json:"riPo,omitempty"`        // 日破(静爻休囚死逢日冲)
 }
 
 // Result 六爻装卦结果。
@@ -153,6 +162,64 @@ type Result struct {
 }
 
 var seqNames = []string{"八纯卦", "一世卦", "二世卦", "三世卦", "四世卦", "五世卦", "游魂卦", "归魂卦"}
+
+// ── 旺衰/旬空/日辰作用(research/liuyao-wangshuai.md)────────
+
+// liuHe 地支六合对家:子丑 寅亥 卯戌 辰酉 巳申 午未。
+var liuHe = [12]int{1, 0, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2}
+
+// monthState 五态公式:当令旺、令生相、生令休、克令囚、令克死。
+func monthState(lingEl, yaoEl int) string {
+	switch {
+	case yaoEl == lingEl:
+		return "旺"
+	case (lingEl+1)%5 == yaoEl:
+		return "相"
+	case (yaoEl+1)%5 == lingEl:
+		return "休"
+	case (yaoEl+2)%5 == lingEl:
+		return "囚"
+	default:
+		return "死"
+	}
+}
+
+// xunKongBranches 由日干支六十甲子序推旬空两支(六甲旬空诀)。
+func xunKongBranches(dayStem, dayBranch int) (int, int) {
+	j := 0
+	for ; j < 60; j++ {
+		if j%10 == dayStem && j%12 == dayBranch {
+			break
+		}
+	}
+	a := (10 - 2*(j/10) + 24) % 12
+	return a, (a + 1) % 12
+}
+
+// dayRelation 日辰对爻:临(同支)/冲/合优先,余按五行生克。
+func dayRelation(dayBranch, yaoBranch int) string {
+	switch {
+	case yaoBranch == dayBranch:
+		return "临"
+	case (yaoBranch+6)%12 == dayBranch:
+		return "冲"
+	case liuHe[yaoBranch] == dayBranch:
+		return "合"
+	}
+	de, ye := branchElement[dayBranch], branchElement[yaoBranch]
+	switch {
+	case de == ye:
+		return "扶"
+	case (de+1)%5 == ye: // 日生爻
+		return "生"
+	case (de+2)%5 == ye: // 日克爻
+		return "克"
+	case (ye+1)%5 == de: // 爻生日
+		return "泄"
+	default: // 爻克日
+		return "耗"
+	}
+}
 
 // liuQin 宫五行 → 爻五行 的六亲。
 func liuQin(palaceEl, yaoEl int) string {
@@ -250,6 +317,26 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 			LiuShen: liuShen[(shenStart+i)%6],
 			IsShi:   pos == entry.shi,
 			IsYing:  pos == ying,
+		}
+
+		// 旺衰/旬空/日辰作用标注(装卦即算的客观事实层)
+		monthIdx := 0
+		for j, br := range branches {
+			if br == monthJian {
+				monthIdx = j
+			}
+		}
+		yao.MonthState = monthState(branchElement[monthIdx], branchElement[bIdx])
+		yao.YuePo = (bIdx+6)%12 == monthIdx
+		kongA, kongB := xunKongBranches(dayStem, dayBranch)
+		yao.XunKong = bIdx == kongA || bIdx == kongB
+		yao.DayRelation = dayRelation(dayBranch, bIdx)
+		if !yao.Moving && yao.DayRelation == "冲" {
+			if yao.MonthState == "旺" || yao.MonthState == "相" {
+				yao.AnDong = true
+			} else {
+				yao.RiPo = true
+			}
 		}
 
 		// 动爻:装变卦对应爻(六亲仍以本宫五行论)
