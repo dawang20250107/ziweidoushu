@@ -6,7 +6,7 @@
  * 起卦由服务端推导,客户端不可伪造。关键契约:AI 解卦须回传与用户所见「同一卦」——
  *   时间卦:记住起卦返回的 castAt,原样回传;数字卦:回传同一组 numbers。
  */
-import { authFetch } from "@/lib/auth";
+import { authFetch, currentUser, ensureAccess } from "@/lib/auth";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
@@ -106,6 +106,22 @@ export interface DivineReading {
   provider: string;
 }
 
+// ── 卦档(占卜记录存档)────────────────────────────────
+
+/** 卦档记录。列表态无 payload/reading;详情态 payload 为对应卦象 JSON。 */
+export interface DivinationRecord {
+  id: string;
+  kind: "meihua" | "liuyao";
+  question: string;
+  summary: string; // 「地天泰 → 山风蛊」/「泽火革 · 用克体」
+  payload?: MeihuaResult | LiuYaoResult;
+  reading?: string;
+  readingProvider?: string;
+  hasReading: boolean;
+  castAt: string;
+  createdAt: string;
+}
+
 // ── 错误类型 ──────────────────────────────────────────
 
 /** 带业务错误码的异常(no_credits / ai_unavailable / cast_failed …)。 */
@@ -163,21 +179,32 @@ export interface LiuYaoCastInput {
 
 // ── 接口 ──────────────────────────────────────────────
 
-/** 梅花易数起卦(免费,匿名)。返回卦象与服务端起卦时刻 castAt。 */
-export async function castMeihua(input: CastInput): Promise<{ result: MeihuaResult; castAt: number }> {
+/** 带上登录态(若有)的起卦请求头:登录用户起卦自动存入卦档,匿名照常起卦。 */
+async function castHeaders(): Promise<Record<string, string>> {
+  if (!currentUser()) return JSON_HEADERS;
+  const token = await ensureAccess().catch(() => null);
+  return token ? { ...JSON_HEADERS, Authorization: `Bearer ${token}` } : JSON_HEADERS;
+}
+
+/** 梅花易数起卦(免费,匿名可用;登录则自动存档并返回 recordId)。 */
+export async function castMeihua(
+  input: CastInput,
+): Promise<{ result: MeihuaResult; castAt: number; recordId?: string }> {
   const res = await fetch(`${BASE}/api/v1/divination/meihua`, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: await castHeaders(),
     body: JSON.stringify(input),
   });
   return parse(res);
 }
 
-/** 六爻起卦(免费,匿名):摇卦或报爻。返回装卦结果与服务端起卦时刻 castAt。 */
-export async function castLiuYao(input: LiuYaoCastInput): Promise<{ result: LiuYaoResult; castAt: number }> {
+/** 六爻起卦(免费,匿名可用;登录则自动存档并返回 recordId)。 */
+export async function castLiuYao(
+  input: LiuYaoCastInput,
+): Promise<{ result: LiuYaoResult; castAt: number; recordId?: string }> {
   const res = await fetch(`${BASE}/api/v1/divination/liuyao`, {
     method: "POST",
-    headers: JSON_HEADERS,
+    headers: await castHeaders(),
     body: JSON.stringify(input),
   });
   return parse(res);
@@ -193,9 +220,9 @@ export async function castXiaoLiuRen(input?: { question?: string; castAt?: numbe
   return parse(res);
 }
 
-/** AI 深度解卦(需登录,消耗 1 次 divination)。question 必填;卦象参数须与所见同一卦。 */
+/** AI 深度解卦(需登录,消耗 1 次 divination)。question 必填;卦象参数须与所见同一卦;recordId 用于卦档回填。 */
 export async function divineAI(
-  input: CastInput & { question: string },
+  input: CastInput & { question: string; recordId?: string },
 ): Promise<{ result: MeihuaResult; reading: DivineReading; remainingCredits: number }> {
   const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
     method: "POST",
@@ -210,7 +237,7 @@ export async function divineAI(
  * 同一卦契约:必须回传起卦返回的 tosses + castAt(method 固定 "tosses"),服务端按记录重装此卦。
  */
 export async function divineLiuYaoAI(
-  input: { tosses: number[]; castAt: number; question: string },
+  input: { tosses: number[]; castAt: number; question: string; recordId?: string },
 ): Promise<{ result: LiuYaoResult; reading: DivineReading; remainingCredits: number }> {
   const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
     method: "POST",
@@ -218,6 +245,29 @@ export async function divineLiuYaoAI(
     body: JSON.stringify({ kind: "liuyao", method: "tosses", ...input }),
   });
   return parse(res);
+}
+
+/** 卦档列表(需登录)。 */
+export async function listDivinations(
+  limit = 50,
+  offset = 0,
+): Promise<{ records: DivinationRecord[]; total: number }> {
+  const res = await authFetch(`${BASE}/api/v1/me/divinations?limit=${limit}&offset=${offset}`);
+  const data = await parse<{ records?: DivinationRecord[]; total?: number }>(res);
+  return { records: data.records ?? [], total: data.total ?? 0 };
+}
+
+/** 卦档详情(需登录,含卦象与解卦全文)。 */
+export async function getDivination(id: string): Promise<DivinationRecord> {
+  const res = await authFetch(`${BASE}/api/v1/me/divinations/${id}`);
+  const data = await parse<{ record: DivinationRecord }>(res);
+  return data.record;
+}
+
+/** 删除卦档(需登录,仅本人)。 */
+export async function deleteDivination(id: string): Promise<void> {
+  const res = await authFetch(`${BASE}/api/v1/me/divinations/${id}`, { method: "DELETE" });
+  await parse(res);
 }
 
 /** 剩余解卦次数(需登录)。读 data.credits.divination,缺省 0。 */

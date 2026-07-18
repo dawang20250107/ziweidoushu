@@ -83,6 +83,9 @@ export default function DivinationPage() {
   const [castNumbers, setCastNumbers] = useState<number[] | null>(null); // 数字卦:回传同一卦
   const [lyResult, setLyResult] = useState<LiuYaoResult | null>(null);
   const [lyCastAt, setLyCastAt] = useState<number | null>(null); // 六爻:tosses+castAt 回传同一卦
+  // 卦档:登录起卦服务端自动存档,AI 解卦按 recordId 回填
+  const [mhRecordId, setMhRecordId] = useState<string | null>(null);
+  const [lyRecordId, setLyRecordId] = useState<string | null>(null);
 
   // AI 解卦态
   const [aiLoading, setAiLoading] = useState(false);
@@ -176,20 +179,22 @@ export default function DivinationPage() {
           lyMethod === "tosses"
             ? { method: "tosses" as const, tosses: lyTosses.map((t) => t ?? 0), question: q }
             : { method: "shake" as const, question: q };
-        const { result: r, castAt: at } = await castLiuYao(input);
+        const { result: r, castAt: at, recordId } = await castLiuYao(input);
         const wait = (reduced ? 0 : CAST_ANIM_MS.liuyao) - (Date.now() - startedAt);
         if (wait > 0) await new Promise((res) => setTimeout(res, wait));
         setLyResult(r);
         setLyCastAt(at);
+        setLyRecordId(recordId ?? null);
       } else {
         const input: CastInput =
           method === "number" ? { method: "number", numbers, question: q } : { method: "time", question: q };
-        const { result: r, castAt: at } = await castMeihua(input);
+        const { result: r, castAt: at, recordId } = await castMeihua(input);
         const wait = (reduced ? 0 : CAST_ANIM_MS.meihua) - (Date.now() - startedAt);
         if (wait > 0) await new Promise((res) => setTimeout(res, wait));
         setResult(r);
         setCastAt(at);
         setCastNumbers(numbers ?? null);
+        setMhRecordId(recordId ?? null);
       }
     } catch (e) {
       if (kind === "liuyao") setLyResult(null);
@@ -210,9 +215,10 @@ export default function DivinationPage() {
       setReading(null);
       setAiError(null);
       try {
-        const { result: r, castAt: at } = await castLiuYao({ method: "tosses", tosses, question: q });
+        const { result: r, castAt: at, recordId } = await castLiuYao({ method: "tosses", tosses, question: q });
         setLyResult(r);
         setLyCastAt(at);
+        setLyRecordId(recordId ?? null);
       } catch (e) {
         setLyResult(null);
         setCastError(e instanceof DivinationError ? e.message : "起卦失败,请重试");
@@ -238,6 +244,7 @@ export default function DivinationPage() {
           tosses: lyResult.tosses,
           castAt: lyCastAt,
           question: q,
+          recordId: lyRecordId ?? undefined,
         });
         setReading(rd.text);
         setCredits(remainingCredits);
@@ -246,10 +253,10 @@ export default function DivinationPage() {
         const q = result.question ?? question.trim();
         if (!q) return;
         // 关键契约:回传与所见「同一卦」——时间卦传 castAt,数字卦传 numbers。
-        const input: CastInput & { question: string } =
+        const input: CastInput & { question: string; recordId?: string } =
           result.method === "number"
-            ? { method: "number", numbers: castNumbers ?? result.numbers, question: q }
-            : { method: "time", castAt: castAt ?? undefined, question: q };
+            ? { method: "number", numbers: castNumbers ?? result.numbers, question: q, recordId: mhRecordId ?? undefined }
+            : { method: "time", castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined };
         const { reading: rd, remainingCredits } = await divineAI(input);
         setReading(rd.text);
         setCredits(remainingCredits);
@@ -268,7 +275,7 @@ export default function DivinationPage() {
     } finally {
       setAiLoading(false);
     }
-  }, [kind, result, lyResult, lyCastAt, aiLoading, question, castAt, castNumbers]);
+  }, [kind, result, lyResult, lyCastAt, lyRecordId, mhRecordId, aiLoading, question, castAt, castNumbers]);
 
   const meta = KIND_META[kind];
 
@@ -279,7 +286,17 @@ export default function DivinationPage() {
         <p className="text-[12px] font-medium tracking-[0.24em] text-gold">{meta.eyebrow}</p>
         <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
           <h1 className="font-display text-[39px] font-semibold text-ink sm:text-[49px]">问卦</h1>
-          {signedIn && <CreditsBadge credits={credits} />}
+          <span className="flex items-center gap-2.5">
+            {signedIn && (
+              <Link
+                href="/divinations"
+                className="inline-flex items-center rounded-[2px] px-2 py-1 text-[12px] tracking-[0.08em] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] transition-colors hover:text-ink"
+              >
+                我的卦档
+              </Link>
+            )}
+            {signedIn && <CreditsBadge credits={credits} />}
+          </span>
         </div>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-secondary md:text-[16px]">
           一事一占,以卦观势。心念既定,起卦以问。

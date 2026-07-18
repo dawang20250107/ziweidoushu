@@ -313,6 +313,17 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 以复原同一卦)、引语料 RAG 解卦;AI 失败自动退还;未配置 LLM 返回 503
 不扣次;次数不足 402 `no_credits`。
 
+### 卦档(登录后自动存档)
+
+登录用户起卦(梅花/六爻)时服务端自动存档并在起卦响应中附 `recordId`;
+AI 解卦请求携带 `recordId` 则解卦文本回填该档(匿名起卦后才登录的场景,
+解卦时自动补建一条带解卦的档)。每用户保留最近 200 条,超出截断最旧。
+
+- `GET /api/v1/me/divinations?limit&offset` → `{records, total}`
+  (轻量列表:kind/question/summary/hasReading/castAt,无卦象与解卦全文)
+- `GET /api/v1/me/divinations/{id}` → `{record}`(含 payload 卦象与 reading)
+- `DELETE /api/v1/me/divinations/{id}` → `{deleted: true}`(仅本人)
+
 ## 研究语料(内部)
 
 `Book.research: true` 的语料(`research/books-json/`,经 `CORPUS_EXTERNAL_DIR`
