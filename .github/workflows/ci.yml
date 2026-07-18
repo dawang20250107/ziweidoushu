@@ -1,0 +1,67 @@
+# CI:每次 push/PR 全量把关。
+# 正确性底座 = internal/ziwei 的 1500+ 黄金基准回归(安星/格局/运限),
+# 数据库层跑真实 PostgreSQL(履约幂等/并发扣减/订阅顺延等集成测试)。
+name: ci
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go 构建与测试(含黄金基准 + PG 集成)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ziwei_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: 构建
+        run: go build ./...
+      - name: 静态检查
+        run: go vet ./...
+      - name: 测试(-race,含黄金基准与 PG 集成)
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/ziwei_test?sslmode=disable
+        run: go test -race -count=1 ./...
+
+  web:
+    name: Web 类型检查与构建
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: 安装依赖
+        run: npm ci
+      - name: 类型检查
+        run: npx tsc --noEmit
+      - name: 生产构建
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+        run: npx next build

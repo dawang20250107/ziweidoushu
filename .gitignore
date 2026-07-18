@@ -1,8 +1,33 @@
+# 二进制与构建产物
+/bin/
+/dist/
+ziweidoushu
+*.exe
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# Node
 node_modules/
-.next/
-.vercel/
-.env*
-!.env.example
-dist/
-*.tsbuildinfo
+# 根目录 lock 不入库(tools/goldgen 临时用);web/ 的 lock 需要入库保证可复现
+/package-lock.json
+
+# Next.js 构建产物
+web/.next/
+web/out/
+web/*.tsbuildinfo
+
+# 测试与覆盖率
+coverage.out
+*.test
+
+# 外部语料目录(本地投放,不入库)
+/corpus-external/
+
+# 编辑器
+.idea/
+.vscode/
+*.swp
 .DS_Store

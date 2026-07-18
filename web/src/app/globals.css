@@ -1,0 +1,170 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* 观星台 token → Tailwind 语义类桥接(bg-bg / text-ink / text-gold …)。
+ * inline 引用运行时 CSS 变量,主题切换即时生效。组件禁止硬编码色值。 */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-gold: var(--gold);
+  --color-gold-bright: var(--gold-bright);
+  --color-gold-dim: var(--gold-dim);
+  --color-violet: var(--violet);
+  --color-lu: var(--sihua-lu);
+  --color-quan: var(--sihua-quan);
+  --color-ke: var(--sihua-ke);
+  --color-ji: var(--sihua-ji);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-reading: var(--font-reading);
+}
+
+html {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+body {
+  min-height: 100dvh;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 数字全局等宽(四柱/年龄/价格对齐) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 双层焦点环 */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* 星盘入场:十二宫级联点亮 */
+@keyframes palace-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.palace-enter {
+  animation: palace-in var(--motion-slow) var(--ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .palace-enter {
+    animation: none;
+  }
+}
+
+/* 古籍检索命中高亮 */
+mark {
+  background: var(--gold-glow);
+  color: var(--gold-bright);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── v2:顶级科技感基座 ─────────────────────────── */
+
+/* 文本选区着星曜金晕 */
+::selection {
+  background: rgba(217, 179, 108, 0.28);
+}
+
+/* 细滚动条(深空低调) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 4px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 页面切换进场(配 app/template.tsx,每次导航重放) */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: page-in 300ms var(--ease-out) both;
+}
+
+/* 卡片悬停浮起(交互卡片自愿挂载) */
+.lift {
+  transition:
+    transform var(--motion-base) var(--ease-out),
+    box-shadow var(--motion-base) var(--ease-out);
+}
+.lift:hover {
+  transform: translateY(-2px);
+}
+
+/* 金辉光(仅主 CTA / 激活态使用,克制) */
+.glow-gold {
+  box-shadow: var(--glow-gold);
+}
+.glow-gold-strong {
+  box-shadow: var(--glow-gold-strong);
+}
+
+/* 三方四正连线:入场描线 */
+@keyframes line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.sanfang-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: line-draw 480ms var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .sanfang-line {
+    animation: none;
+  }
+  .sanfang-line {
+    stroke-dashoffset: 0;
+  }
+  .lift,
+  .lift:hover {
+    transition: none;
+    transform: none;
+  }
+}
