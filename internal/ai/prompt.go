@@ -122,6 +122,13 @@ func ChartSummary(c *ziwei.Chart) string {
 		sb.WriteString(fmt.Sprintf("- 四柱视角:日主%s%s,月令%s(%s;%s)\n",
 			c.SiZhu.DayMaster, c.SiZhu.DayMasterElement, c.SiZhu.GeJu.Name, c.SiZhu.GeJu.Basis, c.SiZhu.GeJu.Source))
 	}
+	if c.SiZhu != nil && len(c.SiZhu.ShenSha) > 0 {
+		parts := make([]string, 0, len(c.SiZhu.ShenSha))
+		for _, s := range c.SiZhu.ShenSha {
+			parts = append(parts, fmt.Sprintf("%s(%s)", s.Name, strings.Join(s.Pillars, "")))
+		}
+		sb.WriteString("- 四柱神煞:" + strings.Join(parts, "、") + "(参照维度,轻重以格局旺衰为主)\n")
+	}
 	sb.WriteString(fmt.Sprintf("- 命宫:%s宫|身宫:%s宫\n", ziwei.Branches[c.MingGongBranch], ziwei.Branches[c.ShenGongBranch]))
 	if c.CurrentDaXianIndex >= 0 && c.CurrentDaXianIndex < len(c.DaXians) {
 		dx := c.DaXians[c.CurrentDaXianIndex]

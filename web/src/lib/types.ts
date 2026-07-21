@@ -83,6 +83,7 @@ export interface SiZhuPillar {
   stemShiShen: string; // 日柱为「日主」
   hidden: HiddenStem[];
   naYin: string;
+  xunKong?: boolean; // 此柱地支落日柱旬空
 }
 export interface SiZhuGeJu {
   name: string; // 正官格/七杀格/…/建禄格/阳刃格/月劫格/杂气月垣
@@ -90,12 +91,18 @@ export interface SiZhuGeJu {
   note: string; // 格局大意(子平真诠)
   source: string; // 出处
 }
+export interface ShenSha {
+  name: string; // 神煞名
+  pillars: string[]; // 命中柱:年/月/日/时
+  basis: string; // 查法:年支三合/年支/日干/日柱旬
+}
 export interface SiZhuView {
   dayMaster: string;
   dayMasterElement: string;
   pillars: SiZhuPillar[];
   elementCount: Record<string, number>;
   geJu?: SiZhuGeJu;
+  shenSha?: ShenSha[];
 }
 
 export interface Chart {

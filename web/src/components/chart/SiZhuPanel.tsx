@@ -92,9 +92,38 @@ export function SiZhuPanel({ siZhu }: { siZhu: SiZhuView }) {
                   ))}
                 </div>
                 <span className="mt-1 text-[11px] text-ink-faint">{p.naYin}</span>
+                {p.xunKong && (
+                  <span className="rounded-[3px] px-1.5 py-0.5 text-[10px] leading-none text-ink-faint shadow-[inset_0_0_0_1px_var(--line)]">
+                    空亡
+                  </span>
+                )}
               </div>
             ))}
           </div>
+
+          {/* 神煞(年支三合/年支/日干/空亡) */}
+          {siZhu.shenSha && siZhu.shenSha.length > 0 && (
+            <div className="mt-5">
+              <p className="mb-2 text-[12px] tracking-[0.08em] text-ink-faint">
+                神煞 · 以年支、日干、日柱旬查落柱
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {siZhu.shenSha.map((s) => (
+                  <span
+                    key={s.name}
+                    title={`查法:${s.basis}`}
+                    className="inline-flex items-baseline gap-1 rounded-[4px] bg-bg px-2 py-1 text-[12px] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]"
+                  >
+                    {s.name}
+                    <span className="text-[10px] text-ink-faint">{s.pillars.join("")}</span>
+                  </span>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-ink-faint">
+                神煞为参照维度,吉凶轻重仍以格局、旺衰通盘为主
+              </p>
+            </div>
+          )}
 
           {/* 月令取格(子平真诠) */}
           {siZhu.geJu && (

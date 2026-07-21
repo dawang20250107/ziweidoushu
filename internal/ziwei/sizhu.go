@@ -19,6 +19,7 @@ type SiZhuPillar struct {
 	StemShiShen   string       `json:"stemShiShen"`   // 日柱天干为「日主」
 	Hidden        []HiddenStem `json:"hidden"`
 	NaYin         string       `json:"naYin"`
+	XunKong       bool         `json:"xunKong,omitempty"` // 此柱地支落日柱旬空
 }
 
 // SiZhuGeJu 月令取格(《子平真诠》法:八字用神专求月令)。
@@ -37,6 +38,8 @@ type SiZhuView struct {
 	// ElementCount 八字五行分布(四天干 + 四地支本气,共 8 字)。
 	ElementCount map[string]int `json:"elementCount"`
 	GeJu         *SiZhuGeJu     `json:"geJu,omitempty"`
+	// ShenSha 神煞(三合/年支/日干/空亡),仅列命中柱者。
+	ShenSha []ShenSha `json:"shenSha"`
 }
 
 var (
@@ -215,6 +218,7 @@ func buildSiZhu(fp FourPillars) *SiZhuView {
 		ElementCount:     map[string]int{"木": 0, "火": 0, "土": 0, "金": 0, "水": 0},
 	}
 
+	var stemsIdx, branchesIdx [4]int
 	for i, ps := range pillarStrs {
 		rs := []rune(ps)
 		if len(rs) != 2 {
@@ -224,6 +228,7 @@ func buildSiZhu(fp FourPillars) *SiZhuView {
 		if s < 0 || b < 0 {
 			return nil
 		}
+		stemsIdx[i], branchesIdx[i] = s, b
 		p := SiZhuPillar{
 			Name:          names[i],
 			Stem:          string(rs[0]),
@@ -257,5 +262,12 @@ func buildSiZhu(fp FourPillars) *SiZhuView {
 		transparent[[]rune(pillarStrs[i])[0]] = true
 	}
 	view.GeJu = deriveGeJu(dayStem, monthBranch, transparent)
+
+	// 神煞层 + 空亡回填
+	shenSha, kong := buildShenSha(stemsIdx, branchesIdx)
+	view.ShenSha = shenSha
+	for i := range view.Pillars {
+		view.Pillars[i].XunKong = kong[i]
+	}
 	return view
 }

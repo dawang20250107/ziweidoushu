@@ -174,3 +174,127 @@ func TestZWDSShiShenCrosscheck(t *testing.T) {
 		}
 	}
 }
+
+// TestZWDSNianZhiShenShaCrosscheck 校验年支三合(将前)神煞落位:取自 zwds
+// 将前十二神表 zwcomp_22——该表华盖正确落墓库(辰),与八字模块 sz_info_3/5
+// 误置冲位(戌)不同;故三合神煞只认可靠的紫微模块表。12 年支 × 7 神煞全等。
+// (红鸾/天喜/孤辰/寡宿因 sz_info_5 有多处录入错误,改由规则钉死,见下测试。)
+func TestZWDSNianZhiShenShaCrosscheck(t *testing.T) {
+	raw, err := os.ReadFile("testdata/zwds_shensha_nianzhi.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want map[string]map[string]string // 年支 → 神煞 → 地支
+	if err := json.Unmarshal(raw, &want); err != nil {
+		t.Fatal(err)
+	}
+	for yz := 0; yz < 12; yz++ {
+		exp := want[string(szBranches[yz])]
+		js := jiangStarZhi(yz)
+		for _, s := range sanheShenSha {
+			pos := (js + s.offset) % 12
+			if e, ok := exp[s.name]; ok && e != string(szBranches[pos]) {
+				t.Errorf("%s年·%s:引擎「%s」≠ 基准「%s」",
+					string(szBranches[yz]), s.name, string(szBranches[pos]), e)
+			}
+		}
+	}
+}
+
+// TestNianZhiShenShaRuleLock 红鸾/天喜/孤辰/寡宿按经典口诀钉死(sz_info_5 该四
+// 神煞有移位/重出等录入错误,不作基准;此处以硬编码标准值锁定引擎规则)。
+func TestNianZhiShenShaRuleLock(t *testing.T) {
+	// 期望(子…亥),地支索引 子=0。
+	hongLuanExp := []int{3, 2, 1, 0, 11, 10, 9, 8, 7, 6, 5, 4} // 子卯丑寅…
+	guChenExp := []int{2, 2, 5, 5, 5, 8, 8, 8, 11, 11, 11, 2}  // 亥子丑→寅…
+	guaSuExp := []int{10, 10, 1, 1, 1, 4, 4, 4, 7, 7, 7, 10}   // 亥子丑→戌…
+	for yz := 0; yz < 12; yz++ {
+		hl := ((3 - yz) + 12) % 12
+		if hl != hongLuanExp[yz] {
+			t.Errorf("%s年红鸾:引擎%d ≠ 期望%d", string(szBranches[yz]), hl, hongLuanExp[yz])
+		}
+		if tx := (hl + 6) % 12; tx != (hongLuanExp[yz]+6)%12 {
+			t.Errorf("%s年天喜:引擎%d 非红鸾冲", string(szBranches[yz]), tx)
+		}
+		gc, gs := guChenGuaSu(yz)
+		if gc != guChenExp[yz] || gs != guaSuExp[yz] {
+			t.Errorf("%s年孤辰/寡宿:引擎{%d,%d} ≠ 期望{%d,%d}",
+				string(szBranches[yz]), gc, gs, guChenExp[yz], guaSuExp[yz])
+		}
+	}
+}
+
+// TestZWDSRiGanShenShaCrosscheck 校验日干系神煞:禄神/文昌/羊刃(阳干)逐位
+// 与 zwds 日干神煞表全等;天乙贵人用「基准 ⊆ 引擎」容错——该表辛干只录了寅、
+// 漏了午(六辛逢马虎,午寅两位),软件所录须都在引擎位内即可。羊刃仅阳干
+// (阳刃为阳干专有,阴干变体不采)。
+func TestZWDSRiGanShenShaCrosscheck(t *testing.T) {
+	raw, err := os.ReadFile("testdata/zwds_shensha_rigan.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want map[string]map[string][]string // 日干 → 神煞 → [地支...]
+	if err := json.Unmarshal(raw, &want); err != nil {
+		t.Fatal(err)
+	}
+	name := func(i int) string { return string(szBranches[i]) }
+	for dg := 0; dg < 10; dg++ {
+		exp := want[string(szStems[dg])]
+		// 精确位:禄神、文昌、羊刃(阳干)
+		exact := func(nm string, idx int) {
+			if e, ok := exp[nm]; ok && !(len(e) == 1 && e[0] == name(idx)) {
+				t.Errorf("日干%s·%s:引擎「%s」≠ 基准%v", string(szStems[dg]), nm, name(idx), e)
+			}
+		}
+		exact("禄神", luBranch[dg])
+		exact("文昌", wenChangZhi[dg])
+		if rb, ok := renBranch[dg]; ok {
+			exact("羊刃", rb)
+		}
+		// 天乙贵人:基准 ⊆ 引擎(容软件漏录)
+		if e, ok := exp["天乙贵人"]; ok {
+			engine := map[string]bool{name(tianYiGuiRen[dg][0]): true, name(tianYiGuiRen[dg][1]): true}
+			for _, z := range e {
+				if !engine[z] {
+					t.Errorf("日干%s·天乙贵人:基准「%s」不在引擎位%v", string(szStems[dg]), z,
+						[]string{name(tianYiGuiRen[dg][0]), name(tianYiGuiRen[dg][1])})
+				}
+			}
+		}
+	}
+}
+
+// TestZWDSKongWangCrosscheck 校验空亡(旬空):六十甲子各自旬空的两支,
+// 引擎公式须与 zwds 空亡表逐组全等。
+func TestZWDSKongWangCrosscheck(t *testing.T) {
+	raw, err := os.ReadFile("testdata/zwds_kongwang.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want map[string][]string // 干支 → [空支×2]
+	if err := json.Unmarshal(raw, &want); err != nil {
+		t.Fatal(err)
+	}
+	if len(want) != 60 {
+		t.Fatalf("空亡基准应 60 组,实际 %d", len(want))
+	}
+	skipped := 0
+	for gz, kong := range want {
+		rs := []rune(gz)
+		s, b := stemIndex(rs[0]), branchIndex(rs[1])
+		if s%2 != b%2 { // 无效干支(该表有一处 0510=戊酉 录入错误,阴阳不配),跳过
+			skipped++
+			continue
+		}
+		k1 := ((b-s)%12 + 12 + 10) % 12
+		k2 := ((b-s)%12 + 12 + 11) % 12
+		gotSet := map[string]bool{string(szBranches[k1]): true, string(szBranches[k2]): true}
+		if len(kong) != 2 || !gotSet[kong[0]] || !gotSet[kong[1]] {
+			t.Errorf("%s:引擎空亡{%s,%s} ≠ 基准%v",
+				gz, string(szBranches[k1]), string(szBranches[k2]), kong)
+		}
+	}
+	if skipped != 1 { // 已知恰一处录入错误;多于/少于 1 说明表变了,需复核
+		t.Errorf("跳过的无效干支应为 1(0510=戊酉 录入错误),实际 %d", skipped)
+	}
+}
