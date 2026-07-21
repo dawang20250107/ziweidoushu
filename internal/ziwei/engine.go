@@ -250,6 +250,14 @@ func ziweiTianfuIndex(snap calendarSnapshot, timeIndex, ju int) (int, int) {
 		day -= maxDays
 	}
 
+	ziwei := ziweiPalaceByJuDay(ju, day)
+	return ziwei, fix12(12 - ziwei)
+}
+
+// ziweiPalaceByJuDay 紫微定局:由五行局(ju=2水二…6火六)与农历日推紫微所在
+// 宫位索引(寅=0)。这是安星链的地基(局+日 → 紫微),其上再由
+// placeMajorStars 布其余十三主星。
+func ziweiPalaceByJuDay(ju, day int) int {
 	offset := -1
 	quotient := 0
 	remainder := -1
@@ -266,8 +274,7 @@ func ziweiTianfuIndex(snap calendarSnapshot, timeIndex, ju int) (int, int) {
 	} else {
 		ziwei -= offset
 	}
-	ziwei = fix12(ziwei)
-	return ziwei, fix12(12 - ziwei)
+	return fix12(ziwei)
 }
 
 // xiaoxianStartIndex 小限起宫(宫位索引):

@@ -12,9 +12,14 @@
 
 | 表 | 内容 | 校验对象 |
 |---|---|---|
+| `zwcomp_04` | 紫微定局(五行局 × 农历日 → 紫微宫) | `internal/ziwei` `ziweiPalaceByJuDay`(安星链地基) |
 | `zwcomp_row` | 紫微诸星定位(12 局 × 12 宫,含对宫借星标记) | `internal/ziwei` 安十四主星 |
+| `sz_info_1` | 十神(日主 × 天干 → 十神) | `internal/ziwei/sizhu.go` `shiShen` |
 | `sz_60nayin` | 六十甲子纳音 | `internal/ziwei/sizhu.go` `naYin` |
 | `zy_64bg_dy` | 六十四卦逐爻变卦(初爻…上爻) | `internal/liuyao` + `internal/meihua` 卦名/变卦 |
+
+注:安星链已双端锁死——地基「局+日 → 紫微」(`zwcomp_04`)与其上
+「紫微 → 十四主星」(`zwcomp_row`)各自独立校验,合起来即整条安星流程。
 
 **边界(硬性)**:原始 `.mdb`、APK 及任何断语/星情/注解类文本一律不入库、
 不分发;只把上述三张**纯事实表**解码为归一化 testdata(与既有 iztro 黄金
@@ -39,11 +44,28 @@
 
 | 校验 | 规模 | 结果 |
 |---|---|---|
+| 紫微定局(局+日 → 紫微) | 5 局 × 30 日 = 150 格 | **全等** |
 | 紫微安十四主星 | 12 局 × 14 星 = 168 星次 | **全等** |
+| 十神(日主 × 天干) | 10 × 10 = 100 格 | **全等** |
 | 六十甲子纳音 | 60 组干支 | **全等**(容异写) |
 | 六十四卦名 + 逐爻变卦 | 64 卦名 + 384 变卦 | 381/384 一致;**3 处系第三方表错,引擎全对** |
 
-安星与纳音两项与该独立实现**逐项零分歧**——在 iztro 之外再获一处强证。
+定局/安星/十神/纳音四项与该独立实现**逐项零分歧**——在 iztro 之外再获一处强证。
+
+## APK 一并盘点(诚实结论:无可提取数据层)
+
+同包另有约 20 个玄奥系列手机 APK(ZiWei/LiuYao/BaZi/DaLiuRen…)、文墨天机、
+鼎力岐黄等,以及一个 `玄奥系列注册机.apk`(盗版注册机)。逐个盘点结论:
+
+- 玄奥系手机 APK **把排盘逻辑与断语全部编进 `classes.dex`**(Dalvik 字节码),
+  `assets/`、`res/raw/` 里只有 UI `help.txt`/`softreg.txt`,**无外挂数据库、
+  无可提取事实表**。与桌面版把数据放在外部 `zwds.mdb`(已挖)截然不同。
+- 要再取其表须**反编译专有 `.dex`**——产出是混淆字节码(非「工程源码」),
+  且等于把他人专有算法/受版权断语搬进我方产品,**污染本引擎的净室属性**
+  (本引擎只对公开黄金基准负责,不欠任何人代码)。故**不反编译**。
+- `玄奥系列注册机.apk` 系盗版工具,**一律不碰**。
+
+事实层的价值本就不在 APK,而在桌面版外挂的 `zwds.mdb`——已尽数交叉校验。
 
 ### 反向发现:第三方变卦表 3 处录入错误
 
@@ -62,11 +84,12 @@
 
 ## 固化为回归
 
-三项均落为常驻测试(与 iztro 黄金基准并列),CI 每次运行:
+五项均落为常驻测试(与 iztro 黄金基准并列),CI 每次运行:
 
-- `internal/ziwei/zwds_crosscheck_test.go`:`TestZWDSMajorStarsCrosscheck`
-  / `TestZWDSNaYinCrosscheck`
-- `internal/liuyao/zwds_crosscheck_test.go`:`TestZWDSBianGuaCrosscheck`
-  (含 `zwdsBianErrata` 已知第三方错误豁免表)
+- `internal/ziwei/zwds_crosscheck_test.go`:`TestZWDSZiweiJuDayCrosscheck`(定局)
+  / `TestZWDSMajorStarsCrosscheck`(安星)/ `TestZWDSShiShenCrosscheck`(十神)
+  / `TestZWDSNaYinCrosscheck`(纳音)
+- `internal/liuyao/zwds_crosscheck_test.go`:`TestZWDSBianGuaCrosscheck`(变卦,
+  含 `zwdsBianErrata` 已知第三方错误豁免表)
 
-自此,安星/纳音/变卦三处任何回归,都会被**两套独立基准**同时捕获。
+自此,定局/安星/十神/纳音/变卦五处任何回归,都会被**两套独立基准**同时捕获。

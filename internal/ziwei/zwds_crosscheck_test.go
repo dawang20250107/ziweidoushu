@@ -1,15 +1,17 @@
 package ziwei
 
 // 以第三方排盘软件(zwds.mdb)导出的结构表为「第二独立黄金基准」,
-// 与既有 iztro 基准互证核心算法。此处的表均为确定性事实(安星诀、
-// 六十甲子纳音),非断语/星情文本;iztro 与该商业软件为两套彼此独立
-// 的实现,同表全等即强证引擎无误。溯源与结论见
-// research/zwds-mdb-crosscheck.md。
+// 与既有 iztro 基准互证核心算法。此处的表均为确定性事实(紫微定局、
+// 安星诀、十神、六十甲子纳音),非断语/星情文本;iztro 与该商业软件为
+// 两套彼此独立的实现,同表全等即强证引擎无误。安星链地基到主星完整覆盖:
+// 局+日 → 紫微(zwds_ziwei_juday)→ 十四主星(zwds_majorstars)。
+// 溯源与结论见 research/zwds-mdb-crosscheck.md。
 
 import (
 	"encoding/json"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -111,6 +113,64 @@ func TestZWDSNaYinCrosscheck(t *testing.T) {
 		got := naYin(s, b)
 		if canonNaYin(got) != canonNaYin(ny) {
 			t.Errorf("%s:引擎纳音「%s」≠ 基准「%s」", gz, got, ny)
+		}
+	}
+}
+
+// TestZWDSZiweiJuDayCrosscheck 校验紫微定局(安星链地基):五行局 × 农历日 →
+// 紫微所在宫。引擎须与 zwds 定局表逐格全等(5 局 × 30 日 = 150 格)。
+func TestZWDSZiweiJuDayCrosscheck(t *testing.T) {
+	raw, err := os.ReadFile("testdata/zwds_ziwei_juday.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want map[string][]int // 五行局(ju=2..6)→ [30 日]紫微宫(子=1..亥=12)
+	if err := json.Unmarshal(raw, &want); err != nil {
+		t.Fatal(err)
+	}
+	if len(want) != 5 {
+		t.Fatalf("定局基准应 5 局,实际 %d", len(want))
+	}
+	for _, ju := range []int{2, 3, 4, 5, 6} {
+		row, ok := want[strconv.Itoa(ju)]
+		if !ok || len(row) != 30 {
+			t.Fatalf("五行局 ju=%d 基准缺失或非 30 日", ju)
+		}
+		for day := 1; day <= 30; day++ {
+			palIdx := ziweiPalaceByJuDay(ju, day)        // 宫位索引(寅=0)
+			gotBranch := palaceIndexToBranch(palIdx) + 1 // → 子=1..亥=12
+			if gotBranch != row[day-1] {
+				t.Errorf("ju=%d 第%d日:引擎紫微在%s(%d) ≠ 基准 %d",
+					ju, day, Branches[palaceIndexToBranch(palIdx)], gotBranch, row[day-1])
+			}
+		}
+	}
+}
+
+// TestZWDSShiShenCrosscheck 校验十神:日主天干 × 对方天干 → 十神。
+// 引擎 shiShen 须与 zwds 十神表逐格全等(10 × 10 = 100 格)。
+func TestZWDSShiShenCrosscheck(t *testing.T) {
+	raw, err := os.ReadFile("testdata/zwds_shishen.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want map[string][]string // 日主天干 → [对甲..癸]十神
+	if err := json.Unmarshal(raw, &want); err != nil {
+		t.Fatal(err)
+	}
+	if len(want) != 10 {
+		t.Fatalf("十神基准应 10 日主,实际 %d", len(want))
+	}
+	for dm, row := range want {
+		day := stemIndex([]rune(dm)[0])
+		if day < 0 || len(row) != 10 {
+			t.Fatalf("日主 %s 非法或非 10 列", dm)
+		}
+		for other := 0; other < 10; other++ {
+			if got := shiShen(day, other); got != row[other] {
+				t.Errorf("日主%s 对%s:引擎「%s」≠ 基准「%s」",
+					dm, string(szStems[other]), got, row[other])
+			}
 		}
 	}
 }
