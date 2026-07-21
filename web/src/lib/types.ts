@@ -96,6 +96,31 @@ export interface ShenSha {
   pillars: string[]; // 命中柱:年/月/日/时
   basis: string; // 查法:年支三合/年支/日干/日柱旬
 }
+export interface DaYunEntry {
+  index: number;
+  ganZhi: string;
+  startAge: number; // 虚岁
+  startYear: number;
+  stemShiShen: string; // 运干十神
+  naYin: string;
+  xunKong: string;
+  isCurrent: boolean;
+}
+export interface LiuNianEntry {
+  year: number;
+  age: number;
+  ganZhi: string;
+  stemShiShen: string;
+  naYin: string;
+  isCurrent: boolean;
+}
+export interface DaYunView {
+  forward: boolean; // 顺行/逆行
+  startAge: number; // 起运虚岁
+  startDesc: string; // 「X 年 Y 月后起运」
+  list: DaYunEntry[];
+  currentLiuNian: LiuNianEntry[];
+}
 export interface SiZhuView {
   dayMaster: string;
   dayMasterElement: string;
@@ -103,6 +128,7 @@ export interface SiZhuView {
   elementCount: Record<string, number>;
   geJu?: SiZhuGeJu;
   shenSha?: ShenSha[];
+  daYun?: DaYunView;
 }
 
 export interface Chart {

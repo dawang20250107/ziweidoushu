@@ -188,6 +188,9 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 		CurrentDaXianIndex: currentDX,
 	}
 	chart.SiZhu = buildSiZhu(chart.FourPillars) // 四柱视角(八字同源附加层)
+	if chart.SiZhu != nil {
+		chart.SiZhu.DaYun = buildDaYun(b, timeIndex, refYear) // 大运/流年(与紫微同源)
+	}
 	return chart, nil
 }
 

@@ -40,6 +40,8 @@ type SiZhuView struct {
 	GeJu         *SiZhuGeJu     `json:"geJu,omitempty"`
 	// ShenSha 神煞(三合/年支/日干/空亡),仅列命中柱者。
 	ShenSha []ShenSha `json:"shenSha"`
+	// DaYun 大运/流年(八字视角,与紫微同源)。
+	DaYun *DaYunView `json:"daYun,omitempty"`
 }
 
 var (

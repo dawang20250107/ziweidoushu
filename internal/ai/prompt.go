@@ -129,6 +129,22 @@ func ChartSummary(c *ziwei.Chart) string {
 		}
 		sb.WriteString("- 四柱神煞:" + strings.Join(parts, "、") + "(参照维度,轻重以格局旺衰为主)\n")
 	}
+	if c.SiZhu != nil && c.SiZhu.DaYun != nil {
+		dy := c.SiZhu.DaYun
+		for _, d := range dy.List {
+			if d.IsCurrent {
+				sb.WriteString(fmt.Sprintf("- 当前大运:%s(%s,%d 岁起,%s局)\n",
+					d.GanZhi, d.StemShiShen, d.StartAge, d.NaYin))
+				break
+			}
+		}
+		for _, l := range dy.CurrentLiuNian {
+			if l.IsCurrent {
+				sb.WriteString(fmt.Sprintf("- 流年:%s(%s)\n", l.GanZhi, l.StemShiShen))
+				break
+			}
+		}
+	}
 	sb.WriteString(fmt.Sprintf("- 命宫:%s宫|身宫:%s宫\n", ziwei.Branches[c.MingGongBranch], ziwei.Branches[c.ShenGongBranch]))
 	if c.CurrentDaXianIndex >= 0 && c.CurrentDaXianIndex < len(c.DaXians) {
 		dx := c.DaXians[c.CurrentDaXianIndex]
