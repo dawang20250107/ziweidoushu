@@ -174,6 +174,37 @@ func TestLiuNianSection(t *testing.T) {
 	}
 }
 
+// TestStarPalaceCompleteness 宫位透镜按星细化:14×12 须齐备、无空、且随宫而异。
+func TestStarPalaceCompleteness(t *testing.T) {
+	stars := []string{"紫微", "天机", "太阳", "武曲", "天同", "廉贞", "天府", "太阴", "贪狼", "巨门", "天相", "天梁", "七杀", "破军"}
+	palaces := []string{"命宫", "兄弟", "夫妻", "子女", "财帛", "疾厄", "迁移", "仆役", "官禄", "田宅", "福德", "父母"}
+	if len(starPalaceTrait) != 14 {
+		t.Errorf("主星数应为 14,得 %d", len(starPalaceTrait))
+	}
+	for _, s := range stars {
+		m, ok := starPalaceTrait[s]
+		if !ok {
+			t.Errorf("缺主星 %s", s)
+			continue
+		}
+		if len(m) != 12 {
+			t.Errorf("%s 宫位数应为 12,得 %d", s, len(m))
+		}
+		for _, p := range palaces {
+			if strings.TrimSpace(m[p]) == "" {
+				t.Errorf("%s×%s 断语为空", s, p)
+			}
+		}
+	}
+	// 同一星在不同宫读法须不同(准头的意义所在)。
+	if starInPalace("太阴", "财帛") == starInPalace("太阴", "夫妻") {
+		t.Error("太阴在财帛与夫妻断语不应相同")
+	}
+	if starInPalace("太阳", "官禄") == starInPalace("太阳", "疾厄") {
+		t.Error("太阳在官禄与疾厄断语不应相同")
+	}
+}
+
 // TestReadingChartGrounded 断语须引用本盘实配星曜(非通用套话)。
 func TestReadingChartGrounded(t *testing.T) {
 	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2024})

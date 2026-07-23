@@ -252,7 +252,12 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 			}
 		}
 		starTags = append(starTags, tag)
-		clauses = append(clauses, name+"("+slant+")")
+		// 宫位透镜按星细化:优先取「星×宫」专属断语,缺项回退通用星性。
+		if sp := starInPalace(name, pname); sp != "" {
+			clauses = append(clauses, name+"："+sp)
+		} else {
+			clauses = append(clauses, name+"("+slant+")")
+		}
 	}
 	// 会照煞/吉
 	score += len(lucky) - len(sha)
