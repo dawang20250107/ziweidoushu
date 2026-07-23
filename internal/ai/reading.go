@@ -161,6 +161,9 @@ func buildReading(chart *ziwei.Chart, patterns []ziwei.Pattern) *Reading {
 	if s := sectionForDaXian(chart); s != nil {
 		rd.Sections = append(rd.Sections, *s)
 	}
+	if s := sectionForLiuNian(chart); s != nil { // 流年:当年一岁之气
+		rd.Sections = append(rd.Sections, *s)
+	}
 	return rd
 }
 
@@ -431,6 +434,91 @@ func sectionForDaXian(chart *ziwei.Chart) *ReadingSection {
 	return &ReadingSection{
 		Key: "daxian", Title: "当前大限", Palace: dx.PalaceName,
 		Stars: tags, Level: levelOf(score), Text: prefix + body + extra + "(倪师体系四化固定,大限重在宫位星曜的十年主题切换)",
+	}
+}
+
+// findStarPalace 全盘定位某星所在之宫(十四主星与六吉恒在盘上)。
+func findStarPalace(chart *ziwei.Chart, star string) *ziwei.Palace {
+	for i := range chart.Palaces {
+		if chart.Palaces[i].HasStar(star) {
+			return &chart.Palaces[i]
+		}
+	}
+	return nil
+}
+
+// liuNianHuaWord 流年四化飞入本命某宫,对本年该域的定性(时效性,不同于生年四化的一生定盘)。
+var liuNianHuaWord = map[ziwei.SiHua]string{
+	ziwei.HuaLu:   "本年该域进财顺遂、多喜庆机遇",
+	ziwei.HuaQuan: "本年该域宜掌事任权、主动可成",
+	ziwei.HuaKe:   "本年该域有贵人名声、逢难有解",
+	ziwei.HuaJi:   "本年该域易生波折是非,宜谨慎守成、忌冲动强求",
+}
+
+// sectionForLiuNian 流年维度断语:以 ReferenceYear 为当年,叠本命盘——
+// 流年命宫落于本命何宫(定本年主题)+ 流年四化飞入本命何宫(定本年动向)。
+// 倪师体系:生年四化仍固定不动,流年只叠加当年年干四化这一层动态。
+func sectionForLiuNian(chart *ziwei.Chart) *ReadingSection {
+	year := chart.ReferenceYear
+	if year <= 0 {
+		return nil
+	}
+	yb := ziwei.YearBranchIndex(year)
+	ys := ziwei.YearStemIndex(year)
+	ganzhi := ziwei.Stems[ys] + ziwei.Branches[yb]
+	lnMing := chart.PalaceByBranch(yb)
+	if lnMing == nil {
+		return nil
+	}
+	set := ziwei.LiuNianSiHua(year)
+
+	var b strings.Builder
+	var tags []string
+	b.WriteString(fmt.Sprintf("%d 年为%s年,流年命宫落于本命【%s】", year, ganzhi, palaceLabel(lnMing.Name)))
+	majors, _ := palaceMajors(lnMing)
+	if len(majors) > 0 {
+		var cl []string
+		for _, n := range majors {
+			cl = append(cl, n+"("+starTrait[n][0]+")")
+		}
+		b.WriteString(fmt.Sprintf("(坐 %s),本年整体气象以此为主题:%s。", strings.Join(majors, "、"), strings.Join(cl, ";")))
+		if pn, pt := pairTraitOf(majors); pt != "" {
+			b.WriteString(fmt.Sprintf("【%s】:%s", pn, firstSentence(pt)))
+		}
+	} else {
+		b.WriteString(",本宫无正曜,借对宫参看,本年宜守常、随三方之势。")
+	}
+	// 流年四化飞入本命宫位。
+	b.WriteString("流年四化动向:")
+	jiInHeavy := false
+	for _, hv := range []struct {
+		h    ziwei.SiHua
+		star string
+	}{{ziwei.HuaLu, set.Lu}, {ziwei.HuaQuan, set.Quan}, {ziwei.HuaKe, set.Ke}, {ziwei.HuaJi, set.Ji}} {
+		if hv.star == "" {
+			continue
+		}
+		where := "本命盘外"
+		if p := findStarPalace(chart, hv.star); p != nil {
+			where = "本命" + palaceLabel(p.Name)
+			if hv.h == ziwei.HuaJi {
+				switch p.Name {
+				case "命宫", "疾厄", "夫妻", "财帛", "官禄":
+					jiInHeavy = true
+				}
+			}
+		}
+		b.WriteString(fmt.Sprintf("%s化%s飞入%s,%s;", hv.star, string(hv.h), where, liuNianHuaWord[hv.h]))
+		tags = append(tags, hv.star+"化"+string(hv.h))
+	}
+	level := "neutral"
+	if jiInHeavy {
+		level = "caution"
+	}
+	return &ReadingSection{
+		Key: "liunian", Title: fmt.Sprintf("流年·%d %s", year, ganzhi), Palace: "",
+		Stars: tags, Level: level,
+		Text: b.String() + "(流年为当年一岁之气,与大限十年、本命一生分层合看)",
 	}
 }
 

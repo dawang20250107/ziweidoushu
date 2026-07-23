@@ -140,6 +140,40 @@ func TestSihuaLanding(t *testing.T) {
 	}
 }
 
+// TestLiuNianSection 流年维度:流年命宫落宫 + 流年四化飞入本命宫位,须贴盘且随年而变。
+func TestLiuNianSection(t *testing.T) {
+	c26, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2026})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c27, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2027})
+	if err != nil {
+		t.Fatal(err)
+	}
+	get := func(c *ziwei.Chart) ReadingSection {
+		for _, s := range buildReading(c, ziwei.DetectPatterns(c)).Sections {
+			if s.Key == "liunian" {
+				return s
+			}
+		}
+		t.Fatal("缺失流年维度")
+		return ReadingSection{}
+	}
+	s26, s27 := get(c26), get(c27)
+	// 干支须随年而变(2026 丙午、2027 丁未)。
+	if !strings.Contains(s26.Title, "2026") || !strings.Contains(s27.Title, "2027") {
+		t.Errorf("流年标题应含年份,得 %q / %q", s26.Title, s27.Title)
+	}
+	// 同一本命盘、不同流年,断语必须不同(流年命宫与四化都不同)。
+	if s26.Text == s27.Text {
+		t.Error("不同流年的断语不应雷同")
+	}
+	// 须含流年四化飞入本命宫位的表述。
+	if !strings.Contains(s26.Text, "飞入本命") {
+		t.Errorf("流年断语应含四化飞入本命宫位,实际:%s", s26.Text)
+	}
+}
+
 // TestReadingChartGrounded 断语须引用本盘实配星曜(非通用套话)。
 func TestReadingChartGrounded(t *testing.T) {
 	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2024})
