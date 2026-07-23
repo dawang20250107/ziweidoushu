@@ -51,6 +51,41 @@ func TestReadingDifferentiation(t *testing.T) {
 	}
 }
 
+// TestPairTraitOf 双主星组合定名与查断:与星序无关,须归一化到规范名。
+func TestPairTraitOf(t *testing.T) {
+	cases := []struct{ a, b, wantName string }{
+		{"紫微", "破军", "紫微破军"},
+		{"破军", "紫微", "紫微破军"}, // 反序须归一
+		{"武曲", "贪狼", "武曲贪狼"},
+		{"贪狼", "武曲", "武曲贪狼"},
+		{"廉贞", "七杀", "廉贞七杀"},
+		{"太阴", "太阳", "太阳太阴"},
+	}
+	for _, c := range cases {
+		name, trait := pairTraitOf([]string{c.a, c.b})
+		if name != c.wantName || trait == "" {
+			t.Errorf("pairTraitOf(%s,%s)=%q(trait空=%v),期望规范名 %s 且有断语",
+				c.a, c.b, name, trait == "", c.wantName)
+		}
+	}
+	// 非组合(单星/三星/未知)须返回空。
+	if n, _ := pairTraitOf([]string{"紫微"}); n != "" {
+		t.Errorf("单主星不应有组合断语,得 %s", n)
+	}
+	if n, _ := pairTraitOf([]string{"紫微", "天府", "天相"}); n != "" {
+		t.Errorf("三主星不应有双星组合断语,得 %s", n)
+	}
+	// 24 组组合断语键须全部可查且规范有序、无空文。
+	for key, trait := range starPairTrait {
+		if trait == "" {
+			t.Errorf("组合 %s 断语为空", key)
+		}
+	}
+	if len(starPairTrait) != 24 {
+		t.Errorf("双主星组合应为 24 组,得 %d", len(starPairTrait))
+	}
+}
+
 // TestReadingChartGrounded 断语须引用本盘实配星曜(非通用套话)。
 func TestReadingChartGrounded(t *testing.T) {
 	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2024})
