@@ -90,7 +90,7 @@ func buildReading(chart *ziwei.Chart, patterns []ziwei.Pattern) *Reading {
 		if p == nil {
 			continue
 		}
-		rd.Sections = append(rd.Sections, sectionForPalace(pname, p))
+		rd.Sections = append(rd.Sections, sectionForPalace(chart, pname, p))
 	}
 	if s := sectionForDaXian(chart); s != nil {
 		rd.Sections = append(rd.Sections, *s)
@@ -132,7 +132,26 @@ func scanPalace(p *ziwei.Palace) (bright, dim map[string]bool, sihua map[string]
 	return
 }
 
-func sectionForPalace(pname string, p *ziwei.Palace) ReadingSection {
+// triadMajors 三方四正(对宫 +6、三合 +4/+8)三宫的主星名(去重),供会照合参。
+func triadMajors(chart *ziwei.Chart, branch int) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, off := range []int{4, 6, 8} {
+		tp := chart.PalaceByBranch(branch + off)
+		if tp == nil {
+			continue
+		}
+		for _, n := range tp.MajorStarNames() {
+			if !seen[n] {
+				seen[n] = true
+				out = append(out, n)
+			}
+		}
+	}
+	return out
+}
+
+func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) ReadingSection {
 	lens := palaceLens[pname]
 	majors, borrowed := palaceMajors(p)
 	bright, dim, sihua, sha, lucky := scanPalace(p)
@@ -189,6 +208,10 @@ func sectionForPalace(pname string, p *ziwei.Palace) ReadingSection {
 	}
 	if len(lucky) > 0 {
 		b.WriteString(fmt.Sprintf("得吉星%s相扶,添助力、逢难有救。", strings.Join(lucky, "、")))
+	}
+	// 三方四正合参(紫微铁律:本宫须连对宫、三合两宫同看)
+	if triad := triadMajors(chart, p.Branch); len(triad) > 0 {
+		b.WriteString(fmt.Sprintf("三方四正会照 %s,%s一域非独看本宫,须合此数曜之势通断。", strings.Join(triad, "、"), pname))
 	}
 	b.WriteString(levelHint(pname, score))
 
@@ -280,6 +303,9 @@ func buildOverview(chart *ziwei.Chart, patterns []ziwei.Pattern) string {
 		b.WriteString(who + "论命。")
 	}
 	b.WriteString(fmt.Sprintf("命属%s,身宫在%s宫。", chart.WuxingJuName, ziwei.Branches[chart.ShenGongBranch]))
+	if triad := triadMajors(chart, ming.Branch); len(triad) > 0 {
+		b.WriteString(fmt.Sprintf("命宫三方四正会 %s,当合参定高低。", strings.Join(triad, "、")))
+	}
 	if len(sha) > 0 {
 		b.WriteString(fmt.Sprintf("命逢%s,性格带冲劲亦需修养;", strings.Join(sha, "")))
 	}
