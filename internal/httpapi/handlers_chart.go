@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/dawang20250107/ziweidoushu/internal/ai"
 	"github.com/dawang20250107/ziweidoushu/internal/ziwei"
 )
 
@@ -29,6 +30,7 @@ type chartRequest struct {
 type chartResponse struct {
 	Chart    *ziwei.Chart    `json:"chart"`
 	Patterns []ziwei.Pattern `json:"patterns,omitempty"`
+	Reading  *ai.Reading     `json:"reading,omitempty"` // 结构化多维断语(确定性,随盘生成)
 }
 
 // computeChart 排盘 + 格局(带 LRU 缓存)。
@@ -61,6 +63,9 @@ func (s *Server) computeChart(req chartRequest) (*chartResponse, error) {
 	resp := &chartResponse{Chart: chart}
 	if withPatterns {
 		resp.Patterns = ziwei.DetectPatterns(chart)
+	}
+	if s.interp != nil { // 结构化多维断语随盘生成(不走 LLM,始终可用)
+		resp.Reading = s.interp.BuildReading(chart, resp.Patterns)
 	}
 	s.cache.Set(key, resp)
 	return resp, nil

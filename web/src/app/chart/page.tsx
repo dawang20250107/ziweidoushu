@@ -10,6 +10,7 @@ import { ChartBoard } from "@/components/chart/ChartBoard";
 import { DetailPanel } from "@/components/chart/DetailPanel";
 import { TimelineBar, type TimelineSelection } from "@/components/chart/TimelineBar";
 import { SiZhuPanel } from "@/components/chart/SiZhuPanel";
+import { ReadingPanel } from "@/components/chart/ReadingPanel";
 import { LuopanCast } from "@/components/chart/LuopanCast";
 import { SaveProfileButton } from "@/components/profiles/SaveProfileButton";
 
@@ -186,6 +187,9 @@ export default function ChartPage() {
             </div>
             <DetailPanel chart={data.chart} patterns={data.patterns ?? []} selectedBranch={selectedBranch} />
           </div>
+
+          {/* 多维断语:逐宫断语骨架(随盘而异,确定性) */}
+          {data.reading && <ReadingPanel reading={data.reading} />}
 
           {/* 四柱视角:八字附加层(可折叠) */}
           {data.chart.siZhu && <SiZhuPanel siZhu={data.chart.siZhu} />}

@@ -171,9 +171,22 @@ export interface Pattern {
   source?: string;
 }
 
+export interface ReadingSection {
+  key: string;
+  title: string; // 事业·官禄
+  palace: string;
+  stars: string[]; // 带庙旺/四化标记
+  level: "good" | "caution" | "neutral";
+  text: string;
+}
+export interface Reading {
+  overview: string;
+  sections: ReadingSection[];
+}
 export interface ChartResponse {
   chart: Chart;
   patterns?: Pattern[];
+  reading?: Reading; // 结构化多维断语(确定性,随盘生成)
 }
 
 // ── 运限 ──────────────────────────────────────────────

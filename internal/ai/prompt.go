@@ -33,6 +33,17 @@ func BuildInterpretPrompt(
 	sb.WriteString("## 命盘数据\n\n")
 	sb.WriteString(ChartSummary(chart))
 
+	// 结构化断语骨架:逐宫「主星×庙旺×四化×煞吉」的确定性判定,供 LLM 贴盘发挥,
+	// 避免脱离本盘写通用套话(这是不同命盘断语雷同的根因)。
+	if rd := buildReading(chart, patterns); rd != nil {
+		sb.WriteString("\n## 逐宫判定骨架(须据此贴盘,不得写通用套话)\n\n")
+		sb.WriteString("命格总论:" + rd.Overview + "\n")
+		for _, s := range rd.Sections {
+			sb.WriteString(fmt.Sprintf("- 【%s·%s】%s星曜[%s]:%s\n",
+				s.Title, s.Palace, levelWord(s.Level), strings.Join(s.Stars, " "), s.Text))
+		}
+	}
+
 	if len(patterns) > 0 {
 		sb.WriteString("\n## 已识别格局\n\n")
 		for _, p := range patterns {

@@ -251,6 +251,13 @@ func TestInterpretFallbackJSON(t *testing.T) {
 			Text     string `json:"text"`
 			Provider string `json:"provider"`
 			Degraded bool   `json:"degraded"`
+			Reading  struct {
+				Overview string `json:"overview"`
+				Sections []struct {
+					Key  string `json:"key"`
+					Text string `json:"text"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
@@ -259,8 +266,12 @@ func TestInterpretFallbackJSON(t *testing.T) {
 	if !out.Data.Degraded || out.Data.Provider != "fallback/rule-based" {
 		t.Fatalf("无 Key 时应降级: %+v", out.Data)
 	}
-	if !strings.Contains(out.Data.Text, "命盘解读") {
+	if !strings.Contains(out.Data.Text, "命格总论") {
 		t.Fatalf("降级文本异常: %s", truncate([]byte(out.Data.Text)))
+	}
+	// 结构化多维断语须随盘生成(≥12 维度)。
+	if len(out.Data.Reading.Sections) < 12 || out.Data.Reading.Overview == "" {
+		t.Fatalf("多维断语骨架异常:维度数=%d", len(out.Data.Reading.Sections))
 	}
 }
 
