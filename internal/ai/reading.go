@@ -56,7 +56,7 @@ var palaceLens = map[string][2]string{
 	"财帛": {"财帛·财运", "求财方式与财富厚薄"},
 	"疾厄": {"健康·体质", "身体弱点与情绪健康"},
 	"迁移": {"迁移·外出", "在外际遇与远行人脉"},
-	"交友": {"交友·部属", "朋友部属的助益或拖累"},
+	"仆役": {"交友·部属", "朋友部属的助益或拖累"},
 	"官禄": {"事业·官禄", "事业格局与成就取向"},
 	"田宅": {"田宅·家运", "不动产、家宅与库藏"},
 	"福德": {"福德·精神", "兴趣、心性与福分享受"},
@@ -64,7 +64,7 @@ var palaceLens = map[string][2]string{
 }
 
 // 维度呈现顺序(重要在前)。
-var readingOrder = []string{"命宫", "财帛", "官禄", "夫妻", "迁移", "福德", "疾厄", "田宅", "子女", "兄弟", "交友", "父母"}
+var readingOrder = []string{"命宫", "财帛", "官禄", "夫妻", "迁移", "福德", "疾厄", "田宅", "子女", "兄弟", "仆役", "父母"}
 
 var sihuaNote = map[ziwei.SiHua]string{
 	ziwei.HuaLu:   "化禄,进财顺遂、机遇增益",
@@ -146,8 +146,11 @@ func buildReading(chart *ziwei.Chart, patterns []ziwei.Pattern) *Reading {
 	if chart == nil {
 		return nil
 	}
-	rd := &Reading{Sections: make([]ReadingSection, 0, len(readingOrder)+1)}
+	rd := &Reading{Sections: make([]ReadingSection, 0, len(readingOrder)+2)}
 	rd.Overview = buildOverview(chart, patterns)
+	if s := sectionForSihua(chart); s != nil { // 四化落宫置前:最贴盘的差异层
+		rd.Sections = append(rd.Sections, *s)
+	}
 	for _, pname := range readingOrder {
 		p := chart.PalaceByName(pname)
 		if p == nil {
@@ -253,7 +256,7 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 
 	var b strings.Builder
 	if len(majors) == 0 {
-		b.WriteString(fmt.Sprintf("%s宫无正曜,清静之宫,力量借他宫而定。", pname))
+		b.WriteString(fmt.Sprintf("%s无正曜,清静之宫,力量借他宫而定。", palaceLabel(pname)))
 	} else {
 		lead := "本宫"
 		if borrowed {
@@ -288,6 +291,96 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 	return ReadingSection{
 		Key: palaceKey(pname), Title: lens[0], Palace: pname,
 		Stars: starTags, Level: levelOf(score), Text: b.String(),
+	}
+}
+
+// sihuaLanding 生年四化落宫:某化 → 承化之星与其坐落之宫。
+type sihuaLanding struct {
+	Hua    ziwei.SiHua
+	Star   string
+	Palace string
+	Branch int
+}
+
+// sihuaLandings 扫全盘,取生年四化各自落于何宫(禄权科忌顺序)。
+func sihuaLandings(chart *ziwei.Chart) []sihuaLanding {
+	byHua := map[ziwei.SiHua]sihuaLanding{}
+	for pi := range chart.Palaces {
+		p := &chart.Palaces[pi]
+		for si := range p.Stars {
+			if s := &p.Stars[si]; s.SiHua != "" {
+				byHua[s.SiHua] = sihuaLanding{Hua: s.SiHua, Star: s.Name, Palace: p.Name, Branch: p.Branch}
+			}
+		}
+	}
+	var out []sihuaLanding
+	for _, h := range []ziwei.SiHua{ziwei.HuaLu, ziwei.HuaQuan, ziwei.HuaKe, ziwei.HuaJi} {
+		if l, ok := byHua[h]; ok {
+			out = append(out, l)
+		}
+	}
+	return out
+}
+
+// sihuaDomainEffect 四化落宫对该宫领域的定性(福泽 vs 罣碍)。
+var sihuaDomainEffect = map[ziwei.SiHua]string{
+	ziwei.HuaLu:   "为福泽进财所在,该域机遇顺遂、易得实惠",
+	ziwei.HuaQuan: "为掌权任事所在,该域能力凸显、宜主导进取",
+	ziwei.HuaKe:   "为名声贵人所在,该域平顺有助、逢难有救",
+	ziwei.HuaJi:   "为此生功课罣碍所在,该域易生执着牵绊、须多费心化解",
+}
+
+// sectionForSihua 生年四化落宫串联:倪师体系四化固定不动,看其坐落何宫,
+// 即知一生福泽(禄权科)与罣碍(忌)分布——这是最贴盘、最具个人差异的一层。
+func sectionForSihua(chart *ziwei.Chart) *ReadingSection {
+	ls := sihuaLandings(chart)
+	if len(ls) == 0 {
+		return nil
+	}
+	var b strings.Builder
+	var tags []string
+	jiBranch, luBranch := -1, -1
+	b.WriteString("生年四化固定不动,其坐落之宫定一生福泽与罣碍:")
+	for _, l := range ls {
+		domain := ""
+		if lens := palaceLens[l.Palace]; lens[1] != "" {
+			domain = "(" + lens[1] + ")"
+		}
+		b.WriteString(fmt.Sprintf("%s化%s入【%s】%s,%s;", l.Star, string(l.Hua), palaceLabel(l.Palace), domain, sihuaDomainEffect[l.Hua]))
+		tags = append(tags, l.Star+"化"+string(l.Hua)+"·"+l.Palace)
+		switch l.Hua {
+		case ziwei.HuaJi:
+			jiBranch = l.Branch
+		case ziwei.HuaLu:
+			luBranch = l.Branch
+		}
+	}
+	// 化忌冲对宫:忌宫对面之域连带受牵。
+	if jiBranch >= 0 {
+		if opp := chart.PalaceByBranch(jiBranch + 6); opp != nil {
+			b.WriteString(fmt.Sprintf("化忌并冲对宫【%s】,该域亦连带牵动、宜防其失;", palaceLabel(opp.Name)))
+		}
+	}
+	// 禄忌交战:禄忌同宫或对宫,主福祸相倚、成败起伏。
+	if jiBranch >= 0 && luBranch >= 0 {
+		if jiBranch == luBranch {
+			b.WriteString("禄忌同宫,福祸相倚、得失同门,成败皆系于此域;")
+		} else if (jiBranch+6)%12 == luBranch {
+			b.WriteString("禄忌对拱交战,一进一退、起伏相随,此两域宜通盘权衡;")
+		}
+	}
+	level := "neutral"
+	if jiBranch >= 0 {
+		if jp := chart.PalaceByBranch(jiBranch); jp != nil {
+			switch jp.Name {
+			case "命宫", "疾厄", "夫妻", "财帛":
+				level = "caution" // 忌落切身之宫,功课较重
+			}
+		}
+	}
+	return &ReadingSection{
+		Key: "sihua", Title: "生年四化·福泽罣碍", Palace: "", Stars: tags,
+		Level: level, Text: b.String(),
 	}
 }
 
@@ -376,6 +469,13 @@ func buildOverview(chart *ziwei.Chart, patterns []ziwei.Pattern) string {
 	if triad := triadMajors(chart, ming.Branch); len(triad) > 0 {
 		b.WriteString(fmt.Sprintf("命宫三方四正会 %s,当合参定高低。", strings.Join(triad, "、")))
 	}
+	// 生年化忌坐宫:一生功课所在,最能点出命主的牵绊主题。
+	for _, l := range sihuaLandings(chart) {
+		if l.Hua == ziwei.HuaJi {
+			b.WriteString(fmt.Sprintf("生年%s化忌坐【%s】,此生功课多在%s一域,宜早修此心;", l.Star, palaceLabel(l.Palace), l.Palace))
+			break
+		}
+	}
 	if len(sha) > 0 {
 		b.WriteString(fmt.Sprintf("命逢%s,性格带冲劲亦需修养;", strings.Join(sha, "")))
 	}
@@ -424,8 +524,16 @@ func levelHint(pname string, score int) string {
 
 var palaceKeyMap = map[string]string{
 	"命宫": "ming", "兄弟": "xiongdi", "夫妻": "fuqi", "子女": "zinv",
-	"财帛": "caibo", "疾厄": "jie", "迁移": "qianyi", "交友": "jiaoyou",
+	"财帛": "caibo", "疾厄": "jie", "迁移": "qianyi", "仆役": "jiaoyou",
 	"官禄": "guanlu", "田宅": "tianzhai", "福德": "fude", "父母": "fumu",
+}
+
+// palaceLabel 宫名规范为「…宫」显示;命宫本身已含「宫」则不叠加。
+func palaceLabel(name string) string {
+	if strings.HasSuffix(name, "宫") {
+		return name
+	}
+	return name + "宫"
 }
 
 func palaceKey(pname string) string {

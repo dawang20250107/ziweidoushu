@@ -25,6 +25,17 @@ func TestReadingDifferentiation(t *testing.T) {
 	if len(ra.Sections) < 12 {
 		t.Fatalf("维度数应≥12,得 %d", len(ra.Sections))
 	}
+	// 十二宫每一维都须落地(防「交友/仆役」宫名与引擎不一致而被静默跳过)。
+	wantKeys := []string{"ming", "caibo", "guanlu", "fuqi", "qianyi", "fude", "jie", "tianzhai", "zinv", "xiongdi", "jiaoyou", "fumu"}
+	got := map[string]bool{}
+	for _, s := range ra.Sections {
+		got[s.Key] = true
+	}
+	for _, k := range wantKeys {
+		if !got[k] {
+			t.Errorf("缺失宫位维度 %s(检查宫名是否与引擎口径一致)", k)
+		}
+	}
 	// 总论必须不同。
 	if ra.Overview == rb.Overview {
 		t.Errorf("两盘命格总论不应雷同")
@@ -83,6 +94,49 @@ func TestPairTraitOf(t *testing.T) {
 	}
 	if len(starPairTrait) != 24 {
 		t.Errorf("双主星组合应为 24 组,得 %d", len(starPairTrait))
+	}
+}
+
+// TestSihuaLanding 生年四化落宫串联:四化须各自定位到宫,section 与总论贴盘。
+func TestSihuaLanding(t *testing.T) {
+	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1988, Month: 3, Day: 8, Hour: 4, Gender: ziwei.Female}, ziwei.Options{ReferenceYear: 2026})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ls := sihuaLandings(c)
+	if len(ls) == 0 {
+		t.Fatal("应至少定位到部分生年四化落宫")
+	}
+	// 每个落宫记录须自洽:承化之星确实坐于该宫且带对应四化。
+	for _, l := range ls {
+		p := c.PalaceByName(l.Palace)
+		if p == nil {
+			t.Fatalf("四化落宫 %s 不存在", l.Palace)
+		}
+		st := p.FindStar(l.Star)
+		if st == nil || st.SiHua != l.Hua {
+			t.Errorf("%s化%s应确在【%s宫】且带该化", l.Star, l.Hua, l.Palace)
+		}
+	}
+	rd := buildReading(c, ziwei.DetectPatterns(c))
+	var sihuaText string
+	for _, s := range rd.Sections {
+		if s.Key == "sihua" {
+			sihuaText = s.Text
+		}
+	}
+	if !strings.Contains(sihuaText, "化忌入") && !strings.Contains(sihuaText, "化禄入") {
+		t.Errorf("四化维度断语应含落宫串联,实际:%s", sihuaText)
+	}
+	// 总论应点出化忌坐宫(若盘中有化忌)。
+	hasJi := false
+	for _, l := range ls {
+		if l.Hua == ziwei.HuaJi {
+			hasJi = true
+		}
+	}
+	if hasJi && !strings.Contains(rd.Overview, "化忌坐") {
+		t.Errorf("总论应点出生年化忌坐宫,实际:%s", rd.Overview)
 	}
 }
 
