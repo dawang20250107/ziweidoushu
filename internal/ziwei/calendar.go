@@ -2,6 +2,8 @@ package ziwei
 
 import (
 	"fmt"
+	"math"
+	"time"
 
 	"github.com/6tail/lunar-go/calendar"
 )
@@ -70,32 +72,53 @@ func abs(n int) int {
 	return n
 }
 
-// AdjustHourByLongitude 真太阳时校正:按出生地东经度数与东经 120°(北京时间基准)的差值
-// 折算时差(每 1° 差 4 分钟),返回校正后的时辰索引(0-11)。
-// 返回值另含校正说明,方便 API 层回显。
-func AdjustHourByLongitude(year, month, day, hourIndex int, longitude float64) (int, string) {
+// equationOfTimeMinutes 均时差(真太阳时 − 平太阳时,单位分钟)。
+// 采用 NOAA 通用近似(公开天文算法,精度约 ±0.5 分钟):按年内日序求太阳
+// 视位置相位角 γ,展开三角级数。全年幅度约 −14~+16 分钟,二月初、十一月初
+// 最大,足以在时辰边界改变时辰归属,故真太阳时必须叠加此项(不能只做经度差)。
+func equationOfTimeMinutes(year, month, day int) float64 {
+	n := time.Date(year, time.Month(month), day, 12, 0, 0, 0, time.UTC).YearDay()
+	g := 2 * math.Pi / 365.0 * float64(n-1)
+	return 229.18 * (0.000075 +
+		0.001868*math.Cos(g) - 0.032077*math.Sin(g) -
+		0.014615*math.Cos(2*g) - 0.040849*math.Sin(2*g))
+}
+
+// AdjustHourByLongitude 真太阳时校正:平太阳时(北京时,东经 120° 基准)→ 真太阳时。
+// 两项叠加:①经度差(每 1°=4 分钟,以 120°E 为准);②均时差 EoT。
+// 校正后若跨越子/午日界,返回 dayDelta(±1)以便调用方同步改公历日期
+// (农历日/日柱/据日安星均随之改动);返回校正后时辰索引(0-11)与说明。
+func AdjustHourByLongitude(year, month, day, hourIndex int, longitude float64) (adjIndex, dayDelta int, note string) {
 	if longitude == 0 {
-		return hourIndex, ""
+		return hourIndex, 0, ""
 	}
-	// 时辰中点钟点:子时取 0 点,其余取区间中点(奇数点)。
+	// 时辰中点钟点:子=0、丑=2…亥=22、晚子=24。
 	midHour := hourIndex * 2
-	offsetMinutes := (longitude - 120.0) * 4
-	totalMinutes := midHour*60 + int(offsetMinutes)
-	// 归一化到一天内(跨日仅影响时辰归属,排盘按时辰索引进行)。
-	totalMinutes = ((totalMinutes % 1440) + 1440) % 1440
-	adjHour := totalMinutes / 60
-	var adjIndex int
+	lonMinutes := (longitude - 120.0) * 4
+	eotMinutes := equationOfTimeMinutes(year, month, day)
+	totalMinutes := midHour*60 + int(math.Round(lonMinutes+eotMinutes))
+
+	// 分离日界进退与日内分钟(floor 除法,兼顾负值)。
+	dayDelta = int(math.Floor(float64(totalMinutes) / 1440.0))
+	minuteOfDay := totalMinutes - dayDelta*1440
+	adjHour := minuteOfDay / 60
 	if adjHour == 23 || adjHour == 0 {
 		adjIndex = 0
 	} else {
 		adjIndex = (adjHour + 1) / 2
 	}
-	note := fmt.Sprintf("按东经 %.1f° 真太阳时校正 %.0f 分钟:%s → %s",
-		longitude, offsetMinutes, ChineseTimeNames[min(hourIndex, 12)], ChineseTimeNames[min(adjIndex, 12)])
-	if adjIndex == hourIndex {
-		note = ""
+	if adjIndex == hourIndex && dayDelta == 0 {
+		return adjIndex, 0, ""
 	}
-	return adjIndex, note
+	dayNote := ""
+	if dayDelta > 0 {
+		dayNote = "(跨入次日)"
+	} else if dayDelta < 0 {
+		dayNote = "(退回前日)"
+	}
+	note = fmt.Sprintf("按东经 %.1f° 真太阳时校正(经度差 %.0f 分 + 均时差 %.0f 分):%s → %s%s",
+		longitude, lonMinutes, eotMinutes, ChineseTimeNames[min(hourIndex, 12)], ChineseTimeNames[min(adjIndex, 12)], dayNote)
+	return adjIndex, dayDelta, note
 }
 
 func min(a, b int) int {

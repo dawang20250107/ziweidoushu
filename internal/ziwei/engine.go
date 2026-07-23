@@ -26,13 +26,19 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 	}
 
 	timeIndex := b.Hour
+	sYear, sMonth, sDay := b.Year, b.Month, b.Day
 	var solarTimeNote string
 	if opt.TrueSolarTime && b.Longitude != 0 {
-		timeIndex, solarTimeNote = AdjustHourByLongitude(b.Year, b.Month, b.Day, b.Hour, b.Longitude)
+		var dayDelta int
+		timeIndex, dayDelta, solarTimeNote = AdjustHourByLongitude(b.Year, b.Month, b.Day, b.Hour, b.Longitude)
+		if dayDelta != 0 { // 真太阳时跨子/午日界:公历日期同步进退,农历日/日柱/据日安星随之改动
+			t := time.Date(b.Year, time.Month(b.Month), b.Day+dayDelta, 12, 0, 0, 0, time.UTC)
+			sYear, sMonth, sDay = t.Year(), int(t.Month()), t.Day()
+		}
 		_ = solarTimeNote
 	}
 
-	snap := takeCalendar(b.Year, b.Month, b.Day, timeIndex)
+	snap := takeCalendar(sYear, sMonth, sDay, timeIndex)
 
 	// ── 月支索引(寅=0)与命身宫 ──────────────────────────────
 	// 闰月过半折算下月;晚子时(timeIndex=12)不折算。
