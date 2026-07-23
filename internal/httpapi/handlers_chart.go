@@ -158,7 +158,11 @@ func (s *Server) handleHoroscope(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_target", err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"horoscope": h})
+	out := map[string]any{"horoscope": h}
+	if s.interp != nil { // 运限逐层断语(确定性,随运限生成)
+		out["reading"] = s.interp.BuildHoroscopeReading(resp.Chart, h)
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 func (s *Server) handleLiuNianSiHua(w http.ResponseWriter, r *http.Request) {

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { fetchChart, fetchHoroscope, ApiError } from "@/lib/api";
-import type { BirthInfo, ChartResponse, Horoscope } from "@/lib/types";
+import type { BirthInfo, ChartResponse, Horoscope, HoroscopeReading } from "@/lib/types";
 import { DENSITY_LABELS, type Density } from "@/lib/chart-helpers";
 import { BirthForm } from "@/components/chart/BirthForm";
 import { ChartBoard } from "@/components/chart/ChartBoard";
@@ -11,6 +11,7 @@ import { DetailPanel } from "@/components/chart/DetailPanel";
 import { TimelineBar, type TimelineSelection } from "@/components/chart/TimelineBar";
 import { SiZhuPanel } from "@/components/chart/SiZhuPanel";
 import { ReadingPanel } from "@/components/chart/ReadingPanel";
+import { HoroscopeReadingPanel } from "@/components/chart/HoroscopeReadingPanel";
 import { LuopanCast } from "@/components/chart/LuopanCast";
 import { SaveProfileButton } from "@/components/profiles/SaveProfileButton";
 
@@ -19,6 +20,7 @@ export default function ChartPage() {
   const [birth, setBirth] = useState<BirthInfo | null>(null);
   const [data, setData] = useState<ChartResponse | null>(null);
   const [horoscope, setHoroscope] = useState<Horoscope | null>(null);
+  const [horoReading, setHoroReading] = useState<HoroscopeReading | null>(null);
   const [timeline, setTimeline] = useState<TimelineSelection>({ year: null });
   const [density, setDensity] = useState<Density>("pro");
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
@@ -32,6 +34,7 @@ export default function ChartPage() {
     setLoading(true);
     setError("");
     setHoroscope(null);
+    setHoroReading(null);
     setTimeline({ year: null });
     setSelectedBranch(null);
     try {
@@ -79,6 +82,7 @@ export default function ChartPage() {
   useEffect(() => {
     if (!birth || timeline.year == null) {
       setHoroscope(null);
+      setHoroReading(null);
       return;
     }
     let cancelled = false;
@@ -89,7 +93,10 @@ export default function ChartPage() {
       hour: timeline.hour ?? 6,
     })
       .then((resp) => {
-        if (!cancelled) setHoroscope(resp.horoscope);
+        if (!cancelled) {
+          setHoroscope(resp.horoscope);
+          setHoroReading(resp.reading ?? null);
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof ApiError ? e.message : "运限计算失败");
@@ -187,6 +194,9 @@ export default function ChartPage() {
             </div>
             <DetailPanel chart={data.chart} patterns={data.patterns ?? []} selectedBranch={selectedBranch} />
           </div>
+
+          {/* 运限断语:随时间轴选择的目标日期逐层生成(大限→流年→流月→流日→流时) */}
+          {horoReading && <HoroscopeReadingPanel reading={horoReading} />}
 
           {/* 多维断语:逐宫断语骨架(随盘而异,确定性) */}
           {data.reading && <ReadingPanel reading={data.reading} />}

@@ -161,6 +161,11 @@ func TestHoroscopeEndpoint(t *testing.T) {
 					} `json:"stars"`
 				} `json:"yearly"`
 			} `json:"horoscope"`
+			Reading struct {
+				Sections []struct {
+					Key string `json:"key"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
@@ -179,6 +184,16 @@ func TestHoroscopeEndpoint(t *testing.T) {
 	}
 	if count != 11 { // 流曜十颗 + 年解
 		t.Errorf("流年流曜数: got %d want 11", count)
+	}
+	// 运限逐层断语须随响应一并返回(大限/流年/流月/流日/流时 五层)。
+	rkeys := map[string]bool{}
+	for _, sct := range out.Data.Reading.Sections {
+		rkeys[sct.Key] = true
+	}
+	for _, want := range []string{"decadal", "yearly", "monthly", "daily", "hourly"} {
+		if !rkeys[want] {
+			t.Errorf("运限响应缺断语层 %s(全键:%v)", want, rkeys)
+		}
 	}
 
 	// 越界目标

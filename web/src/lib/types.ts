@@ -236,6 +236,12 @@ export interface Horoscope {
   jiangqian12: string[];
 }
 
+// 运限逐层断语(大限→流年→流月→流日→流时),复用 ReadingSection。
+export interface HoroscopeReading {
+  target: string;
+  sections: ReadingSection[];
+}
+
 // ── 合盘与名人 ────────────────────────────────────────
 
 export interface FamousPerson {

@@ -5,7 +5,7 @@
 import type {
   BirthInfo, ChartResponse, Horoscope, BookMeta, Book, Chapter,
   SearchHit, InterpretResult, FamousPerson, HemingResponse, Chart, Pattern,
-  WorldCity, ProvinceCities,
+  WorldCity, ProvinceCities, HoroscopeReading,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
@@ -67,8 +67,8 @@ export function fetchChinaCities(): Promise<{ provinces: ProvinceCities[] }> {
 export function fetchHoroscope(
   birth: BirthInfo,
   target: { year: number; month: number; day: number; hour: number },
-): Promise<{ horoscope: Horoscope }> {
-  return post<{ horoscope: Horoscope }>("/api/v1/horoscope", { ...birth, target });
+): Promise<{ horoscope: Horoscope; reading?: HoroscopeReading }> {
+  return post<{ horoscope: Horoscope; reading?: HoroscopeReading }>("/api/v1/horoscope", { ...birth, target });
 }
 
 // ── 合盘与名人 ────────────────────────────────────────
