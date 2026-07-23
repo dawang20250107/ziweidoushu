@@ -5,6 +5,7 @@
 import type {
   BirthInfo, ChartResponse, Horoscope, BookMeta, Book, Chapter,
   SearchHit, InterpretResult, FamousPerson, HemingResponse, Chart, Pattern,
+  WorldCity, ProvinceCities,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
@@ -53,6 +54,14 @@ function post<T>(path: string, payload: unknown): Promise<T> {
 
 export function fetchChart(birth: BirthInfo): Promise<ChartResponse> {
   return post<ChartResponse>("/api/v1/chart", birth);
+}
+
+export function fetchWorldCities(): Promise<{ cities: WorldCity[] }> {
+  return get("/api/v1/world-cities");
+}
+
+export function fetchChinaCities(): Promise<{ provinces: ProvinceCities[] }> {
+  return get("/api/v1/cities");
 }
 
 export function fetchHoroscope(

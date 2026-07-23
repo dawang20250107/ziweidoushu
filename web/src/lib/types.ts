@@ -66,6 +66,26 @@ export interface BirthInfo {
   gender: Gender;
   name?: string;
   longitude?: number;
+  trueSolarTime?: boolean; // 是否按真太阳时校正时辰
+  province?: string; // 国内出生地(查经度)
+  city?: string;
+  worldCity?: string; // 国际出生地(查经度 + 时区标准经线)
+  utcOffset?: number; // 直传时区偏移(小时);worldCity 已含则无需
+}
+
+// WorldCity 世界主要城市:经度 + UTC 偏移,用于国际真太阳时。
+export interface WorldCity {
+  country: string;
+  name: string;
+  longitude: number;
+  utcOffset: number;
+  dst?: boolean; // 该国实行夏令时(数据为标准时)
+}
+
+// ProvinceCities 国内省份及其城市经度。
+export interface ProvinceCities {
+  name: string;
+  cities: { name: string; longitude: number }[];
 }
 
 // ── 四柱视角(八字附加层)────────────────────────────
