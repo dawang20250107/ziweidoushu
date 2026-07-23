@@ -98,6 +98,12 @@ func TestChartEndpoint(t *testing.T) {
 			Patterns []struct {
 				Name string `json:"name"`
 			} `json:"patterns"`
+			Reading struct {
+				Overview string `json:"overview"`
+				Sections []struct {
+					Key string `json:"key"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil || !out.OK {
@@ -108,6 +114,16 @@ func TestChartEndpoint(t *testing.T) {
 	}
 	if out.Data.Chart.WuxingJuName == "" {
 		t.Fatal("五行局缺失")
+	}
+	// 多维断语须随盘序列化到 /api/v1/chart:含四化落宫、仆役维度与流年维度。
+	keys := map[string]bool{}
+	for _, s := range out.Data.Reading.Sections {
+		keys[s.Key] = true
+	}
+	for _, want := range []string{"sihua", "jiaoyou", "liunian", "ming"} {
+		if !keys[want] {
+			t.Errorf("排盘响应的断语缺失维度 %s(全键:%v)", want, keys)
+		}
 	}
 
 	// 非法输入
