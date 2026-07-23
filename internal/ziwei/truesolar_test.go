@@ -23,16 +23,37 @@ func TestEquationOfTime(t *testing.T) {
 // TestAdjustSolarTime 真太阳时校正:经度差 + 均时差,并处理跨日界。
 func TestAdjustSolarTime(t *testing.T) {
 	// 经度 0:不校正
-	if idx, dd, note := AdjustHourByLongitude(2024, 6, 1, 3, 0); idx != 3 || dd != 0 || note != "" {
+	if idx, dd, note := AdjustHourByLongitude(2024, 6, 1, 3, 0, 0); idx != 3 || dd != 0 || note != "" {
 		t.Errorf("经度0应原样返回,得 idx=%d dd=%d", idx, dd)
 	}
-	// 新疆(东经~87°)早子时:真太阳时约退回前一日亥时。
-	idx, dd, note := AdjustHourByLongitude(2024, 6, 1, 0, 87.0)
+	// 新疆(东经~87°)早子时,以北京时(东经 120°)为基准:真太阳时约退回前一日亥时。
+	idx, dd, note := AdjustHourByLongitude(2024, 6, 1, 0, 87.0, 0)
 	if idx != 11 || dd != -1 {
 		t.Errorf("新疆早子真太阳时应退前日亥时(idx=11,dd=-1),得 idx=%d dd=%d", idx, dd)
 	}
 	if note == "" {
 		t.Error("跨日校正应有说明文字")
+	}
+}
+
+// TestInternationalSolarTime 国际出生地必须按当地时区标准经线校正,而非北京时。
+// 纽约(西经 74.01°)行 EST(UTC−5,标准经线 −75°):当地民用时与真太阳时仅差
+// 数分钟(经度差约 +4 分 + 均时差),时辰基本不变;若误用北京时(东经 120°)为
+// 基准,经度差高达约 −776 分(≈ −13 小时),会把时辰整段错位。
+func TestInternationalSolarTime(t *testing.T) {
+	const nyLon = -74.01
+	const nyBase = -75.0 // UTC−5 × 15
+
+	// 正确基准:纽约午时(idx=7,中点 14:00)校正后仍应落午时,且不跨日。
+	idx, dd, _ := AdjustHourByLongitude(2024, 6, 1, 7, nyLon, nyBase)
+	if idx != 7 || dd != 0 {
+		t.Errorf("纽约午时以本地时区基准校正应仍为午时且不跨日,得 idx=%d dd=%d", idx, dd)
+	}
+
+	// 错误基准(误用北京时,baseMeridian=0→120):同一时刻会被推离十余小时。
+	wrongIdx, wrongDD, _ := AdjustHourByLongitude(2024, 6, 1, 7, nyLon, 0)
+	if wrongIdx == 7 && wrongDD == 0 {
+		t.Error("误用北京时基准本应把纽约时辰整段错位,却与正确结果相同——基准经线未生效")
 	}
 }
 

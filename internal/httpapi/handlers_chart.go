@@ -12,18 +12,20 @@ import (
 
 // chartRequest 排盘请求。
 type chartRequest struct {
-	Year          int     `json:"year"`
-	Month         int     `json:"month"`
-	Day           int     `json:"day"`
-	Hour          int     `json:"hour"` // 时辰索引 0=早子时 ... 11=亥时 12=晚子时
-	Gender        string  `json:"gender"`
-	Name          string  `json:"name,omitempty"`
-	Longitude     float64 `json:"longitude,omitempty"`
-	Province      string  `json:"province,omitempty"`
-	City          string  `json:"city,omitempty"`
-	TrueSolarTime bool    `json:"trueSolarTime,omitempty"`
-	ReferenceYear int     `json:"referenceYear,omitempty"`
-	WithPatterns  *bool   `json:"withPatterns,omitempty"` // 默认 true
+	Year          int      `json:"year"`
+	Month         int      `json:"month"`
+	Day           int      `json:"day"`
+	Hour          int      `json:"hour"` // 时辰索引 0=早子时 ... 11=亥时 12=晚子时
+	Gender        string   `json:"gender"`
+	Name          string   `json:"name,omitempty"`
+	Longitude     float64  `json:"longitude,omitempty"`
+	Province      string   `json:"province,omitempty"`
+	City          string   `json:"city,omitempty"`
+	WorldCity     string   `json:"worldCity,omitempty"` // 国际出生地(查经度+时区)
+	UTCOffset     *float64 `json:"utcOffset,omitempty"` // 直传时区偏移(小时);nil=未指定
+	TrueSolarTime bool     `json:"trueSolarTime,omitempty"`
+	ReferenceYear int      `json:"referenceYear,omitempty"`
+	WithPatterns  *bool    `json:"withPatterns,omitempty"` // 默认 true
 }
 
 // chartResponse 排盘响应。
@@ -40,13 +42,26 @@ func (s *Server) computeChart(req chartRequest) (*chartResponse, error) {
 		refYear = time.Now().Year()
 	}
 	longitude := req.Longitude
-	if req.TrueSolarTime && longitude == 0 && s.kb != nil {
-		longitude = s.kb.LongitudeOf(req.Province, req.City)
+	var baseMeridian float64 // 0 → 引擎默认东经 120°(北京时)
+	if req.TrueSolarTime {
+		if req.WorldCity != "" && s.kb != nil { // 国际出生地:经度 + 时区标准经线
+			if wc := s.kb.WorldCityOf(req.WorldCity); wc != nil {
+				if longitude == 0 {
+					longitude = wc.Longitude
+				}
+				baseMeridian = wc.UTCOffset * 15
+			}
+		} else if req.UTCOffset != nil {
+			baseMeridian = *req.UTCOffset * 15
+		}
+		if longitude == 0 && s.kb != nil { // 国内省市回退
+			longitude = s.kb.LongitudeOf(req.Province, req.City)
+		}
 	}
 	withPatterns := req.WithPatterns == nil || *req.WithPatterns
 
-	key := fmt.Sprintf("%d-%d-%d|%d|%s|%.2f|%v|%d|%v",
-		req.Year, req.Month, req.Day, req.Hour, req.Gender, longitude, req.TrueSolarTime, refYear, withPatterns)
+	key := fmt.Sprintf("%d-%d-%d|%d|%s|%.2f|%.1f|%v|%d|%v",
+		req.Year, req.Month, req.Day, req.Hour, req.Gender, longitude, baseMeridian, req.TrueSolarTime, refYear, withPatterns)
 	if cached, ok := s.cache.Get(key); ok {
 		s.metrics.chartCacheHit.Add(1)
 		return cached.(*chartResponse), nil
@@ -55,7 +70,8 @@ func (s *Server) computeChart(req chartRequest) (*chartResponse, error) {
 
 	chart, err := ziwei.Generate(ziwei.BirthInfo{
 		Year: req.Year, Month: req.Month, Day: req.Day, Hour: req.Hour,
-		Gender: ziwei.Gender(req.Gender), Name: req.Name, Longitude: longitude,
+		Gender: ziwei.Gender(req.Gender), Name: req.Name,
+		Longitude: longitude, BaseMeridian: baseMeridian,
 	}, ziwei.Options{ReferenceYear: refYear, TrueSolarTime: req.TrueSolarTime})
 	if err != nil {
 		return nil, err
@@ -82,6 +98,11 @@ func (s *Server) handleChart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// handleWorldCities 世界主要城市(经度 + 时区),供国际出生地选择真太阳时。
+func (s *Server) handleWorldCities(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"cities": s.kb.WorldCities})
 }
 
 func (s *Server) handleFamousList(w http.ResponseWriter, _ *http.Request) {

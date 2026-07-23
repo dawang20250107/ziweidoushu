@@ -24,6 +24,7 @@ type Base struct {
 	Topics       TopicMeta
 	Heming       HemingKnowledge
 	Provinces    []Province
+	WorldCities  []WorldCity
 	Famous       []FamousPerson
 }
 
@@ -76,6 +77,15 @@ type Province struct {
 type City struct {
 	Name      string  `json:"name"`
 	Longitude float64 `json:"longitude"`
+}
+
+// WorldCity 世界主要城市:经度 + 标准时区 UTC 偏移(小时),用于国际真太阳时。
+type WorldCity struct {
+	Country   string  `json:"country"`
+	Name      string  `json:"name"`
+	Longitude float64 `json:"longitude"`
+	UTCOffset float64 `json:"utcOffset"`
+	DST       bool    `json:"dst,omitempty"` // 该地实行夏令时,夏令时出生须另减 1 小时
 }
 
 // FamousPerson 名人命盘样例。
@@ -170,6 +180,18 @@ func Load(dataFS fs.FS) (*Base, error) {
 	}
 	b.Provinces = citiesView.Provinces
 
+	worldRaw, err := read("world_cities.json")
+	if err != nil {
+		return nil, err
+	}
+	var worldView struct {
+		Cities []WorldCity `json:"cities"`
+	}
+	if err := json.Unmarshal(worldRaw, &worldView); err != nil {
+		return nil, fmt.Errorf("解析世界城市数据失败: %w", err)
+	}
+	b.WorldCities = worldView.Cities
+
 	famousRaw, err := read("famous.json")
 	if err != nil {
 		return nil, err
@@ -198,4 +220,14 @@ func (b *Base) LongitudeOf(province, city string) float64 {
 		}
 	}
 	return 0
+}
+
+// WorldCityOf 按城市名查世界城市(经度 + UTC 偏移),未收录返回 nil。
+func (b *Base) WorldCityOf(name string) *WorldCity {
+	for i := range b.WorldCities {
+		if b.WorldCities[i].Name == name {
+			return &b.WorldCities[i]
+		}
+	}
+	return nil
 }

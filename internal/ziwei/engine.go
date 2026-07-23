@@ -30,7 +30,7 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 	var solarTimeNote string
 	if opt.TrueSolarTime && b.Longitude != 0 {
 		var dayDelta int
-		timeIndex, dayDelta, solarTimeNote = AdjustHourByLongitude(b.Year, b.Month, b.Day, b.Hour, b.Longitude)
+		timeIndex, dayDelta, solarTimeNote = AdjustHourByLongitude(b.Year, b.Month, b.Day, b.Hour, b.Longitude, b.BaseMeridian)
 		if dayDelta != 0 { // 真太阳时跨子/午日界:公历日期同步进退,农历日/日柱/据日安星随之改动
 			t := time.Date(b.Year, time.Month(b.Month), b.Day+dayDelta, 12, 0, 0, 0, time.UTC)
 			sYear, sMonth, sDay = t.Year(), int(t.Month()), t.Day()

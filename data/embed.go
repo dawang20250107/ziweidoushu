@@ -9,5 +9,5 @@ import "embed"
 
 // FS 打包后的只读数据文件系统。
 //
-//go:embed classics/*.json nihai/*.json knowledge/*.json cities.json famous.json
+//go:embed classics/*.json nihai/*.json knowledge/*.json cities.json world_cities.json famous.json
 var FS embed.FS

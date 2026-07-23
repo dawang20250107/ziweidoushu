@@ -84,17 +84,21 @@ func equationOfTimeMinutes(year, month, day int) float64 {
 		0.014615*math.Cos(2*g) - 0.040849*math.Sin(2*g))
 }
 
-// AdjustHourByLongitude 真太阳时校正:平太阳时(北京时,东经 120° 基准)→ 真太阳时。
-// 两项叠加:①经度差(每 1°=4 分钟,以 120°E 为准);②均时差 EoT。
+// AdjustHourByLongitude 真太阳时校正:当地民用时(标准经线 baseMeridian 基准)→ 真太阳时。
+// 两项叠加:①经度差(每 1°=4 分钟,相对该时区标准经线);②均时差 EoT。
+// baseMeridian 为出生地时区标准经线(= UTC 偏移 × 15°);传 0 默认东经 120°(北京时)。
 // 校正后若跨越子/午日界,返回 dayDelta(±1)以便调用方同步改公历日期
 // (农历日/日柱/据日安星均随之改动);返回校正后时辰索引(0-11)与说明。
-func AdjustHourByLongitude(year, month, day, hourIndex int, longitude float64) (adjIndex, dayDelta int, note string) {
+func AdjustHourByLongitude(year, month, day, hourIndex int, longitude, baseMeridian float64) (adjIndex, dayDelta int, note string) {
 	if longitude == 0 {
 		return hourIndex, 0, ""
 	}
+	if baseMeridian == 0 {
+		baseMeridian = 120.0
+	}
 	// 时辰中点钟点:子=0、丑=2…亥=22、晚子=24。
 	midHour := hourIndex * 2
-	lonMinutes := (longitude - 120.0) * 4
+	lonMinutes := (longitude - baseMeridian) * 4
 	eotMinutes := equationOfTimeMinutes(year, month, day)
 	totalMinutes := midHour*60 + int(math.Round(lonMinutes+eotMinutes))
 

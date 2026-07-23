@@ -21,8 +21,11 @@ type BirthInfo struct {
 	Hour   int    `json:"hour"` // 时辰地支索引 0=子 ... 11=亥
 	Gender Gender `json:"gender"`
 	Name   string `json:"name,omitempty"`
-	// Longitude 出生地东经度数;非零时按真太阳时校正时辰(以东经 120° 为基准)。
+	// Longitude 出生地经度(东经正、西经负);非零时按真太阳时校正时辰。
 	Longitude float64 `json:"longitude,omitempty"`
+	// BaseMeridian 出生地时区标准经线(= UTC 偏移 × 15°);0 默认东经 120°(北京时)。
+	// 国际出生地须传此值,否则真太阳时以北京时为基准将出错。
+	BaseMeridian float64 `json:"baseMeridian,omitempty"`
 }
 
 // LunarInfo 农历信息。
@@ -121,10 +124,10 @@ type Chart struct {
 	LunarDateText string      `json:"lunarDateText"`
 	FourPillars   FourPillars `json:"fourPillars"`
 	// SiZhu 四柱视角(八字附加层:五行/十神/藏干/纳音),由四柱推导。
-	SiZhu *SiZhuView `json:"siZhu,omitempty"`
-	TimeName      string      `json:"timeName"` // 如「午时」
-	Zodiac        string      `json:"zodiac"`   // 生肖
-	Sign          string      `json:"sign"`     // 星座
+	SiZhu    *SiZhuView `json:"siZhu,omitempty"`
+	TimeName string     `json:"timeName"` // 如「午时」
+	Zodiac   string     `json:"zodiac"`   // 生肖
+	Sign     string     `json:"sign"`     // 星座
 
 	MingGongBranch int    `json:"mingGongBranch"`
 	ShenGongBranch int    `json:"shenGongBranch"`
