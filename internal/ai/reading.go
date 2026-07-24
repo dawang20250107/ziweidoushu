@@ -587,6 +587,8 @@ func buildOverview(chart *ziwei.Chart, patterns []ziwei.Pattern) string {
 		if pn, pt := pairTraitOf(majors); pt != "" {
 			b.WriteString(fmt.Sprintf("命宫双主星【%s】——%s", pn, pt))
 		}
+		// 形神速写(形性赋为骨、精成相貌段为肉,义引原创)
+		b.WriteString(xingShenClause(majors))
 	} else {
 		b.WriteString(who + "论命。")
 	}
