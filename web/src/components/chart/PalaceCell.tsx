@@ -45,6 +45,8 @@ export interface PalaceCellProps {
   density: Density;
   selected: boolean;
   inSanFang: boolean;
+  /** 选宫聚焦:他宫被选且本宫不在其三方四正时降暗,让焦点结构浮出 */
+  dimmed?: boolean;
   /** 运限叠加:各激活层在此宫的流曜与运限宫名 */
   overlayStars?: Star[];
   overlayNames?: { scope: string; name: string }[];
@@ -53,7 +55,7 @@ export interface PalaceCellProps {
 }
 
 export function PalaceCell({
-  palace, density, selected, inSanFang, overlayStars, overlayNames, enterDelay = 0, onSelect,
+  palace, density, selected, inSanFang, dimmed = false, overlayStars, overlayNames, enterDelay = 0, onSelect,
 }: PalaceCellProps) {
   const { major, assist, adjective } = groupStars(palace.stars);
 
@@ -64,13 +66,15 @@ export function PalaceCell({
       aria-pressed={selected}
       aria-label={`${palace.name},${branchName(palace.branch)}宫`}
       className={[
-        "palace-enter relative flex min-h-[124px] flex-col rounded-[6px] p-2 pb-1.5 text-left transition-shadow",
-        "bg-bg-raised",
+        "palace-enter relative flex min-h-[124px] flex-col rounded-[6px] p-2 pb-1.5 text-left",
+        "bg-bg-raised transition-[box-shadow,opacity,filter] duration-300",
+        palace.isMingGong && !dimmed ? "ming-breathe" : "",
         selected
           ? "shadow-[0_0_0_2px_var(--gold),var(--glow-gold)]"
           : inSanFang
-            ? "shadow-[0_0_0_1px_var(--gold-dim)]"
-            : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--line-strong)]",
+            ? "shadow-[0_0_0_1px_var(--gold-dim),0_0_14px_rgba(217,179,108,0.07)]"
+            : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--gold-dim),0_0_16px_rgba(217,179,108,0.08)]",
+        dimmed ? "opacity-50 saturate-[0.8]" : "opacity-100",
       ].join(" ")}
       style={{
         animationDelay: `${enterDelay}ms`,
@@ -85,8 +89,8 @@ export function PalaceCell({
         </span>
       )}
 
-      {/* 主星行 */}
-      <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+      {/* 主星行(身宫徽标占右上角,留出避让位) */}
+      <div className={["flex flex-wrap gap-x-2.5 gap-y-0.5", palace.isShenGong ? "pr-6" : ""].join(" ")}>
         {major.map((s) => (
           <StarGlyph key={s.name} star={s} size="lg" />
         ))}

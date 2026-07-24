@@ -114,6 +114,7 @@ export function ChartBoard({
             density={density}
             selected={selectedBranch === palace.branch}
             inSanFang={sanFang != null && selectedBranch !== palace.branch && sanFang.has(palace.branch)}
+            dimmed={sanFang != null && !sanFang.has(palace.branch)}
             overlayStars={overlayStarsByBranch.get(palace.branch)}
             overlayNames={overlayNamesByBranch.get(palace.branch)}
             enterDelay={ENTER_ORDER_BY_BRANCH[palace.branch] * 36}
@@ -130,6 +131,16 @@ export function ChartBoard({
         <svg aria-hidden className="pointer-events-none absolute inset-0 z-10 h-full w-full">
           {lines.map((l) => (
             <g key={l.key}>
+              {/* 辉光底衬:宽而淡的金光,让连线像光束而非细线 */}
+              <line
+                x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                pathLength={1}
+                className="sanfang-line"
+                stroke="var(--gold)"
+                strokeWidth="5"
+                strokeLinecap="round"
+                opacity="0.14"
+              />
               <line
                 x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
                 pathLength={1}
@@ -138,10 +149,16 @@ export function ChartBoard({
                 strokeWidth="1.5"
                 opacity="0.85"
               />
+              <circle cx={l.x2} cy={l.y2} r="5.5" fill="var(--gold)" opacity="0.18" />
               <circle cx={l.x2} cy={l.y2} r="3" fill="var(--gold)" opacity="0.9" />
             </g>
           ))}
-          {lines[0] && <circle cx={lines[0].x1} cy={lines[0].y1} r="4" fill="var(--gold-bright)" />}
+          {lines[0] && (
+            <>
+              <circle cx={lines[0].x1} cy={lines[0].y1} r="7" fill="var(--gold)" opacity="0.2" />
+              <circle cx={lines[0].x1} cy={lines[0].y1} r="4" fill="var(--gold-bright)" />
+            </>
+          )}
         </svg>
       )}
     </div>

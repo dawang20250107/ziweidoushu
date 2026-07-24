@@ -168,3 +168,163 @@ mark {
     transform: none;
   }
 }
+
+/* ── v3:视觉盛宴层(极光星云 / 渐变金字 / 呼吸辉光 / 罗盘环)── */
+
+/* 极光星云:双色光斑缓慢漂移。挂在 relative 容器内,自带裁切不外溢。 */
+@keyframes aurora-drift {
+  0%,
+  100% {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, 3%, 0) scale(1.08);
+  }
+}
+.aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  will-change: transform;
+}
+.aurora::before {
+  width: 56vw;
+  height: 56vw;
+  max-width: 760px;
+  max-height: 760px;
+  left: -14%;
+  top: -22%;
+  background: radial-gradient(closest-side, var(--violet-faint), transparent 70%);
+  animation: aurora-drift 26s var(--ease-inout) infinite;
+}
+.aurora::after {
+  width: 48vw;
+  height: 48vw;
+  max-width: 640px;
+  max-height: 640px;
+  right: -10%;
+  top: 2%;
+  background: radial-gradient(closest-side, var(--gold-glow), transparent 70%);
+  animation: aurora-drift 32s var(--ease-inout) infinite reverse;
+}
+:root[data-theme="light"] .aurora {
+  display: none; /* 宣纸不设星云 */
+}
+
+/* 渐变金字:标题级强调,附缓慢流光 */
+@keyframes sheen-move {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+.text-gold-gradient {
+  background: linear-gradient(
+    100deg,
+    var(--gold) 0%,
+    var(--gold-bright) 32%,
+    #fff3d6 50%,
+    var(--gold-bright) 68%,
+    var(--gold) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sheen-move 7s linear infinite;
+}
+:root[data-theme="light"] .text-gold-gradient {
+  background-image: linear-gradient(100deg, var(--gold-bright), var(--gold), var(--gold-bright));
+  background-size: 200% 100%;
+}
+
+/* CTA 呼吸辉光(主按钮专属,一页至多两处) */
+@keyframes glow-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 18px rgba(217, 179, 108, 0.18);
+  }
+  50% {
+    box-shadow: 0 0 36px rgba(217, 179, 108, 0.38);
+  }
+}
+.cta-breathe {
+  animation: glow-breathe 4.2s var(--ease-inout) infinite;
+}
+
+/* 罗盘刻度环:装饰性缓旋(Hero 星盘底) */
+@keyframes ring-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ring-rotate {
+  animation: ring-spin 90s linear infinite;
+  transform-origin: center;
+}
+.ring-rotate-rev {
+  animation: ring-spin 140s linear infinite reverse;
+  transform-origin: center;
+}
+
+/* 命宫呼吸金晕(迷你盘/盘面命宫):挂 ::after 覆盖层,与 palace-enter 入场共存 */
+@keyframes ming-breathe {
+  0%,
+  100% {
+    box-shadow: inset 0 0 0 1px transparent;
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px var(--gold),
+      0 0 16px rgba(217, 179, 108, 0.22);
+  }
+}
+.ming-breathe::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: ming-breathe 5s var(--ease-inout) infinite;
+}
+
+/* 卡片金晕悬停:lift 的盛宴版(浮起 + 金边 + 双层光) */
+.card-glow {
+  transition:
+    box-shadow var(--motion-base) var(--ease-out),
+    transform var(--motion-base) var(--ease-out);
+}
+.card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px var(--gold-dim),
+    0 0 24px rgba(217, 179, 108, 0.1),
+    0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before,
+  .aurora::after,
+  .text-gold-gradient,
+  .cta-breathe,
+  .ring-rotate,
+  .ring-rotate-rev,
+  .ming-breathe::after {
+    animation: none;
+  }
+  .card-glow,
+  .card-glow:hover {
+    transition: none;
+    transform: none;
+  }
+}
