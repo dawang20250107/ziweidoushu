@@ -135,6 +135,9 @@ func Cast(dayStem, dayBranch, hour, monthGen int) (*Result, error) {
 // keSheng a 生 b / a 克 b(五行索引)。
 func ke(a, b int) bool { return (branchElement[a]+2)%5 == branchElement[b] } // a 克 b
 
+// keEl 五行层面 a 克 b(供第一课以日干本气论克)。
+func keEl(aEl, bEl int) bool { return (aEl+2)%5 == bEl }
+
 var (
 	mengSet = map[int]bool{2: true, 5: true, 8: true, 11: true} // 孟:寅巳申亥
 	zhongS  = map[int]bool{0: true, 6: true, 3: true, 9: true}  // 仲:子午卯酉
@@ -200,13 +203,21 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 		}
 	}
 
-	// 收集克:下贼上(下克上)优先,否则上克下
+	// 收集克:下贼上(下克上)优先,否则上克下。
+	// 第一课之「下」为日干本身,克战以日干本气五行论(非寄宫支五行)——
+	// 《六壬断案》案02 戊申日子将申时钉死:戊土上酉金无克,方成元首取辰。
+	loElOf := func(i int) int {
+		if i == 0 {
+			return stemElement[dayStem]
+		}
+		return branchElement[courses[i][0]]
+	}
 	var zei, keUp []int // 存 course 索引
 	for i, c := range courses {
-		lo, up := c[0], c[1]
-		if ke(lo, up) {
+		upEl := branchElement[c[1]]
+		if keEl(loElOf(i), upEl) {
 			zei = append(zei, i)
-		} else if ke(up, lo) {
+		} else if keEl(upEl, loElOf(i)) {
 			keUp = append(keUp, i)
 		}
 	}
@@ -215,10 +226,13 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 		cand = keUp
 	}
 
-	pickByClass := func(idxs []int) int { // 涉害:孟>仲>季,同类取课序小
+	// 涉害(理法易简简化口径:不数深浅,径取「孟上神」):
+	// 孟仲季论其所临**地盘之位**(见机式),非上神本支——
+	// 《六壬断案》案76 庚辰日子将巳时钉死:午临地盘亥(孟)而发用。
+	pickByClass := func(idxs []int) int {
 		best := idxs[0]
 		for _, i := range idxs[1:] {
-			bi, bb := classRank(courses[i][1]), classRank(courses[best][1])
+			bi, bb := classRank(courses[i][0]), classRank(courses[best][0])
 			if bi < bb {
 				best = i
 			}
@@ -237,6 +251,10 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 		}
 		if len(same) == 1 {
 			return same[0], "比用"
+		}
+		// 俱比则涉害于比者之中取;俱不比方于全体候选中取(案76:比者戌午,取孟位之午)
+		if len(same) > 1 {
+			return pickByClass(same), "涉害"
 		}
 		return pickByClass(idxs), "涉害"
 	}
@@ -277,12 +295,12 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 		return chuanFrom(courses[ci][1], tp), name
 	}
 
-	// 遥克:日干(以寄宫论)与上神相克
+	// 遥克:日干(本气五行)与上神隔位相克
 	var yao []int
-	jiEl := branchElement[jiGong]
+	ganEl := stemElement[dayStem]
 	for i, c := range courses {
 		up := c[1]
-		if (jiEl+2)%5 == branchElement[up] || (branchElement[up]+2)%5 == jiEl {
+		if keEl(ganEl, branchElement[up]) || keEl(branchElement[up], ganEl) {
 			yao = append(yao, i)
 		}
 	}
