@@ -116,7 +116,7 @@ export function TimingPicker({ birth }: { birth: BirthInfo }) {
             )}
             {result.bestDays && result.bestDays.length > 0 && (
               <div className="rounded-[6px] bg-bg px-3 py-2 shadow-[inset_0_0_0_1px_var(--line)]">
-                <p className="text-[11px] tracking-[0.16em] text-ink-faint">利日</p>
+                <p className="text-[11px] tracking-[0.16em] text-ink-faint">{result.kind === "avoid" ? "忌日" : "利日"}</p>
                 <ul className="mt-0.5 text-[13.5px] text-ink-secondary">
                   {result.bestDays.map((d) => (
                     <li key={d}>{d}</li>

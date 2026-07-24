@@ -69,6 +69,22 @@ func TestEventTiming(t *testing.T) {
 		}
 	}
 
+	// 忌事若定出忌月,应下钻到忌日(引用流日行对应宫)。
+	for _, d := range av.BestDays {
+		if !strings.Contains(d, av.Palace) {
+			t.Errorf("忌日应引用流日行%s:%s", av.Palace, d)
+		}
+	}
+
+	// 主题择时简报:wealth 应含求财与投资防破两条(择吉+避忌)。
+	brief := TimingBriefForTopic(c, "wealth")
+	if !strings.Contains(brief, "求财") || !strings.Contains(brief, "投资") {
+		t.Errorf("wealth 主题简报应含求财与投资:%s", brief)
+	}
+	if TimingBriefForTopic(c, "unknown-topic") != "" {
+		t.Error("未知主题简报应为空")
+	}
+
 	// 未知事项返回 nil。
 	if (&Interpreter{}).BuildEventTiming(c, "nonsense") != nil {
 		t.Error("未知事项应返回 nil")

@@ -96,6 +96,12 @@ func BuildInterpretPrompt(
 		}
 	}
 
+	// 择时参考:该主题的宜忌年月(确定性推算,供 LLM 给出具体择时建议)。
+	if brief := TimingBriefForTopic(chart, topic); brief != "" {
+		sb.WriteString("\n## 择时参考(据本盘确定性推算,须结合命格给出宜忌年月)\n\n")
+		sb.WriteString(brief)
+	}
+
 	// 解读主题
 	sb.WriteString("\n## 解读要求\n\n")
 	if label, ok := topicLabel(kb, topic); ok {

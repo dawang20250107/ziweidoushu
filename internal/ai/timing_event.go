@@ -147,12 +147,58 @@ type EventTiming struct {
 	Advice      string       `json:"advice"`
 }
 
-// BuildEventTiming 事项择时:择吉(利年→利月→利日)或避忌(忌年→忌月)。
-func (it *Interpreter) BuildEventTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
+// resolveEventTiming 按键分派择吉/避忌。
+func resolveEventTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
 	if _, ok := avoidSpecs[eventKey]; ok {
 		return buildAvoidTiming(chart, eventKey)
 	}
 	return buildEventTiming(chart, eventKey)
+}
+
+// BuildEventTiming 事项择时:择吉(利年→利月→利日)或避忌(忌年→忌月)。
+func (it *Interpreter) BuildEventTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
+	return resolveEventTiming(chart, eventKey)
+}
+
+// topicEvents 解读主题 → 相关择时事项(供 AI/报告注入宜忌年月)。
+var topicEvents = map[string][]string{
+	"love":   {"marriage"},
+	"career": {"career"},
+	"wealth": {"wealth", "investrisk"},
+	"health": {"surgery"},
+	"move":   {"travel", "travelrisk"},
+}
+
+// TimingBriefForTopic 为解读主题生成择时简报(利/忌年月),注入 AI 提示词。
+func TimingBriefForTopic(chart *ziwei.Chart, topic string) string {
+	keys := topicEvents[topic]
+	if len(keys) == 0 || chart == nil {
+		return ""
+	}
+	var b strings.Builder
+	for _, k := range keys {
+		et := resolveEventTiming(chart, k)
+		if et == nil {
+			continue
+		}
+		line := fmt.Sprintf("%s(应事之宫%s,本命底色%s)", et.Event, et.Palace, et.BaseQuality)
+		if len(et.Years) > 0 {
+			verb := "利年"
+			if et.Kind == "avoid" {
+				verb = "忌年"
+			}
+			var ys []string
+			for i := 0; i < len(et.Years) && i < 3; i++ {
+				ys = append(ys, fmt.Sprintf("%d%s", et.Years[i].Year, et.Years[i].GanZhi))
+			}
+			line += ";" + verb + ":" + strings.Join(ys, "、")
+		}
+		if et.BestMonth != "" {
+			line += ";" + et.BestMonth
+		}
+		b.WriteString("- " + line + "\n")
+	}
+	return b.String()
 }
 
 func mutagenStar(mut [4]string, h ziwei.SiHua) string {
@@ -307,6 +353,20 @@ func buildAvoidTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
 	}
 	if worstMonth > 0 && worst >= 2 {
 		et.BestMonth = fmt.Sprintf("%d 年阳历 %d 月前后(该宫逢煞、宜避)", dy, worstMonth)
+		// 忌日下钻:忌月内流日行至该宫、尤逢流羊陀之日。
+		for d := 1; d <= 28 && len(et.BestDays) < 3; d++ {
+			h, err := ziwei.GenerateHoroscope(chart, dy, worstMonth, d, 6)
+			if err != nil {
+				continue
+			}
+			if h.Daily.PalaceBranch == target.Branch {
+				extra := ""
+				if la := liuYaoAround(h.Daily, target.Branch); la['羊'] || la['陀'] {
+					extra = "、流羊陀加临尤须避"
+				}
+				et.BestDays = append(et.BestDays, fmt.Sprintf("阳历 %d 月 %d 日前后(流日命宫行%s%s)", worstMonth, d, spec.Palace, extra))
+			}
+		}
 	}
 
 	if len(et.Years) > 0 {
