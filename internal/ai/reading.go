@@ -381,7 +381,12 @@ func sectionForSihua(chart *ziwei.Chart) *ReadingSection {
 		if lens := palaceLens[l.Palace]; lens[1] != "" {
 			domain = "(" + lens[1] + ")"
 		}
-		b.WriteString(fmt.Sprintf("%s化%s入【%s】%s,%s;", l.Star, string(l.Hua), palaceLabel(l.Palace), domain, sihuaDomainEffect[l.Hua]))
+		b.WriteString(fmt.Sprintf("%s化%s入【%s】%s,%s", l.Star, string(l.Hua), palaceLabel(l.Palace), domain, sihuaDomainEffect[l.Hua]))
+		// 四化坐宫细则(48 条专断:先性后事,忌则点破罣碍并给出路)
+		if c := sihuaGongClause(l.Hua, l.Palace); c != "" {
+			b.WriteString("——" + c)
+		}
+		b.WriteString(";")
 		tags = append(tags, l.Star+"化"+string(l.Hua)+"·"+l.Palace)
 		switch l.Hua {
 		case ziwei.HuaJi:
