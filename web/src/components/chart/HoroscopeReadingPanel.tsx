@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { HoroscopeReading } from "@/lib/types";
+import { RichReading, LEVEL_ACCENT } from "@/components/chart/RichReading";
 
 /**
  * 运限逐层断语面板:大限 → 流年 → 流月 → 流日 → 流时。
@@ -51,13 +52,16 @@ export function HoroscopeReadingPanel({ reading }: { reading: HoroscopeReading |
       </div>
 
       <div className="border-t border-line px-5 pb-6 pt-4">
-        <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="font-display text-[16px] font-semibold text-ink">{cur.title}</span>
-          {cur.stars.length > 0 && (
-            <span className="text-[12px] text-ink-faint">{cur.stars.join("、")}</span>
-          )}
+        <div
+          className="rounded-[8px] bg-bg px-4 py-3.5 shadow-[inset_0_0_0_1px_var(--line)]"
+          style={{ borderLeft: `2px solid ${LEVEL_ACCENT[cur.level] ?? "var(--line-strong)"}` }}
+        >
+          <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="font-display text-[16px] font-semibold text-ink">{cur.title}</span>
+            {cur.stars.length > 0 && <span className="text-[12px] text-ink-faint">{cur.stars.join("、")}</span>}
+          </div>
+          <RichReading text={cur.text} />
         </div>
-        <p className="text-[14px] leading-[1.9] text-ink-secondary">{cur.text}</p>
       </div>
     </section>
   );

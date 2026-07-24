@@ -1,6 +1,7 @@
 "use client";
 
 import type { HemingMatchReading } from "@/lib/types";
+import { RichReading } from "@/components/chart/RichReading";
 
 /**
  * 合盘契合度面板:确定性比对双盘(年命相合/四化互飞/夫妻宫呼应/相处建议)。
@@ -47,7 +48,9 @@ export function HemingReadingPanel({ reading }: { reading: HemingMatchReading | 
         {reading.sections.map((s) => (
           <div key={s.key} className="rounded-[8px] bg-bg px-4 py-3 shadow-[inset_0_0_0_1px_var(--line)]">
             <dt className={`mb-1 font-display text-[14px] ${LEVEL[s.level] ?? "text-ink-secondary"}`}>{s.title}</dt>
-            <dd className="text-[13.5px] leading-[1.85] text-ink-secondary">{s.text}</dd>
+            <dd>
+              <RichReading text={s.text} />
+            </dd>
           </div>
         ))}
       </dl>

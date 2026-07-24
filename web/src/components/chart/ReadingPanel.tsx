@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Reading, ReadingSection } from "@/lib/types";
+import { RichReading, LEVEL_ACCENT } from "@/components/chart/RichReading";
 
 /**
  * 多维断语面板:命身格局 / 十二宫位 / 大限流年 / 流年择时 四组,
@@ -66,8 +67,8 @@ export function ReadingPanel({ reading }: { reading: Reading }) {
 
       {/* 命格总论 */}
       <div className="mx-5 mt-3 rounded-[8px] bg-bg px-4 py-3 shadow-[inset_0_0_0_1px_var(--line)]">
-        <p className="mb-1 text-[11px] tracking-[0.16em] text-ink-faint">命格总论</p>
-        <p className="text-[13.5px] leading-relaxed text-ink-secondary">{reading.overview}</p>
+        <p className="mb-1.5 text-[11px] tracking-[0.16em] text-ink-faint">命格总论</p>
+        <RichReading text={reading.overview} />
       </div>
 
       {/* 一级:分组 */}
@@ -115,11 +116,21 @@ export function ReadingPanel({ reading }: { reading: Reading }) {
 
       {/* 当前维度详情 */}
       <div className="px-5 pb-6 pt-4">
-        <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="font-display text-[16px] font-semibold text-ink">{cur.title}</span>
-          {cur.stars.length > 0 && <span className="text-[12px] text-ink-faint">{cur.stars.join("、")}</span>}
+        <div
+          className="rounded-[8px] bg-bg px-4 py-3.5 shadow-[inset_0_0_0_1px_var(--line)]"
+          style={{ borderLeft: `2px solid ${LEVEL_ACCENT[cur.level] ?? "var(--line-strong)"}` }}
+        >
+          <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="font-display text-[16px] font-semibold text-ink">{cur.title}</span>
+            <span
+              className={`rounded-[3px] px-1.5 py-0.5 text-[11px] leading-none ${LEVEL[cur.level]?.cls ?? ""}`}
+            >
+              {LEVEL[cur.level]?.label ?? "平"}
+            </span>
+            {cur.stars.length > 0 && <span className="text-[12px] text-ink-faint">{cur.stars.join("、")}</span>}
+          </div>
+          <RichReading text={cur.text} />
         </div>
-        <p className="text-[14px] leading-[1.9] text-ink-secondary">{cur.text}</p>
       </div>
     </section>
   );
