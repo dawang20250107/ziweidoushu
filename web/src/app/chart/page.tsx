@@ -28,6 +28,7 @@ export default function ChartPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [casting, setCasting] = useState(false); // 罗盘起盘仪式中
+  const [castLeaving, setCastLeaving] = useState(false); // 仪式收场淡出中
 
   const [initialBirth, setInitialBirth] = useState<BirthInfo | null>(null);
 
@@ -51,7 +52,8 @@ export default function ChartPage() {
     }
   }, []);
 
-  // 手动排盘:星光击罗盘仪式(≥1.8s);恢复路径与 reduced-motion 直出
+  // 手动排盘:星光击罗盘全屏仪式(≥3.6s 全序列 + 0.5s 淡出收场);
+  // 恢复路径与 reduced-motion 直出
   const castChart = useCallback(async (b: BirthInfo) => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
@@ -59,9 +61,12 @@ export default function ChartPage() {
       return;
     }
     setCasting(true);
-    const minShow = new Promise((r) => setTimeout(r, 1800));
+    const minShow = new Promise((r) => setTimeout(r, 3600));
     await Promise.all([runChart(b), minShow]);
+    setCastLeaving(true);
+    await new Promise((r) => setTimeout(r, 500));
     setCasting(false);
+    setCastLeaving(false);
   }, [runChart]);
 
   // 挂载时恢复最近一次排盘生辰并自动出盘(档案「载入排盘」/刷新续排共用 ziwei-birth 契约)
@@ -210,7 +215,7 @@ export default function ChartPage() {
         </div>
       )}
 
-      {casting && <LuopanCast />}
+      {casting && <LuopanCast leaving={castLeaving} />}
     </div>
   );
 }
