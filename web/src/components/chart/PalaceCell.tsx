@@ -152,10 +152,13 @@ export function PalaceCell({
         )}
       </div>
 
-      {/* 杂曜行(大师档) */}
-      {density === "master" && adjective.length > 0 && (
+      {/* 杂曜行(大师档;含年支系补充杂曜大耗/龙德/劫煞) */}
+      {density === "master" && (adjective.length > 0 || (palace.extraStars?.length ?? 0) > 0) && (
         <div className="mt-0.5 flex flex-wrap gap-x-1.5 text-[11px] leading-tight text-ink-faint">
           {adjective.map((s) => (
+            <span key={s.name}>{s.name}</span>
+          ))}
+          {(palace.extraStars ?? []).map((s) => (
             <span key={s.name}>{s.name}</span>
           ))}
         </div>

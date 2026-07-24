@@ -33,6 +33,8 @@ export interface Palace {
   changsheng12?: string;
   boshi12?: string;
   ages?: number[];
+  /** 年支系补充杂曜(大耗/龙德/劫煞,《全书》有载而 iztro 未收) */
+  extraStars?: Star[];
 }
 
 export interface DaXian {

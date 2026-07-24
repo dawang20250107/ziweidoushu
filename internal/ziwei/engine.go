@@ -156,6 +156,9 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 		})
 	}
 
+	// 年支系补充杂曜(大耗/龙德/劫煞)——独立字段,不动 iztro 对齐的 Stars
+	placeExtraStars(palaces, snap.YearBranch)
+
 	refYear := opt.ReferenceYear
 	if refYear == 0 {
 		refYear = time.Now().Year()

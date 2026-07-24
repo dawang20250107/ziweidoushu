@@ -92,6 +92,10 @@ type Palace struct {
 	BorrowedFromName   string   `json:"borrowedFromName,omitempty"`
 	BorrowedStars      []string `json:"borrowedStars,omitempty"`
 
+	// ExtraStars 年支系补充杂曜(大耗/龙德/劫煞):《紫微斗数全书》有载而
+	// iztro 未收,独立于 Stars 存放——黄金基准与 iztro 逐星比对不受影响。
+	ExtraStars []Star `json:"extraStars,omitempty"`
+
 	// Changsheng12 长生十二神(长生/沐浴/冠带/临官/帝旺/衰/病/死/墓/绝/胎/养)。
 	Changsheng12 string `json:"changsheng12,omitempty"`
 	// Boshi12 博士十二神。

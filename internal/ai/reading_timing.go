@@ -66,6 +66,9 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 		if dp := chart.PalaceByBranch(h.Decadal.PalaceBranch); dp != nil {
 			decadalName = dp.Name
 		}
+		// 岁前十二神随流年支轮转,看其落入本命对应主域之宫:
+		// 白虎丧门入疾厄加码预警、大耗入财帛防漏、官符入官禄慎文书,
+		// 龙德天德入疾厄则附解救之机。(岁建恒在流年支宫,故不看流年命宫。)
 
 		// 健康预警。
 		if jie != nil {
@@ -88,7 +91,15 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 				score++
 				rs = append(rs, "大限亦行疾厄乡、本旬健康为重、应验尤须留意")
 			}
+			suiJie := h.Suiqian12[jie.Branch]
+			if suiJie == "白虎" || suiJie == "丧门" || suiJie == "吊客" || suiJie == "病符" {
+				score++
+				rs = append(rs, "岁前「"+suiJie+"」入疾厄、健康与孝服探病之事宜谨慎")
+			}
 			if score >= 2 {
+				if suiJie == "龙德" || suiJie == "天德" {
+					rs = append(rs, "幸岁前"+suiJie+"同入疾厄、凶有解救、化险为夷")
+				}
 				health = append(health, TimingYear{Year: y, GanZhi: gz, Note: strings.Join(rs, ";")})
 			}
 		}
@@ -114,6 +125,9 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 				rs = append(rs, "大限行财乡、本旬财运为主轴、催旺尤验")
 			}
 			if score >= 2 {
+				if suiCai := h.Suiqian12[cai.Branch]; suiCai == "大耗" || suiCai == "小耗" {
+					rs = append(rs, "岁前「"+suiCai+"」入财帛、财进亦须防漏耗、勿投机")
+				}
 				wealth = append(wealth, TimingYear{Year: y, GanZhi: gz, Note: strings.Join(rs, ";")})
 			}
 		}
@@ -143,6 +157,9 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 				rs = append(rs, "大限行官乡、本旬事业为主轴、升迁尤验")
 			}
 			if score >= 2 {
+				if suiGuan := h.Suiqian12[guan.Branch]; suiGuan == "官符" || suiGuan == "贯索" {
+					rs = append(rs, "岁前「"+suiGuan+"」入官禄、文书契约官非之事谨慎为上")
+				}
 				career = append(career, TimingYear{Year: y, GanZhi: gz, Note: strings.Join(rs, ";")})
 			}
 		}

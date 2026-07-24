@@ -316,6 +316,8 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 	if triad := triadMajors(chart, p.Branch); len(triad) > 0 {
 		b.WriteString(fmt.Sprintf("三方四正会照 %s,%s一域非独看本宫,须合此数曜之势通断。", strings.Join(triad, "、"), pname))
 	}
+	// 杂曜点缀:小星不改大局,添细节表情(含年支系大耗/龙德/劫煞)
+	b.WriteString(adjectiveTail(p, pname))
 	b.WriteString(levelHint(pname, score))
 
 	if len(starTags) == 0 && borrowed {

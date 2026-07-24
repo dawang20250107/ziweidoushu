@@ -31,6 +31,8 @@ export function PatternCard({ p }: { p: Pattern }) {
 /** 单宫详情内容(无外框定位,供侧栏/抽屉复用):星曜细目 + 关联格局 + 问 AI。 */
 export function PalaceDetail({ palace, patterns }: { palace: Palace; patterns: Pattern[] }) {
   const { major, assist, adjective } = groupStars(palace.stars);
+  // 年支系补充杂曜(大耗/龙德/劫煞)并入杂曜组展示
+  const allAdjective = [...adjective, ...(palace.extraStars ?? [])];
   const related = patterns.filter((p) => (p.palaces ?? []).includes(palace.name));
   const aiQuestion = `请重点分析我命盘的【${palace.name}】(${stemName(palace.stem)}${branchName(palace.branch)}宫)。`;
 
@@ -54,7 +56,7 @@ export function PalaceDetail({ palace, patterns }: { palace: Palace; patterns: P
         {[
           { label: "主星", stars: major },
           { label: "辅曜", stars: assist },
-          { label: "杂曜", stars: adjective },
+          { label: "杂曜", stars: allAdjective },
         ].map(
           (group) =>
             group.stars.length > 0 && (

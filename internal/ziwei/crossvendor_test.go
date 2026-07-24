@@ -85,6 +85,23 @@ func TestCrossVendorWenMo19960714(t *testing.T) {
 	if fude == nil || fude.DaXianStart != 24 || Branches[fude.Branch] != "申" {
 		t.Errorf("福德大限: want 申宫 24 起")
 	}
+
+	// 年支系补充杂曜(ExtraStars):文墨实盘 子年大耗未/龙德未/劫煞巳,
+	// 补齐后原⚠️集合差异升级为✅一致。
+	wantExtra := map[string]string{"大耗": "未", "龙德": "未", "劫煞": "巳"}
+	for star, wantBranch := range wantExtra {
+		got := "无"
+		for i := range c.Palaces {
+			for _, s := range c.Palaces[i].ExtraStars {
+				if s.Name == star {
+					got = Branches[c.Palaces[i].Branch]
+				}
+			}
+		}
+		if got != wantBranch {
+			t.Errorf("补充杂曜 %s: got %s宫 want %s宫", star, got, wantBranch)
+		}
+	}
 }
 
 // findStar 全盘找星,返回所在宫。
