@@ -157,6 +157,15 @@ type Result struct {
 
 	// Judgment 断卦层(体用总诀口径:卦气旺衰/体党用党/互变分层/事类/应期)。
 	Judgment *Judgment `json:"judgment,omitempty"`
+	// Lore 万物类象(体/用/变侧取象,断辞落到具体人事物;同卦去重)。
+	Lore []RoleLore `json:"lore,omitempty"`
+}
+
+// RoleLore 某一角色卦的类象(role: 体卦/用卦/变卦)。
+type RoleLore struct {
+	Role string `json:"role"`
+	Name string `json:"name"`
+	TrigramLore
 }
 
 // derive 由上卦数/下卦数/动爻组装完整结果。
@@ -186,10 +195,31 @@ func derive(upperN, lowerN, moving int) Result {
 	}
 	rel, verdict := judge(ti.Element, yong.Element)
 
+	// 类象:体/用/变动侧三角色(同卦去重),供前端类象卡与 AI 取象
+	bianSide := bian.Lower
+	if movingInUpper {
+		bianSide = bian.Upper
+	}
+	var lore []RoleLore
+	seen := map[string]bool{}
+	for _, rl := range []struct {
+		role string
+		tg   Trigram
+	}{{"体卦", ti}, {"用卦", yong}, {"变卦", bianSide}} {
+		if seen[rl.tg.Name] {
+			continue
+		}
+		seen[rl.tg.Name] = true
+		if l, ok := LoreOf(rl.tg.Name); ok {
+			lore = append(lore, RoleLore{Role: rl.role, Name: rl.tg.Name, TrigramLore: l})
+		}
+	}
+
 	return Result{
 		Ben: ben, Hu: hu, Bian: bian, Moving: moving,
 		TiTrigram: ti, YongTrigram: yong, TiIsUpper: !movingInUpper,
 		Relation: rel, Verdict: verdict,
+		Lore: lore,
 	}
 }
 

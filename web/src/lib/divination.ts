@@ -45,6 +45,18 @@ export interface MeihuaJudgment {
   yingQi: string;
 }
 
+export interface MeihuaRoleLore {
+  role: string; // 体卦/用卦/变卦
+  name: string;
+  renlun: string;
+  shenti: string;
+  dongwu: string;
+  jingwu: string;
+  fangwei: string;
+  tianshi: string;
+  xing: string;
+}
+
 export interface MeihuaResult {
   method: "time" | "number";
   question?: string;
@@ -54,6 +66,7 @@ export interface MeihuaResult {
   hu: Hexagram; // 互卦
   bian: Hexagram; // 变卦
   judgment?: MeihuaJudgment; // 断卦骨架(体用总诀确定性推演)
+  lore?: MeihuaRoleLore[]; // 万物类象(体/用/变)
   moving: number; // 动爻 1-6
   tiTrigram: Trigram; // 体卦
   yongTrigram: Trigram; // 用卦

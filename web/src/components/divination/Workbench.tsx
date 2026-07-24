@@ -15,11 +15,12 @@ import {
   type CastInput,
   type MeihuaResult,
   type MeihuaJudgment,
+  type MeihuaRoleLore,
   type LiuYaoResult,
 } from "@/lib/divination";
 import { ReportText } from "@/components/profiles/ReportText";
 import { HexagramView } from "@/components/divination/HexagramView";
-import { CastRitual } from "@/components/divination/CastRitual";
+import { MeihuaCast } from "@/components/divination/MeihuaCast";
 import { ShakeRitual } from "@/components/divination/ShakeRitual";
 import { StepShake } from "@/components/divination/StepShake";
 import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
@@ -44,7 +45,7 @@ type AiErr =
 
 const MAX_Q = 200;
 // 起卦动效总时长封顶(六爻六位落定稍长)
-const CAST_ANIM_MS: Record<Kind, number> = { meihua: 1400, liuyao: 1600 };
+const CAST_ANIM_MS: Record<Kind, number> = { meihua: 2600, liuyao: 1600 };
 
 const KIND_META: Record<Kind, { eyebrow: string; title: string; sub: string; cta: string; casting: string; aiHint: string }> = {
   meihua: {
@@ -379,7 +380,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       </section>
 
       {/* ── 起卦动效(逐爻摇卦的仪式在掷钱本身,不再叠加) ── */}
-      {casting && (kind === "liuyao" ? (lyMethod === "step" ? null : <ShakeRitual />) : <CastRitual />)}
+      {casting && (kind === "liuyao" ? (lyMethod === "step" ? null : <ShakeRitual />) : <MeihuaCast />)}
 
       {/* ── 卦象展示 ── */}
       {kind === "meihua" && result && !casting && (
@@ -416,6 +417,9 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
 
           {/* 断卦骨架(确定性:卦气旺衰/体党用党/互变分层/事类/应期) */}
           {result.judgment && <JudgeCard j={result.judgment} />}
+
+          {/* 万物类象(体/用/变取象) */}
+          {result.lore && result.lore.length > 0 && <LoreCard lore={result.lore} />}
 
           {/* ── AI 深度解卦 ── */}
           <div className="mt-8">
@@ -826,6 +830,51 @@ function JudgeCard({ j }: { j: MeihuaJudgment }) {
       <p className="mt-4 rounded-[6px] bg-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
         {j.yingQi}
       </p>
+    </div>
+  );
+}
+
+const LORE_ROWS: { key: keyof Omit<MeihuaRoleLore, "role" | "name">; label: string }[] = [
+  { key: "renlun", label: "人物" },
+  { key: "shenti", label: "身体" },
+  { key: "jingwu", label: "器物" },
+  { key: "fangwei", label: "方位" },
+  { key: "xing", label: "性情" },
+];
+
+/** 万物类象卡:体/用/变三角色卦的邵子类占速查(断辞落到具体人事物)。 */
+function LoreCard({ lore }: { lore: MeihuaRoleLore[] }) {
+  return (
+    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
+      <div className="flex items-baseline justify-between">
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">万物类象</p>
+        <span className="text-[11px] text-ink-faint">邵子八卦类占义 · 取象参考</span>
+      </div>
+      {/* Tailwind 类须静态可析,按数量映射 */}
+      <div
+        className={`mt-4 grid grid-cols-1 gap-3 ${
+          lore.length >= 3 ? "sm:grid-cols-3" : lore.length === 2 ? "sm:grid-cols-2" : ""
+        }`}
+      >
+        {lore.map((l) => (
+          <div key={l.role + l.name} className="rounded-[6px] bg-bg px-4 py-4 shadow-[inset_0_0_0_1px_var(--line)]">
+            <div className="flex items-baseline gap-2">
+              <span className="rounded-[2px] px-1.5 py-0.5 text-[10px] tracking-[0.08em] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]">
+                {l.role}
+              </span>
+              <span className="font-display text-[19px] font-semibold text-ink">{l.name}</span>
+            </div>
+            <dl className="mt-3 flex flex-col gap-1.5">
+              {LORE_ROWS.map((row) => (
+                <div key={row.key} className="flex gap-2 text-[12.5px] leading-relaxed">
+                  <dt className="shrink-0 text-ink-faint">{row.label}</dt>
+                  <dd className="text-ink-secondary">{l[row.key]}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
