@@ -413,6 +413,16 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
             </div>
           </div>
 
+          {/* 周易经文(公版卦辞) */}
+          {result.ben.guaCi && (
+            <JingWenCard
+              rows={[
+                { label: `本卦 ${result.ben.name}`, text: result.ben.guaCi },
+                ...(result.bian.guaCi ? [{ label: `变卦 ${result.bian.name}`, text: result.bian.guaCi }] : []),
+              ]}
+            />
+          )}
+
           {/* 体用生克 */}
           <TiYongCard result={result} />
 
@@ -456,6 +466,20 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           <div className="mt-8">
             <LiuYaoPan result={lyResult} />
           </div>
+
+          {/* 周易经文:本卦辞/动爻爻辞/变卦辞(公版) */}
+          {lyResult.jingWen && (
+            <JingWenCard
+              rows={[
+                { label: `本卦 ${lyResult.benName}`, text: lyResult.jingWen.benGuaCi },
+                ...(lyResult.jingWen.yaoCi ?? []).map((yc) => ({ label: "动爻", text: yc, strong: true })),
+                ...(lyResult.jingWen.yong ? [{ label: "六爻皆动", text: lyResult.jingWen.yong, strong: true }] : []),
+                ...(lyResult.jingWen.bianGuaCi && lyResult.bianName
+                  ? [{ label: `变卦 ${lyResult.bianName}`, text: lyResult.jingWen.bianGuaCi }]
+                  : []),
+              ]}
+            />
+          )}
 
           {/* 确定性断语骨架(免费层) */}
           {lyResult.judgment && <LiuYaoJudgeCard j={lyResult.judgment} xingZhi={lyResult.benXingZhi} />}
@@ -834,6 +858,32 @@ function JudgeCard({ j }: { j: MeihuaJudgment }) {
       <p className="mt-4 rounded-[6px] bg-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
         {j.yingQi}
       </p>
+    </div>
+  );
+}
+
+/** 周易经文卡:卦辞与动爻爻辞(维基文库公版通行本,动爻辞加粗为断卦要义)。 */
+function JingWenCard({ rows }: { rows: { label: string; text: string; strong?: boolean }[] }) {
+  return (
+    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
+      <div className="flex items-baseline justify-between">
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">周易经文</p>
+        <span className="text-[11px] text-ink-faint">通行本原文 · 公版</span>
+      </div>
+      <dl className="mt-4 flex flex-col gap-2.5">
+        {rows.map((row, i) => (
+          <div key={i} className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
+            <dt className="shrink-0 text-[12px] leading-[1.9] tracking-[0.06em] text-ink-faint sm:w-24">
+              {row.label}
+            </dt>
+            <dd
+              className={`font-reading text-[15px] leading-[1.9] ${row.strong ? "font-medium text-ink" : "text-ink-secondary"}`}
+            >
+              {row.text}
+            </dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

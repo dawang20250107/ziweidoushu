@@ -128,6 +128,21 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 		}
 	}
 
+	// 《周易》经文层:本卦卦辞、动爻所值爻辞、变卦卦辞(公版原文,可直引)。
+	if jw := r.JingWen; jw != nil {
+		sb.WriteString("\n## 周易经文(动爻所值爻辞为断卦要义,须扣辞而断)\n\n")
+		sb.WriteString(fmt.Sprintf("- 本卦%s卦辞:%s\n", r.BenName, jw.BenGuaCi))
+		for _, yc := range jw.YaoCi {
+			sb.WriteString("- 动爻爻辞:" + yc + "\n")
+		}
+		if jw.Yong != "" {
+			sb.WriteString("- 六爻皆动,以" + jw.Yong + "断\n")
+		}
+		if jw.BianGuaCi != "" {
+			sb.WriteString(fmt.Sprintf("- 变卦%s卦辞:%s\n", r.BianName, jw.BianGuaCi))
+		}
+	}
+
 	// 确定性断语骨架:据用神旺衰/元忌力量/动变/世应机械推演,供 LLM 贴卦发挥。
 	if j := r.Judgment; j != nil {
 		sb.WriteString("\n## 断语骨架(确定性推演,须据此贴卦、不得脱卦空谈)\n\n")

@@ -38,11 +38,19 @@ func BuildDivinePrompt(r *meihua.Result, store *corpus.Store) Request {
 	} else {
 		sb.WriteString(fmt.Sprintf("- 起卦:数字起卦 %v\n", r.Numbers))
 	}
-	sb.WriteString(fmt.Sprintf("- 本卦:%s(上%s%s·下%s%s)\n",
+	sb.WriteString(fmt.Sprintf("- 本卦:%s(上%s%s·下%s%s)",
 		r.Ben.Name, r.Ben.Upper.Name, r.Ben.Upper.Nature, r.Ben.Lower.Name, r.Ben.Lower.Nature))
+	if r.Ben.GuaCi != "" {
+		sb.WriteString(",卦辞:" + r.Ben.GuaCi)
+	}
+	sb.WriteString("\n")
 	sb.WriteString(fmt.Sprintf("- 动爻:第 %d 爻\n", r.Moving))
 	sb.WriteString(fmt.Sprintf("- 互卦:%s\n", r.Hu.Name))
-	sb.WriteString(fmt.Sprintf("- 变卦:%s\n", r.Bian.Name))
+	sb.WriteString(fmt.Sprintf("- 变卦:%s", r.Bian.Name))
+	if r.Bian.GuaCi != "" {
+		sb.WriteString(",卦辞:" + r.Bian.GuaCi)
+	}
+	sb.WriteString("\n")
 	sb.WriteString(fmt.Sprintf("- 体用:体=%s(%s),用=%s(%s),%s → %s\n\n",
 		r.TiTrigram.Name, r.TiTrigram.Element, r.YongTrigram.Name, r.YongTrigram.Element,
 		r.Relation, r.Verdict))

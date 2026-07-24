@@ -12,6 +12,7 @@ import (
 
 	"github.com/6tail/lunar-go/calendar"
 	"github.com/dawang20250107/ziweidoushu/internal/meihua"
+	"github.com/dawang20250107/ziweidoushu/internal/zhouyi"
 )
 
 // ── 基础表 ───────────────────────────────────────────────────
@@ -167,6 +168,9 @@ type Result struct {
 
 	// FuShen 用神不上卦时之伏神(本宫首卦纳甲取,见 enrich.go)
 	FuShen *FuShen `json:"fuShen,omitempty"`
+
+	// JingWen 《周易》经文层(公版,internal/zhouyi):本卦卦辞、动爻爻辞、变卦卦辞。
+	JingWen *JingWen `json:"jingWen,omitempty"`
 
 	palaceIdx int // 本卦所属宫索引(伏神取本宫首卦纳甲用,不序列化)
 
@@ -483,7 +487,33 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 	if len(movingSet) > 0 {
 		r.BianXingZhi = guaXingZhi(bianBs)
 	}
+
+	// 经文层:本卦卦辞 + 动爻所值爻辞(自下而上);变卦卦辞;
+	// 六爻皆动之乾坤以用九/用六断(周易通例)。
+	if ben := zhouyi.ByTrigrams(upper.Num, lower.Num); ben != nil {
+		jw := &JingWen{BenGuaCi: ben.GuaCi}
+		for _, m := range r.MovingNums {
+			jw.YaoCi = append(jw.YaoCi, ben.YaoCi[m-1])
+		}
+		if len(movingSet) == 6 && ben.Yong != "" {
+			jw.Yong = ben.Yong
+		}
+		if len(movingSet) > 0 {
+			if bg := zhouyi.ByTrigrams(bianUpper.Num, bianLower.Num); bg != nil {
+				jw.BianGuaCi = bg.GuaCi
+			}
+		}
+		r.JingWen = jw
+	}
 	return r, nil
+}
+
+// JingWen 《周易》经文层。YaoCi 与 MovingNums 同序,文本带爻题(「九五:飞龙在天…」)。
+type JingWen struct {
+	BenGuaCi  string   `json:"benGuaCi"`
+	BianGuaCi string   `json:"bianGuaCi,omitempty"`
+	YaoCi     []string `json:"yaoCi,omitempty"`
+	Yong      string   `json:"yong,omitempty"` // 六爻皆动:乾用九/坤用六
 }
 
 // ── 研究校验导出(tools/liuyaoverify 以书校机)──────────────

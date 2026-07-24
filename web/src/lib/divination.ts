@@ -28,6 +28,7 @@ export interface Hexagram {
   upper: Trigram;
   lower: Trigram;
   lines: boolean[]; // ×6
+  guaCi?: string; // 《周易》卦辞(公版经文)
 }
 
 /** 体用生克关系。 */
@@ -164,6 +165,15 @@ export interface LiuYaoResult {
   bianXingZhi?: string; // 变卦卦性
   fuShen?: LiuYaoFuShen; // 用神不上卦时之伏神
   judgment?: LiuYaoJudgment; // 确定性断语骨架
+  jingWen?: LiuYaoJingWen; // 《周易》经文层
+}
+
+/** 《周易》经文层(公版):yaoCi 与动爻同序,文本带爻题。 */
+export interface LiuYaoJingWen {
+  benGuaCi: string;
+  bianGuaCi?: string;
+  yaoCi?: string[];
+  yong?: string; // 六爻皆动:乾用九/坤用六
 }
 
 /** AI 解卦读物。 */

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/6tail/lunar-go/calendar"
+	"github.com/dawang20250107/ziweidoushu/internal/zhouyi"
 )
 
 // Trigram 八卦(先天数 1-8:乾兑离震巽坎艮坤)。
@@ -83,18 +84,24 @@ type Hexagram struct {
 	Lower Trigram `json:"lower"`
 	// Lines 六爻,自下而上(1-6 爻),true=阳爻。
 	Lines [6]bool `json:"lines"`
+	// GuaCi 《周易》卦辞(公版经文,internal/zhouyi)。
+	GuaCi string `json:"guaCi,omitempty"`
 }
 
 func makeHexagram(upper, lower Trigram) Hexagram {
 	var lines [6]bool
 	copy(lines[:3], lower.Lines[:])
 	copy(lines[3:], upper.Lines[:])
-	return Hexagram{
+	h := Hexagram{
 		Name:  hexagramNames[upper.Num-1][lower.Num-1],
 		Upper: upper,
 		Lower: lower,
 		Lines: lines,
 	}
+	if g := zhouyi.ByTrigrams(upper.Num, lower.Num); g != nil {
+		h.GuaCi = g.GuaCi
+	}
+	return h
 }
 
 // Relation 体用生克关系。
