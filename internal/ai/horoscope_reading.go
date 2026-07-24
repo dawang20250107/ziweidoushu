@@ -40,18 +40,18 @@ var scopeUnit = map[string]string{
 	"大限": "十年", "童限": "童限", "流年": "年", "流月": "月", "流日": "日", "流时": "时辰",
 }
 
-// BuildHoroscopeReading 由本命盘 + 运限叠加生成逐层断语(确定性,不走 LLM)。
-func (it *Interpreter) BuildHoroscopeReading(chart *ziwei.Chart, h *ziwei.Horoscope) *HoroscopeReading {
-	return buildHoroscopeReading(chart, h)
+// BuildHoroscopeReading 由本命盘 + 格局 + 运限叠加生成逐层断语(确定性,不走 LLM)。
+func (it *Interpreter) BuildHoroscopeReading(chart *ziwei.Chart, patterns []ziwei.Pattern, h *ziwei.Horoscope) *HoroscopeReading {
+	return buildHoroscopeReading(chart, patterns, h)
 }
 
-func buildHoroscopeReading(chart *ziwei.Chart, h *ziwei.Horoscope) *HoroscopeReading {
+func buildHoroscopeReading(chart *ziwei.Chart, patterns []ziwei.Pattern, h *ziwei.Horoscope) *HoroscopeReading {
 	if chart == nil || h == nil {
 		return nil
 	}
 	hr := &HoroscopeReading{Target: h.TargetSolarDate}
 	add := func(key string, sc ziwei.HoroscopeScope, isYear bool) {
-		if s := hscopeSection(chart, sc, key, isYear); s != nil {
+		if s := hscopeSection(chart, patterns, sc, key, isYear); s != nil {
 			hr.Sections = append(hr.Sections, *s)
 		}
 	}
@@ -63,8 +63,22 @@ func buildHoroscopeReading(chart *ziwei.Chart, h *ziwei.Horoscope) *HoroscopeRea
 	return hr
 }
 
+// patternsAtPalace 该宫参与的本命格局(格局涉及宫位含此宫名)。
+func patternsAtPalace(patterns []ziwei.Pattern, palaceName string) []ziwei.Pattern {
+	var out []ziwei.Pattern
+	for _, pt := range patterns {
+		for _, pn := range pt.Palaces {
+			if pn == palaceName {
+				out = append(out, pt)
+				break
+			}
+		}
+	}
+	return out
+}
+
 // hscopeSection 组装某一运限层的断语。
-func hscopeSection(chart *ziwei.Chart, sc ziwei.HoroscopeScope, key string, isYear bool) *ReadingSection {
+func hscopeSection(chart *ziwei.Chart, patterns []ziwei.Pattern, sc ziwei.HoroscopeScope, key string, isYear bool) *ReadingSection {
 	p := chart.PalaceByBranch(sc.PalaceBranch)
 	if p == nil {
 		return nil
@@ -142,6 +156,22 @@ func hscopeSection(chart *ziwei.Chart, sc ziwei.HoroscopeScope, key string, isYe
 		}
 	} else {
 		b.WriteString(fmt.Sprintf("(%s以宫气与流曜为主;其宫干四化属飞星派,仅供参考不作定断)", sc.Name))
+	}
+
+	// 运限触发本命格局:该层命宫落于参与本命格局的宫位,则此期引动该格局。
+	if acts := patternsAtPalace(patterns, p.Name); len(acts) > 0 {
+		var names []string
+		for _, pt := range acts {
+			names = append(names, fmt.Sprintf("【%s】(%s)", pt.Name, levelLabel(pt.Level)))
+			switch pt.Level {
+			case "excellent", "good":
+				score++
+			case "caution":
+				score--
+			}
+		}
+		b.WriteString(fmt.Sprintf("★%s命宫行至此宫,引动本命格局 %s:其力于本%s显发、为应期,宜顺势(吉格)或预为化解(凶格)。",
+			sc.Name, strings.Join(names, "、"), unit))
 	}
 
 	return &ReadingSection{

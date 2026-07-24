@@ -277,6 +277,15 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 	if pn, pt := pairTraitOf(majors); pt != "" {
 		b.WriteString(fmt.Sprintf("此为【%s】同宫:%s", pn, pt))
 	}
+	// 应验分档:主星组合再叠煞吉会照,推进到应验档位(仅实配主星,不含借星)
+	if !borrowed {
+		if esc, d := escalations(chart, p, majors, dim, sihua); len(esc) > 0 {
+			for _, c := range esc {
+				b.WriteString(c + "。")
+			}
+			score += d
+		}
+	}
 	// 四化点睛
 	for name, h := range sihua {
 		b.WriteString(fmt.Sprintf("%s%s。", name, sihuaNote[h]))

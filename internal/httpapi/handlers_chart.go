@@ -160,7 +160,7 @@ func (s *Server) handleHoroscope(w http.ResponseWriter, r *http.Request) {
 	}
 	out := map[string]any{"horoscope": h}
 	if s.interp != nil { // 运限逐层断语(确定性,随运限生成)
-		out["reading"] = s.interp.BuildHoroscopeReading(resp.Chart, h)
+		out["reading"] = s.interp.BuildHoroscopeReading(resp.Chart, resp.Patterns, h)
 	}
 	writeJSON(w, http.StatusOK, out)
 }

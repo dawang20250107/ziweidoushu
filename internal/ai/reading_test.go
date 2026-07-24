@@ -205,6 +205,44 @@ func TestStarPalaceCompleteness(t *testing.T) {
 	}
 }
 
+// TestEscalationFires 应验分档:吉档(文贵/财禄)与凶档(血光/冲击/是非/损耗/成空)
+// 均须能在样本盘中触发,证明煞吉会照确实推进到应验档位。
+func TestEscalationFires(t *testing.T) {
+	goodHit, badHit := false, false
+	badMarkers := []string{"血光档", "冲击档", "是非档", "损耗档", "成空档"}
+	goodMarkers := []string{"文贵档", "财禄档", "暴发格"}
+	for y := 1975; y <= 1995 && !(goodHit && badHit); y++ {
+		for mo := 1; mo <= 12 && !(goodHit && badHit); mo++ {
+			for _, g := range []ziwei.Gender{ziwei.Male, ziwei.Female} {
+				for h := 0; h < 12; h += 3 {
+					c, err := ziwei.Generate(ziwei.BirthInfo{Year: y, Month: mo, Day: 8, Hour: h, Gender: g}, ziwei.Options{ReferenceYear: 2026})
+					if err != nil {
+						continue
+					}
+					for _, s := range buildReading(c, ziwei.DetectPatterns(c)).Sections {
+						for _, mk := range badMarkers {
+							if strings.Contains(s.Text, mk) {
+								badHit = true
+							}
+						}
+						for _, mk := range goodMarkers {
+							if strings.Contains(s.Text, mk) {
+								goodHit = true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if !goodHit {
+		t.Error("样本盘中未触发任何吉向应验档(文贵/财禄/暴发)")
+	}
+	if !badHit {
+		t.Error("样本盘中未触发任何凶向应验档(血光/冲击/是非/损耗/成空)")
+	}
+}
+
 // TestReadingChartGrounded 断语须引用本盘实配星曜(非通用套话)。
 func TestReadingChartGrounded(t *testing.T) {
 	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2024})

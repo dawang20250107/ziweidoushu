@@ -13,11 +13,12 @@ func TestHoroscopeReading(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	pats := ziwei.DetectPatterns(c)
 	h, err := ziwei.GenerateHoroscope(c, 2026, 8, 20, 6)
 	if err != nil {
 		t.Fatal(err)
 	}
-	hr := buildHoroscopeReading(c, h)
+	hr := buildHoroscopeReading(c, pats, h)
 	if hr == nil || len(hr.Sections) != 5 {
 		t.Fatalf("运限断语应为 5 层(大限/流年/流月/流日/流时),得 %d", len(hr.Sections))
 	}
@@ -51,7 +52,7 @@ func TestHoroscopeReading(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	hr2 := buildHoroscopeReading(c, h2)
+	hr2 := buildHoroscopeReading(c, pats, h2)
 	var d1, d2 string
 	for _, s := range hr.Sections {
 		if s.Key == "daily" {
