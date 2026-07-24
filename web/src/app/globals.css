@@ -465,6 +465,36 @@ mark {
   }
 }
 
+/* 宫位详情抽屉:移动端自底上滑,桌面自右缘滑入 */
+@keyframes drawer-up {
+  from {
+    transform: translateY(26px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes drawer-left {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.drawer-panel {
+  animation: drawer-up 320ms var(--ease-out) both;
+}
+@media (min-width: 1024px) {
+  .drawer-panel {
+    animation: drawer-left 320ms var(--ease-out) both;
+  }
+}
+
 /* 全站按压反馈:按钮按下微缩(transition 入 base 层,让组件的
  * transition-* 工具类可覆盖;无工具类的按钮得到回弹缓动) */
 @layer base {
@@ -494,7 +524,8 @@ button:not(:disabled):active {
   .ring-rotate,
   .ring-rotate-rev,
   .ming-breathe::after,
-  .reveal {
+  .reveal,
+  .drawer-panel {
     animation: none;
   }
   .card-glow,

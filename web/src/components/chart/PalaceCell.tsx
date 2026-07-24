@@ -6,26 +6,46 @@ import {
   type Density,
 } from "@/lib/chart-helpers";
 
-/** 星名 + 四化徽章(本命实心;流曜空心由 StarBadge outline 表达) */
-function StarGlyph({ star, size }: { star: Star; size: "lg" | "md" }) {
+/**
+ * 竖排星柱(古典盘式):星名自上而下一柱一星,柱脚缀亮度小字与四化印。
+ * 传统命盘星曜皆竖排,竖柱既省横向空间(多星宫不再折行),又与古籍版式同气。
+ */
+function StarColumn({ star, size }: { star: Star; size: "lg" | "md" }) {
   // 庙旺主星带星光辉晕:亮度语义从「颜色」升级为「颜色 + 光」
   const glow =
     size === "lg" && (star.brightness === "庙" || star.brightness === "旺")
       ? { textShadow: "0 0 10px var(--gold-glow), 0 0 18px var(--gold-glow)" }
       : undefined;
+  const color = brightnessVar(star.brightness);
   return (
-    <span
-      className={size === "lg" ? "star-major font-display text-[17px] font-semibold leading-tight" : "text-[13px] leading-tight"}
-      style={{ color: brightnessVar(star.brightness), ...glow }}
-    >
-      {star.name}
+    <span className="inline-flex flex-col items-center gap-0.5">
+      {/* 逐字 block 竖叠(不依赖 writing-mode 的垂直字体度量,跨端稳定) */}
+      <span
+        className={
+          size === "lg"
+            ? "star-major font-display text-[16px] font-semibold"
+            : "text-[12.5px]"
+        }
+        style={{ color, ...glow }}
+      >
+        {star.name.split("").map((ch, i) => (
+          <span key={i} className="block text-center leading-[1.12]">
+            {ch}
+          </span>
+        ))}
+      </span>
+      {star.brightness && (
+        <span className="text-[9.5px] leading-none opacity-75" style={{ color }}>
+          {star.brightness}
+        </span>
+      )}
       {star.siHua && (
-        <sup
-          className="ml-px rounded-[2px] px-[3px] text-[10px] font-semibold not-italic"
+        <span
+          className="rounded-[2px] px-[3px] py-px text-[9.5px] font-semibold leading-none"
           style={sihuaBadgeStyle(star.siHua)}
         >
           {star.siHua}
-        </sup>
+        </span>
       )}
     </span>
   );
@@ -66,7 +86,7 @@ export function PalaceCell({
       aria-pressed={selected}
       aria-label={`${palace.name},${branchName(palace.branch)}宫`}
       className={[
-        "palace-cell palace-enter relative flex min-h-[124px] flex-col rounded-[6px] p-2 pb-1.5 text-left",
+        "palace-cell palace-enter relative flex min-h-[124px] w-full flex-col rounded-[6px] p-2 pb-1.5 text-left",
         "bg-bg-raised transition-[box-shadow,opacity,filter] duration-300",
         palace.isMingGong && !dimmed ? "ming-breathe" : "",
         selected
@@ -89,26 +109,28 @@ export function PalaceCell({
         </span>
       )}
 
-      {/* 主星行(身宫徽标占右上角,留出避让位) */}
-      <div className={["flex flex-wrap gap-x-2.5 gap-y-0.5", palace.isShenGong ? "pr-6" : ""].join(" ")}>
+      {/* 星区:主星大柱 + 辅星小柱并排竖排(古典盘式,身宫徽标右上避让) */}
+      <div className={["flex flex-wrap items-start gap-x-2 gap-y-1", palace.isShenGong ? "pr-6" : ""].join(" ")}>
         {major.map((s) => (
-          <StarGlyph key={s.name} star={s} size="lg" />
+          <StarColumn key={s.name} star={s} size="lg" />
         ))}
+        {density !== "simple" &&
+          assist.map((s) => <StarColumn key={s.name} star={s} size="md" />)}
         {major.length === 0 && palace.borrowedStars && palace.borrowedStars.length > 0 && (
-          <span className="text-[13px] text-ink-faint">
-            借<span className="ml-1 text-ink-secondary">{palace.borrowedStars.join(" ")}</span>
-          </span>
+          <>
+            <span className="mt-0.5 text-[10px] leading-none text-ink-faint">借</span>
+            {palace.borrowedStars.map((n) => (
+              <span key={n} className="text-[12.5px] text-ink-secondary opacity-80">
+                {n.split("").map((ch, i) => (
+                  <span key={i} className="block text-center leading-[1.12]">
+                    {ch}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </>
         )}
       </div>
-
-      {/* 辅星行(专业/大师档) */}
-      {density !== "simple" && assist.length > 0 && (
-        <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-          {assist.map((s) => (
-            <StarGlyph key={s.name} star={s} size="md" />
-          ))}
-        </div>
-      )}
 
       {/* 杂曜行(大师档) */}
       {density === "master" && adjective.length > 0 && (

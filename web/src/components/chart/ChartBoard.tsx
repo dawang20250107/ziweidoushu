@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import type { Chart, Horoscope, Star } from "@/lib/types";
+import type { Chart, Horoscope, Pattern, Star } from "@/lib/types";
 import {
   BOARD_GRID_TEMPLATE, ENTER_ORDER_BY_BRANCH, GRID_AREA_BY_BRANCH,
   sanFangBranches, type Density,
@@ -18,6 +18,8 @@ export interface ChartBoardProps {
   horoscope?: Horoscope | null;
   /** 叠加显示哪些层(默认大限+流年) */
   overlayScopes?: Array<"decadal" | "yearly" | "monthly" | "daily" | "hourly">;
+  /** 已识别格局(中宫徽章锚点) */
+  patterns?: Pattern[];
 }
 
 interface ConnectLine {
@@ -30,7 +32,7 @@ interface ConnectLine {
 
 /** 4×4 星盘:外环十二宫(地支固定位)+ 中宫命主信息 + 三方四正金线。 */
 export function ChartBoard({
-  chart, density, selectedBranch, onSelectBranch, horoscope, overlayScopes = ["decadal", "yearly"],
+  chart, density, selectedBranch, onSelectBranch, horoscope, overlayScopes = ["decadal", "yearly"], patterns,
 }: ChartBoardProps) {
   const sanFang = selectedBranch != null ? new Set(sanFangBranches(selectedBranch)) : null;
   const boardRef = useRef<HTMLDivElement>(null);
@@ -123,7 +125,7 @@ export function ChartBoard({
         </div>
       ))}
       <div style={{ gridArea: "center" }} className="flex">
-        <ChartCenter chart={chart} horoscope={horoscope ?? undefined} />
+        <ChartCenter chart={chart} horoscope={horoscope ?? undefined} patterns={patterns} />
       </div>
 
       {/* 三方四正金线:选宫时从本宫射向对宫与三合宫 */}

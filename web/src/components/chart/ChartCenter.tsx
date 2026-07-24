@@ -1,10 +1,23 @@
 "use client";
 
-import type { Chart, Horoscope } from "@/lib/types";
+import type { Chart, Horoscope, Pattern } from "@/lib/types";
 import { branchName } from "@/lib/chart-helpers";
 
-/** 中宫:命主信息与四柱;运限激活时显示目标日期与虚岁。 */
-export function ChartCenter({ chart, horoscope }: { chart: Chart; horoscope?: Horoscope }) {
+const CHIP_LEVEL: Record<string, string> = {
+  excellent: "text-gold-bright shadow-[inset_0_0_0_1px_var(--gold-dim)]",
+  good: "text-ok shadow-[inset_0_0_0_1px_var(--ok)]",
+  neutral: "text-ink-secondary shadow-[inset_0_0_0_1px_var(--line-strong)]",
+  caution: "text-danger shadow-[inset_0_0_0_1px_var(--danger)]",
+};
+
+/** 中宫:命主信息与四柱 + 格局徽章锚点;运限激活时显示目标日期与虚岁。 */
+export function ChartCenter({
+  chart, horoscope, patterns,
+}: {
+  chart: Chart;
+  horoscope?: Horoscope;
+  patterns?: Pattern[];
+}) {
   const b = chart.birthInfo;
   const gender = b.gender === "male" ? "男" : "女";
   const pillars = chart.fourPillars;
@@ -54,6 +67,25 @@ export function ChartCenter({ chart, horoscope }: { chart: Chart; horoscope?: Ho
           <dd className="text-ink">{branchName(chart.shenGongBranch)}宫</dd>
         </div>
       </dl>
+
+      {patterns && patterns.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+          {patterns.slice(0, 4).map((p) => (
+            <a
+              key={p.name}
+              href="#patterns-overview"
+              className={`rounded-full px-2 py-0.5 text-[11px] transition-opacity hover:opacity-80 ${CHIP_LEVEL[p.level] ?? CHIP_LEVEL.neutral}`}
+            >
+              {p.name}
+            </a>
+          ))}
+          {patterns.length > 4 && (
+            <a href="#patterns-overview" className="tnum text-[11px] text-ink-faint hover:text-ink-secondary">
+              +{patterns.length - 4}
+            </a>
+          )}
+        </div>
+      )}
 
       {horoscope && (
         <div className="mt-3 w-full border-t border-line pt-2 text-[12px]">

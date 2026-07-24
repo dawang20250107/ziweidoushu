@@ -7,7 +7,8 @@ import type { BirthInfo, ChartResponse, Horoscope, HoroscopeReading } from "@/li
 import { DENSITY_LABELS, type Density } from "@/lib/chart-helpers";
 import { BirthForm } from "@/components/chart/BirthForm";
 import { ChartBoard } from "@/components/chart/ChartBoard";
-import { DetailPanel } from "@/components/chart/DetailPanel";
+import { PalaceDrawer } from "@/components/chart/PalaceDrawer";
+import { PatternsOverview } from "@/components/chart/PatternsOverview";
 import { TimelineBar, type TimelineSelection } from "@/components/chart/TimelineBar";
 import { SiZhuPanel } from "@/components/chart/SiZhuPanel";
 import { ReadingPanel } from "@/components/chart/ReadingPanel";
@@ -174,32 +175,36 @@ export default function ChartPage() {
       {data && (
         <div className="flex flex-col gap-4">
           <TimelineBar chart={data.chart} selection={timeline} horoscope={horoscope} onChange={setTimeline} />
-          {/* 移动端必须显式 1 列 minmax(0,1fr):否则 auto 轨道被盘面 min-w 撑开,页面整体横向溢出 */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div>
-              <div className="relative">
-                <div className="overflow-x-auto">
-                  <div className="min-w-[640px]">
-                    <ChartBoard
-                      chart={data.chart}
-                      density={density}
-                      selectedBranch={selectedBranch}
-                      onSelectBranch={setSelectedBranch}
-                      horoscope={horoscope}
-                      overlayScopes={overlayScopes}
-                    />
-                  </div>
+          {/* 盘面全宽:格局下沉为独立分区、宫位详情浮出为抽屉,盘面不再与长侧栏比高 */}
+          <div>
+            <div className="relative">
+              <div className="overflow-x-auto">
+                <div className="mx-auto min-w-[640px] max-w-[1120px]">
+                  <ChartBoard
+                    chart={data.chart}
+                    density={density}
+                    selectedBranch={selectedBranch}
+                    onSelectBranch={setSelectedBranch}
+                    horoscope={horoscope}
+                    overlayScopes={overlayScopes}
+                    patterns={data.patterns ?? []}
+                  />
                 </div>
-                {/* 移动端:右缘渐隐提示盘面可横向滑动 */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-bg to-transparent md:hidden"
-                />
               </div>
-              <p className="mt-1.5 text-center text-[11px] text-ink-faint md:hidden">左右滑动查看全盘</p>
+              {/* 移动端:右缘渐隐提示盘面可横向滑动 */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-bg to-transparent md:hidden"
+              />
             </div>
-            <DetailPanel chart={data.chart} patterns={data.patterns ?? []} selectedBranch={selectedBranch} />
+            <p className="mt-1.5 text-center text-[11px] text-ink-faint md:hidden">左右滑动查看全盘</p>
+            <p className="mt-1.5 hidden text-center text-[11px] text-ink-faint md:block">
+              点击宫位查看三方四正与星曜细目
+            </p>
           </div>
+
+          {/* 格局总览:全宽卡片墙(长文多列铺开) */}
+          <PatternsOverview patterns={data.patterns ?? []} />
 
           {/* 运限断语:随时间轴选择的目标日期逐层生成(大限→流年→流月→流日→流时) */}
           {horoReading && <HoroscopeReadingPanel reading={horoReading} />}
@@ -213,6 +218,16 @@ export default function ChartPage() {
           {/* 四柱视角:八字附加层(可折叠) */}
           {data.chart.siZhu && <SiZhuPanel siZhu={data.chart.siZhu} />}
         </div>
+      )}
+
+      {/* 宫位详情抽屉:桌面右缘滑入、移动端底部上滑 */}
+      {data && (
+        <PalaceDrawer
+          chart={data.chart}
+          patterns={data.patterns ?? []}
+          selectedBranch={selectedBranch}
+          onClose={() => setSelectedBranch(null)}
+        />
       )}
 
       {casting && <LuopanCast leaving={castLeaving} />}

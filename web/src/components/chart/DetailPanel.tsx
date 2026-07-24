@@ -4,14 +4,14 @@ import Link from "next/link";
 import type { Chart, Pattern, Palace } from "@/lib/types";
 import { branchName, brightnessVar, groupStars, sihuaBadgeStyle, stemName } from "@/lib/chart-helpers";
 
-const LEVEL_LABEL: Record<string, { text: string; cls: string }> = {
+export const LEVEL_LABEL: Record<string, { text: string; cls: string }> = {
   excellent: { text: "上格", cls: "text-gold-bright shadow-[inset_0_0_0_1px_var(--gold-dim)]" },
   good: { text: "吉格", cls: "text-ok shadow-[inset_0_0_0_1px_var(--ok)]" },
   neutral: { text: "中性", cls: "text-ink-secondary shadow-[inset_0_0_0_1px_var(--line-strong)]" },
   caution: { text: "凶格", cls: "text-danger shadow-[inset_0_0_0_1px_var(--danger)]" },
 };
 
-function PatternCard({ p }: { p: Pattern }) {
+export function PatternCard({ p }: { p: Pattern }) {
   const level = LEVEL_LABEL[p.level] ?? LEVEL_LABEL.neutral;
   return (
     <div className="rounded-[6px] bg-bg-raised p-3 shadow-[0_0_0_1px_var(--line)]">
@@ -28,34 +28,8 @@ function PatternCard({ p }: { p: Pattern }) {
   );
 }
 
-/** 宫位详情侧栏:星曜细目 + 关联格局 + 问 AI 入口。 */
-export function DetailPanel({
-  chart, patterns, selectedBranch,
-}: {
-  chart: Chart;
-  patterns: Pattern[];
-  selectedBranch: number | null;
-}) {
-  const palace: Palace | null =
-    selectedBranch != null
-      ? chart.palaces.find((p) => p.branch === selectedBranch) ?? null
-      : null;
-
-  if (!palace) {
-    return (
-      <div className="rounded-[6px] bg-bg-raised p-4 text-[13px] text-ink-faint shadow-[0_0_0_1px_var(--line)]">
-        <p className="mb-2 font-display text-[15px] font-semibold text-ink">格局总览</p>
-        {patterns.length === 0 && <p>此盘未识别出典型格局。</p>}
-        <div className="flex flex-col gap-2">
-          {patterns.map((p) => (
-            <PatternCard key={p.name} p={p} />
-          ))}
-        </div>
-        <p className="mt-3">点击任意宫位查看星曜细目与三方四正。</p>
-      </div>
-    );
-  }
-
+/** 单宫详情内容(无外框定位,供侧栏/抽屉复用):星曜细目 + 关联格局 + 问 AI。 */
+export function PalaceDetail({ palace, patterns }: { palace: Palace; patterns: Pattern[] }) {
   const { major, assist, adjective } = groupStars(palace.stars);
   const related = patterns.filter((p) => (p.palaces ?? []).includes(palace.name));
   const aiQuestion = `请重点分析我命盘的【${palace.name}】(${stemName(palace.stem)}${branchName(palace.branch)}宫)。`;
@@ -131,4 +105,35 @@ export function DetailPanel({
       )}
     </div>
   );
+}
+
+/** 宫位详情侧栏(名人盘库等双栏页仍在用;排盘工作台已改用 PalaceDrawer)。 */
+export function DetailPanel({
+  chart, patterns, selectedBranch,
+}: {
+  chart: Chart;
+  patterns: Pattern[];
+  selectedBranch: number | null;
+}) {
+  const palace: Palace | null =
+    selectedBranch != null
+      ? chart.palaces.find((p) => p.branch === selectedBranch) ?? null
+      : null;
+
+  if (!palace) {
+    return (
+      <div className="rounded-[6px] bg-bg-raised p-4 text-[13px] text-ink-faint shadow-[0_0_0_1px_var(--line)]">
+        <p className="mb-2 font-display text-[15px] font-semibold text-ink">格局总览</p>
+        {patterns.length === 0 && <p>此盘未识别出典型格局。</p>}
+        <div className="flex flex-col gap-2">
+          {patterns.map((p) => (
+            <PatternCard key={p.name} p={p} />
+          ))}
+        </div>
+        <p className="mt-3">点击任意宫位查看星曜细目与三方四正。</p>
+      </div>
+    );
+  }
+
+  return <PalaceDetail palace={palace} patterns={patterns} />;
 }
