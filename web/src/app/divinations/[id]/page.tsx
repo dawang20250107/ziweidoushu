@@ -156,7 +156,7 @@ function RecordView({ record }: { record: DivinationRecord }) {
             </p>
           </article>
         ) : (
-          <p className="text-[13px] text-ink-faint">此卦未做 AI 解卦。解卦须在起卦当下进行,新问题可去问卦重占。</p>
+          <p className="text-[13px] text-ink-faint">此卦未做 AI 解卦。解卦须在起卦当下进行,新问题可去对应板块重占。</p>
         )}
       </div>
       )}

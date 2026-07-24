@@ -154,6 +154,9 @@ type Result struct {
 	TiIsUpper   bool     `json:"tiIsUpper"`
 	Relation    Relation `json:"relation"`
 	Verdict     string   `json:"verdict"` // 吉凶倾向一句话(卦理层,非断辞)
+
+	// Judgment 断卦层(体用总诀口径:卦气旺衰/体党用党/互变分层/事类/应期)。
+	Judgment *Judgment `json:"judgment,omitempty"`
 }
 
 // derive 由上卦数/下卦数/动爻组装完整结果。
@@ -238,11 +241,13 @@ func ByTime(t time.Time, question string) (Result, error) {
 	r.Question = question
 	r.LunarText = fmt.Sprintf("%s年%s月%s日%s时",
 		lunar.GetYearZhi(), lunar.GetMonthInChinese(), lunar.GetDayInChinese(), lunar.GetTimeZhi())
+	r.Judgment = r.Judge(monthN, question)
 	return r, nil
 }
 
 // ByNumbers 数字起卦:两数(前上后下,和取动爻)或三数(第三数定动爻)。
-func ByNumbers(nums []int, question string) (Result, error) {
+// at 为占时(断卦层的卦气旺衰须知月令;传零值则跳过断卦层)。
+func ByNumbers(nums []int, at time.Time, question string) (Result, error) {
 	if len(nums) != 2 && len(nums) != 3 {
 		return Result{}, fmt.Errorf("数字起卦需两个或三个正整数")
 	}
@@ -271,5 +276,13 @@ func ByNumbers(nums []int, question string) (Result, error) {
 	r.Method = "number"
 	r.Question = question
 	r.Numbers = nums
+	if !at.IsZero() && at.Year() >= 1902 && at.Year() <= 2098 {
+		lunar := calendar.NewSolarFromDate(at).GetLunar()
+		monthN := lunar.GetMonth()
+		if monthN < 0 {
+			monthN = -monthN
+		}
+		r.Judgment = r.Judge(monthN, question)
+	}
 	return r, nil
 }

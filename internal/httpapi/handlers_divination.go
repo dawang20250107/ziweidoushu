@@ -94,7 +94,11 @@ func castTime(castAt int64) (time.Time, error) {
 func castMeihua(req divinationRequest) (*meihua.Result, error) {
 	switch req.Method {
 	case "number":
-		r, err := meihua.ByNumbers(req.Numbers, req.Question)
+		at, err := castTime(req.CastAt)
+		if err != nil {
+			return nil, err
+		}
+		r, err := meihua.ByNumbers(req.Numbers, at, req.Question)
 		if err != nil {
 			return nil, err
 		}

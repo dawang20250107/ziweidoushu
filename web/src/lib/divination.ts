@@ -34,6 +34,17 @@ export interface Hexagram {
 export type Relation = "用生体" | "比和" | "体克用" | "体生用" | "用克体";
 
 /** 一次梅花起卦的完整卦象。 */
+export interface MeihuaJudgment {
+  level: "good" | "neutral" | "caution";
+  score: number;
+  tiQi: string; // 体卦月令旺衰:旺/相/休/囚/死
+  conclusion: string;
+  points: string[];
+  topic: string;
+  topicNote?: string;
+  yingQi: string;
+}
+
 export interface MeihuaResult {
   method: "time" | "number";
   question?: string;
@@ -42,6 +53,7 @@ export interface MeihuaResult {
   ben: Hexagram; // 本卦
   hu: Hexagram; // 互卦
   bian: Hexagram; // 变卦
+  judgment?: MeihuaJudgment; // 断卦骨架(体用总诀确定性推演)
   moving: number; // 动爻 1-6
   tiTrigram: Trigram; // 体卦
   yongTrigram: Trigram; // 用卦
@@ -222,6 +234,44 @@ export async function castLiuYao(
     method: "POST",
     headers: await castHeaders(),
     body: JSON.stringify(input),
+  });
+  return parse(res);
+}
+
+/** 大六壬起课结果(天地盘/四课/三传/课体 + 确定性断语)。 */
+export interface DaLiuRenKe {
+  lower: string;
+  upper: string;
+}
+
+export interface DaLiuRenJudgment {
+  conclusion: string;
+  level: "good" | "neutral" | "caution";
+  keTypeText: string;
+  sanChuan: string[];
+  points: string[];
+}
+
+export interface DaLiuRenResult {
+  dayStem: string;
+  dayBranch: string;
+  hourBranch: string;
+  monthGen: string; // 月将
+  tianPan: string[]; // 地盘子起十二位上所乘天盘之神
+  ke: DaLiuRenKe[]; // 四课
+  chuan: string[]; // 三传(初/中/末)
+  keType: string; // 课体
+  judgment?: DaLiuRenJudgment;
+}
+
+/** 大六壬起课(免费,匿名可用;登录则自动存入卦档)。 */
+export async function castDaLiuRen(
+  input?: { question?: string; castAt?: number },
+): Promise<{ result: DaLiuRenResult; castAt: number; recordId?: string }> {
+  const res = await fetch(`${BASE}/api/v1/divination/daliuren`, {
+    method: "POST",
+    headers: await castHeaders(),
+    body: JSON.stringify(input ?? {}),
   });
   return parse(res);
 }
