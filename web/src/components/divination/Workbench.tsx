@@ -17,11 +17,12 @@ import {
   type MeihuaJudgment,
   type MeihuaRoleLore,
   type LiuYaoResult,
+  type LiuYaoJudgment,
 } from "@/lib/divination";
 import { ReportText } from "@/components/profiles/ReportText";
 import { HexagramView } from "@/components/divination/HexagramView";
 import { MeihuaCast } from "@/components/divination/MeihuaCast";
-import { ShakeRitual } from "@/components/divination/ShakeRitual";
+import { LiuYaoCast } from "@/components/divination/LiuYaoCast";
 import { StepShake } from "@/components/divination/StepShake";
 import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
 import { toneBadgeClass } from "@/components/divination/tone";
@@ -45,7 +46,7 @@ type AiErr =
 
 const MAX_Q = 200;
 // 起卦动效总时长封顶(六爻六位落定稍长)
-const CAST_ANIM_MS: Record<Kind, number> = { meihua: 2600, liuyao: 1600 };
+const CAST_ANIM_MS: Record<Kind, number> = { meihua: 2600, liuyao: 2800 };
 
 const KIND_META: Record<Kind, { eyebrow: string; title: string; sub: string; cta: string; casting: string; aiHint: string }> = {
   meihua: {
@@ -380,7 +381,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       </section>
 
       {/* ── 起卦动效(逐爻摇卦的仪式在掷钱本身,不再叠加) ── */}
-      {casting && (kind === "liuyao" ? (lyMethod === "step" ? null : <ShakeRitual />) : <MeihuaCast />)}
+      {casting && (kind === "liuyao" ? (lyMethod === "step" ? null : <LiuYaoCast />) : <MeihuaCast />)}
 
       {/* ── 卦象展示 ── */}
       {kind === "meihua" && result && !casting && (
@@ -455,6 +456,9 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           <div className="mt-8">
             <LiuYaoPan result={lyResult} />
           </div>
+
+          {/* 确定性断语骨架(免费层) */}
+          {lyResult.judgment && <LiuYaoJudgeCard j={lyResult.judgment} xingZhi={lyResult.benXingZhi} />}
 
           {/* ── AI 深度解卦 ── */}
           <div className="mt-8">
@@ -830,6 +834,40 @@ function JudgeCard({ j }: { j: MeihuaJudgment }) {
       <p className="mt-4 rounded-[6px] bg-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
         {j.yingQi}
       </p>
+    </div>
+  );
+}
+
+/** 六爻断卦骨架卡:用神旺衰/伏神/卦性/动变/世应/应期确定性推演(免费层)。 */
+function LiuYaoJudgeCard({ j, xingZhi }: { j: LiuYaoJudgment; xingZhi?: string }) {
+  const lv = JUDGE_LEVEL[j.level] ?? JUDGE_LEVEL.neutral;
+  // 应期已单独落底部框,列表内滤重
+  const points = j.points.filter((pt) => !pt.startsWith("应期:"));
+  return (
+    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">断卦 · 用神旺衰</p>
+        <span className="flex items-center gap-2">
+          {xingZhi && <span className="text-[11px] text-ink-faint">本卦【{xingZhi}】</span>}
+          <span className={`rounded-[3px] px-1.5 py-0.5 text-[11px] leading-none ${lv.cls}`}>{lv.label}</span>
+        </span>
+      </div>
+      <p className="mt-4 font-reading text-[16px] leading-[1.9] text-ink">{j.conclusion}</p>
+      {points.length > 0 && (
+        <ul className="mt-4 flex flex-col gap-2.5 border-t border-line pt-4">
+          {points.map((pt, i) => (
+            <li key={i} className="flex gap-2 text-[14px] leading-relaxed text-ink-secondary">
+              <span aria-hidden className="mt-[9px] h-[3px] w-[3px] shrink-0 rounded-full bg-gold-dim" />
+              {pt}
+            </li>
+          ))}
+        </ul>
+      )}
+      {j.yingQi && (
+        <p className="mt-4 rounded-[6px] bg-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
+          应期:{j.yingQi}
+        </p>
+      )}
     </div>
   );
 }

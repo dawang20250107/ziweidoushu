@@ -116,6 +116,27 @@ export interface LiuYaoYao {
   bianRelation?: string; // 动爻之变:化进神/化退神/伏吟/反吟/化长生/化墓/化绝/化合/回头生/回头克
 }
 
+/** 六爻确定性断语(用神旺衰/伏神/卦性/动变/世应/应期,免费层)。 */
+export interface LiuYaoJudgment {
+  conclusion: string;
+  level: "good" | "neutral" | "caution";
+  yongShen: string; // 用神状态摘要
+  yingQi: string; // 应期提示(含具体地支)
+  points: string[];
+}
+
+/** 用神不上卦时之伏神(本宫首卦纳甲取)。 */
+export interface LiuYaoFuShen {
+  liuQin: string;
+  branch: string;
+  element: string;
+  pos: number;
+  fei: string; // 飞神支
+  canOut: boolean;
+  note: string;
+  chuFuRi: string;
+}
+
 /** 六爻装卦结果。yaos 自下而上(index 0 = 初爻)。 */
 export interface LiuYaoResult {
   question?: string;
@@ -139,6 +160,10 @@ export interface LiuYaoResult {
   jiShen?: string; // 忌神(克用神者)
   jiShenPos?: number[];
   chouShen?: string; // 仇神(生忌克元者)
+  benXingZhi?: string; // 本卦卦性:六冲/六合
+  bianXingZhi?: string; // 变卦卦性
+  fuShen?: LiuYaoFuShen; // 用神不上卦时之伏神
+  judgment?: LiuYaoJudgment; // 确定性断语骨架
 }
 
 /** AI 解卦读物。 */

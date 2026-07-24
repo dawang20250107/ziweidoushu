@@ -231,11 +231,11 @@ func (r *Result) Judge() *Judgment {
 			if fs.CanOut {
 				j.Level = "neutral"
 				j.Conclusion = "综断:用神虽不上卦,伏而有气能出——事非无望,待出伏之期自见端倪。"
-				j.YingQi = "出伏之期:应在" + fs.ChuFuRi
+				j.YingQi = "用神伏藏,应在出伏之期——" + fs.ChuFuRi
 			} else {
 				j.Level = "caution"
 				j.Conclusion = "综断:用神不上卦,伏神受制难出——所问之事一时无绪,宜待时或另择日再占。"
-				j.YingQi = "伏神难出,纵论应期亦在" + fs.ChuFuRi + ",到期无验则非其时"
+				j.YingQi = "伏神难出,纵论亦在" + fs.ChuFuRi + ",到期无验则非其时"
 			}
 			j.Points = append(j.Points, "应期:"+j.YingQi)
 		} else {
