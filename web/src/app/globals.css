@@ -325,6 +325,46 @@ mark {
     0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
+/* 滚动显现叙事:区块进入视口时上浮渐显(scroll-driven animations,渐进增强) */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal-up 1ms linear both;
+    animation-timeline: view();
+    animation-range: entry 5% entry 42%;
+  }
+}
+
+/* 全站按压反馈:按钮按下微缩(transition 入 base 层,让组件的
+ * transition-* 工具类可覆盖;无工具类的按钮得到回弹缓动) */
+@layer base {
+  button:not(:disabled) {
+    transition: transform 90ms var(--ease-out);
+  }
+}
+button:not(:disabled):active {
+  transform: scale(0.965);
+}
+
+/* 宫格悬停星曜微光:掠过宫位,主星泛起星辉 */
+.star-major {
+  transition: text-shadow var(--motion-base) var(--ease-out);
+}
+.palace-cell:hover .star-major {
+  text-shadow:
+    0 0 12px var(--gold-glow),
+    0 0 22px var(--gold-glow);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .aurora::before,
   .aurora::after,
@@ -332,11 +372,17 @@ mark {
   .cta-breathe,
   .ring-rotate,
   .ring-rotate-rev,
-  .ming-breathe::after {
+  .ming-breathe::after,
+  .reveal {
     animation: none;
   }
   .card-glow,
   .card-glow:hover {
+    transition: none;
+    transform: none;
+  }
+  button:not(:disabled),
+  button:not(:disabled):active {
     transition: none;
     transform: none;
   }

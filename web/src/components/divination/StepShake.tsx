@@ -141,10 +141,14 @@ export function StepShake({
     <div className="mt-4 flex flex-col gap-4">
       <style>{`
         @keyframes sw-flip {
-          0%   { transform: translateY(0) rotateY(0deg); }
-          40%  { transform: translateY(-18px) rotateY(540deg); }
-          80%  { transform: translateY(0) rotateY(900deg); }
-          100% { transform: translateY(0) rotateY(1080deg); }
+          0%   { transform: translateY(0) rotateX(0) rotateY(0deg) scale(1); }
+          18%  { transform: translateY(-30px) rotateX(200deg) rotateY(340deg); }
+          42%  { transform: translateY(-38px) rotateX(460deg) rotateY(700deg); }
+          64%  { transform: translateY(2px) rotateX(700deg) rotateY(980deg); }
+          70%  { transform: translateY(2px) rotateX(720deg) rotateY(1080deg) scale(1.08, 0.9); }
+          78%  { transform: translateY(-10px) rotateX(720deg) rotateY(1080deg) scale(0.98, 1.03); }
+          88%  { transform: translateY(1px) rotateX(720deg) rotateY(1080deg) scale(1.04, 0.96); }
+          100% { transform: translateY(0) rotateX(720deg) rotateY(1080deg) scale(1); }
         }
         .sw-flipping { animation: sw-flip ${FLIP_MS / 1000}s var(--ease-inout) both; transform-style: preserve-3d; }
         @media (prefers-reduced-motion: reduce) { .sw-flipping { animation: none; } }

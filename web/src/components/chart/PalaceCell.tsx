@@ -15,7 +15,7 @@ function StarGlyph({ star, size }: { star: Star; size: "lg" | "md" }) {
       : undefined;
   return (
     <span
-      className={size === "lg" ? "font-display text-[17px] font-semibold leading-tight" : "text-[13px] leading-tight"}
+      className={size === "lg" ? "star-major font-display text-[17px] font-semibold leading-tight" : "text-[13px] leading-tight"}
       style={{ color: brightnessVar(star.brightness), ...glow }}
     >
       {star.name}
@@ -66,7 +66,7 @@ export function PalaceCell({
       aria-pressed={selected}
       aria-label={`${palace.name},${branchName(palace.branch)}宫`}
       className={[
-        "palace-enter relative flex min-h-[124px] flex-col rounded-[6px] p-2 pb-1.5 text-left",
+        "palace-cell palace-enter relative flex min-h-[124px] flex-col rounded-[6px] p-2 pb-1.5 text-left",
         "bg-bg-raised transition-[box-shadow,opacity,filter] duration-300",
         palace.isMingGong && !dimmed ? "ming-breathe" : "",
         selected

@@ -159,7 +159,7 @@ interface CapabilityRowProps {
 
 function CapabilityRow({ eyebrow, title, body, example, flip = false }: CapabilityRowProps) {
   return (
-    <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+    <div className="reveal grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
       <div className={flip ? "lg:order-2" : ""}>
         <p className="text-[12px] font-medium tracking-[0.08em] text-gold">{eyebrow}</p>
         <h2 className="mt-4 text-balance font-display text-[26px] font-semibold leading-snug text-ink md:text-[31px]">

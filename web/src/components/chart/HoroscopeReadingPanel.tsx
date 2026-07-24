@@ -53,7 +53,8 @@ export function HoroscopeReadingPanel({ reading }: { reading: HoroscopeReading |
 
       <div className="border-t border-line px-5 pb-6 pt-4">
         <div
-          className="rounded-[8px] bg-bg px-4 py-3.5 shadow-[inset_0_0_0_1px_var(--line)]"
+          key={cur.key}
+          className="palace-enter rounded-[8px] bg-bg px-4 py-3.5 shadow-[inset_0_0_0_1px_var(--line)]"
           style={{ borderLeft: `2px solid ${LEVEL_ACCENT[cur.level] ?? "var(--line-strong)"}` }}
         >
           <div className="mb-2.5 flex flex-wrap items-baseline gap-x-3 gap-y-1">
