@@ -26,6 +26,7 @@ export default function ChartPage() {
   const [timeline, setTimeline] = useState<TimelineSelection>({ year: null });
   const [density, setDensity] = useState<Density>("pro");
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+  const [hlPalaces, setHlPalaces] = useState<string[] | null>(null); // 格局悬停联动点亮的宫名
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [casting, setCasting] = useState(false); // 罗盘起盘仪式中
@@ -175,9 +176,16 @@ export default function ChartPage() {
       {data && (
         <div className="flex flex-col gap-4">
           <TimelineBar chart={data.chart} selection={timeline} horoscope={horoscope} onChange={setTimeline} />
-          {/* 盘面全宽:格局下沉为独立分区、宫位详情浮出为抽屉,盘面不再与长侧栏比高 */}
+          {/* 盘面全宽:格局下沉为独立分区、宫位详情浮出为抽屉,盘面不再与长侧栏比高。
+              选宫时桌面端右侧让位抽屉(padding 缓动平移,连线由 ResizeObserver 追踪) */}
           <div>
-            <div className="relative">
+            <div
+              className={[
+                "relative transition-[padding] duration-500",
+                selectedBranch != null ? "lg:pr-[376px]" : "",
+              ].join(" ")}
+              style={{ transitionTimingFunction: "var(--ease-out)" }}
+            >
               <div className="overflow-x-auto">
                 <div className="mx-auto min-w-[640px] max-w-[1120px]">
                   <ChartBoard
@@ -188,6 +196,8 @@ export default function ChartPage() {
                     horoscope={horoscope}
                     overlayScopes={overlayScopes}
                     patterns={data.patterns ?? []}
+                    highlightNames={hlPalaces}
+                    onPatternHover={setHlPalaces}
                   />
                 </div>
               </div>
@@ -203,8 +213,8 @@ export default function ChartPage() {
             </p>
           </div>
 
-          {/* 格局总览:全宽卡片墙(长文多列铺开) */}
-          <PatternsOverview patterns={data.patterns ?? []} />
+          {/* 格局总览:全宽卡片墙(长文多列铺开,悬停点亮盘上关联宫位) */}
+          <PatternsOverview patterns={data.patterns ?? []} onPatternHover={setHlPalaces} />
 
           {/* 运限断语:随时间轴选择的目标日期逐层生成(大限→流年→流月→流日→流时) */}
           {horoReading && <HoroscopeReadingPanel reading={horoReading} />}

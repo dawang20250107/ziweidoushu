@@ -6,9 +6,15 @@ import { PatternCard } from "./DetailPanel";
 /**
  * 格局总览(全宽卡片墙):从盘面侧栏下沉为独立分区——
  * 长文在多列宽卡中自然铺开,不再把盘面旁边撑成高低不齐的窄柱。
- * 中宫格局徽章锚点跳转至此(id="patterns-overview")。
+ * 中宫格局徽章锚点跳转至此(id="patterns-overview");
+ * 悬停/聚焦卡片时点亮盘上关联宫位(onPatternHover 联动)。
  */
-export function PatternsOverview({ patterns }: { patterns: Pattern[] }) {
+export function PatternsOverview({
+  patterns, onPatternHover,
+}: {
+  patterns: Pattern[];
+  onPatternHover?: (names: string[] | null) => void;
+}) {
   if (patterns.length === 0) return null;
   return (
     <section id="patterns-overview" className="scroll-mt-24">
@@ -18,7 +24,13 @@ export function PatternsOverview({ patterns }: { patterns: Pattern[] }) {
       </div>
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {patterns.map((p) => (
-          <div key={p.name} className="reveal">
+          <div
+            key={p.name}
+            className="reveal"
+            tabIndex={-1}
+            onMouseEnter={() => onPatternHover?.(p.palaces ?? [])}
+            onMouseLeave={() => onPatternHover?.(null)}
+          >
             <PatternCard p={p} />
           </div>
         ))}

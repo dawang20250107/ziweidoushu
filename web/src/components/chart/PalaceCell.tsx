@@ -10,7 +10,24 @@ import {
  * 竖排星柱(古典盘式):星名自上而下一柱一星,柱脚缀亮度小字与四化印。
  * 传统命盘星曜皆竖排,竖柱既省横向空间(多星宫不再折行),又与古籍版式同气。
  */
-function StarColumn({ star, size }: { star: Star; size: "lg" | "md" }) {
+/** 三档密度 → 竖柱字号/柱距:简洁疏朗大字、专业均衡、大师紧凑纳杂曜 */
+const MAJOR_SIZE: Record<Density, string> = {
+  simple: "text-[19px]",
+  pro: "text-[16px]",
+  master: "text-[15px]",
+};
+const ASSIST_SIZE: Record<Density, string> = {
+  simple: "text-[12.5px]",
+  pro: "text-[12.5px]",
+  master: "text-[11.5px]",
+};
+const COL_GAP: Record<Density, string> = {
+  simple: "gap-x-3",
+  pro: "gap-x-2",
+  master: "gap-x-1.5",
+};
+
+function StarColumn({ star, size, fontCls }: { star: Star; size: "lg" | "md"; fontCls: string }) {
   // 庙旺主星带星光辉晕:亮度语义从「颜色」升级为「颜色 + 光」
   const glow =
     size === "lg" && (star.brightness === "庙" || star.brightness === "旺")
@@ -22,9 +39,7 @@ function StarColumn({ star, size }: { star: Star; size: "lg" | "md" }) {
       {/* 逐字 block 竖叠(不依赖 writing-mode 的垂直字体度量,跨端稳定) */}
       <span
         className={
-          size === "lg"
-            ? "star-major font-display text-[16px] font-semibold"
-            : "text-[12.5px]"
+          size === "lg" ? `star-major font-display font-semibold ${fontCls}` : fontCls
         }
         style={{ color, ...glow }}
       >
@@ -65,6 +80,8 @@ export interface PalaceCellProps {
   density: Density;
   selected: boolean;
   inSanFang: boolean;
+  /** 格局联动:悬停格局卡/徽章时本宫为其关联宫,点亮金晕 */
+  patternGlow?: boolean;
   /** 选宫聚焦:他宫被选且本宫不在其三方四正时降暗,让焦点结构浮出 */
   dimmed?: boolean;
   /** 运限叠加:各激活层在此宫的流曜与运限宫名 */
@@ -75,7 +92,8 @@ export interface PalaceCellProps {
 }
 
 export function PalaceCell({
-  palace, density, selected, inSanFang, dimmed = false, overlayStars, overlayNames, enterDelay = 0, onSelect,
+  palace, density, selected, inSanFang, patternGlow = false, dimmed = false,
+  overlayStars, overlayNames, enterDelay = 0, onSelect,
 }: PalaceCellProps) {
   const { major, assist, adjective } = groupStars(palace.stars);
 
@@ -91,9 +109,11 @@ export function PalaceCell({
         palace.isMingGong && !dimmed ? "ming-breathe" : "",
         selected
           ? "shadow-[0_0_0_2px_var(--gold),var(--glow-gold)]"
-          : inSanFang
-            ? "shadow-[0_0_0_1px_var(--gold-dim),0_0_14px_rgba(217,179,108,0.07)]"
-            : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--gold-dim),0_0_16px_rgba(217,179,108,0.08)]",
+          : patternGlow
+            ? "shadow-[0_0_0_1.5px_var(--gold),0_0_20px_rgba(217,179,108,0.18)]"
+            : inSanFang
+              ? "shadow-[0_0_0_1px_var(--gold-dim),0_0_14px_rgba(217,179,108,0.07)]"
+              : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--gold-dim),0_0_16px_rgba(217,179,108,0.08)]",
         dimmed ? "opacity-50 saturate-[0.8]" : "opacity-100",
       ].join(" ")}
       style={{
@@ -109,13 +129,13 @@ export function PalaceCell({
         </span>
       )}
 
-      {/* 星区:主星大柱 + 辅星小柱并排竖排(古典盘式,身宫徽标右上避让) */}
-      <div className={["flex flex-wrap items-start gap-x-2 gap-y-1", palace.isShenGong ? "pr-6" : ""].join(" ")}>
+      {/* 星区:主星大柱 + 辅星小柱并排竖排(古典盘式,身宫徽标右上避让;柱距随密度档) */}
+      <div className={["flex flex-wrap items-start gap-y-1", COL_GAP[density], palace.isShenGong ? "pr-6" : ""].join(" ")}>
         {major.map((s) => (
-          <StarColumn key={s.name} star={s} size="lg" />
+          <StarColumn key={s.name} star={s} size="lg" fontCls={MAJOR_SIZE[density]} />
         ))}
         {density !== "simple" &&
-          assist.map((s) => <StarColumn key={s.name} star={s} size="md" />)}
+          assist.map((s) => <StarColumn key={s.name} star={s} size="md" fontCls={ASSIST_SIZE[density]} />)}
         {major.length === 0 && palace.borrowedStars && palace.borrowedStars.length > 0 && (
           <>
             <span className="mt-0.5 text-[10px] leading-none text-ink-faint">借</span>

@@ -20,6 +20,10 @@ export interface ChartBoardProps {
   overlayScopes?: Array<"decadal" | "yearly" | "monthly" | "daily" | "hourly">;
   /** 已识别格局(中宫徽章锚点) */
   patterns?: Pattern[];
+  /** 格局联动:悬停格局时点亮其关联宫位(宫名列表),其余降暗 */
+  highlightNames?: string[] | null;
+  /** 中宫格局徽章悬停回调(向上冒泡驱动 highlightNames) */
+  onPatternHover?: (names: string[] | null) => void;
 }
 
 interface ConnectLine {
@@ -33,8 +37,10 @@ interface ConnectLine {
 /** 4×4 星盘:外环十二宫(地支固定位)+ 中宫命主信息 + 三方四正金线。 */
 export function ChartBoard({
   chart, density, selectedBranch, onSelectBranch, horoscope, overlayScopes = ["decadal", "yearly"], patterns,
+  highlightNames, onPatternHover,
 }: ChartBoardProps) {
   const sanFang = selectedBranch != null ? new Set(sanFangBranches(selectedBranch)) : null;
+  const hlSet = highlightNames && highlightNames.length > 0 ? new Set(highlightNames) : null;
   const boardRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<ConnectLine[]>([]);
 
@@ -65,8 +71,14 @@ export function ChartBoard({
       setLines(next);
     }
     measure();
+    // ResizeObserver:选宫让位平移/窗口缩放期间连线逐帧追踪宫心,不会错位
+    const ro = new ResizeObserver(measure);
+    ro.observe(board);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, [selectedBranch, density, horoscope, chart]);
 
   // 组装每宫的运限叠加数据
@@ -116,7 +128,11 @@ export function ChartBoard({
             density={density}
             selected={selectedBranch === palace.branch}
             inSanFang={sanFang != null && selectedBranch !== palace.branch && sanFang.has(palace.branch)}
-            dimmed={sanFang != null && !sanFang.has(palace.branch)}
+            patternGlow={hlSet != null && hlSet.has(palace.name)}
+            dimmed={
+              (sanFang != null && !sanFang.has(palace.branch)) ||
+              (hlSet != null && !hlSet.has(palace.name))
+            }
             overlayStars={overlayStarsByBranch.get(palace.branch)}
             overlayNames={overlayNamesByBranch.get(palace.branch)}
             enterDelay={ENTER_ORDER_BY_BRANCH[palace.branch] * 36}
@@ -125,7 +141,7 @@ export function ChartBoard({
         </div>
       ))}
       <div style={{ gridArea: "center" }} className="flex">
-        <ChartCenter chart={chart} horoscope={horoscope ?? undefined} patterns={patterns} />
+        <ChartCenter chart={chart} horoscope={horoscope ?? undefined} patterns={patterns} onPatternHover={onPatternHover} />
       </div>
 
       {/* 三方四正金线:选宫时从本宫射向对宫与三合宫 */}

@@ -10,13 +10,14 @@ const CHIP_LEVEL: Record<string, string> = {
   caution: "text-danger shadow-[inset_0_0_0_1px_var(--danger)]",
 };
 
-/** 中宫:命主信息与四柱 + 格局徽章锚点;运限激活时显示目标日期与虚岁。 */
+/** 中宫:命主信息与四柱 + 格局徽章锚点(悬停点亮关联宫位);运限激活时显示目标日期与虚岁。 */
 export function ChartCenter({
-  chart, horoscope, patterns,
+  chart, horoscope, patterns, onPatternHover,
 }: {
   chart: Chart;
   horoscope?: Horoscope;
   patterns?: Pattern[];
+  onPatternHover?: (names: string[] | null) => void;
 }) {
   const b = chart.birthInfo;
   const gender = b.gender === "male" ? "男" : "女";
@@ -74,6 +75,10 @@ export function ChartCenter({
             <a
               key={p.name}
               href="#patterns-overview"
+              onMouseEnter={() => onPatternHover?.(p.palaces ?? [])}
+              onMouseLeave={() => onPatternHover?.(null)}
+              onFocus={() => onPatternHover?.(p.palaces ?? [])}
+              onBlur={() => onPatternHover?.(null)}
               className={`rounded-full px-2 py-0.5 text-[11px] transition-opacity hover:opacity-80 ${CHIP_LEVEL[p.level] ?? CHIP_LEVEL.neutral}`}
             >
               {p.name}
