@@ -1,6 +1,9 @@
 package daliuren
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
 
 func bIdx(r rune) int {
 	for i, x := range branches {
@@ -178,4 +181,31 @@ func TestCastFullDomain(t *testing.T) {
 		}
 	}
 	t.Logf("课体分布: %v", dist)
+}
+
+// TestJudgeAndCastByTime 断语随起课即出;按时刻起课月将由中气正确换将。
+func TestJudgeAndCastByTime(t *testing.T) {
+	r, err := CastByTime(time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 2026-01-15 处冬至(中气10)后 → 月将丑(自雨水亥将逐中气退一支)。
+	if r.MonthGen != "丑" {
+		t.Errorf("月将应为丑,得 %s", r.MonthGen)
+	}
+	j := r.Judgment
+	if j == nil || j.Conclusion == "" || j.Level == "" || j.KeTypeText == "" {
+		t.Fatalf("断语字段缺失: %+v", j)
+	}
+	if len(j.SanChuan) != 3 {
+		t.Errorf("三传解应 3 段,得 %d", len(j.SanChuan))
+	}
+	if j.Level != "good" && j.Level != "caution" && j.Level != "neutral" {
+		t.Errorf("等级非法: %s", j.Level)
+	}
+	// 索引起课也应带断语。
+	r2, _ := Cast(0, 0, 0, 0)
+	if r2.Judgment == nil {
+		t.Error("Cast 也应随附断语")
+	}
 }

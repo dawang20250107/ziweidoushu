@@ -12,6 +12,7 @@ import (
 
 	"github.com/dawang20250107/ziweidoushu/internal/ai"
 	"github.com/dawang20250107/ziweidoushu/internal/auth"
+	"github.com/dawang20250107/ziweidoushu/internal/daliuren"
 	"github.com/dawang20250107/ziweidoushu/internal/liuyao"
 	"github.com/dawang20250107/ziweidoushu/internal/meihua"
 	"github.com/dawang20250107/ziweidoushu/internal/store"
@@ -141,6 +142,39 @@ func (s *Server) handleLiuYao(w http.ResponseWriter, r *http.Request) {
 	castAt := time.Now()
 	recordID := s.saveDivinationRecord(r, "liuyao", req.Question, liuyaoSummary(result), result, castAt)
 	resp := map[string]any{"result": result, "castAt": castAt.Unix()}
+	if recordID != "" {
+		resp["recordId"] = recordID
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// daliurenSummary 卦档摘要:「涉害课 · 三传巳丑酉」。
+func daliurenSummary(r *daliuren.Result) string {
+	return fmt.Sprintf("%s课 · 三传%s%s%s", r.KeType, r.Chuan[0], r.Chuan[1], r.Chuan[2])
+}
+
+// handleDaLiuRen 大六壬起课(免费):天地盘/四课/三传/课体 + 确定性断语。
+func (s *Server) handleDaLiuRen(w http.ResponseWriter, r *http.Request) {
+	var req divinationRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if len(req.Question) > 200 {
+		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
+		return
+	}
+	at, err := castTime(req.CastAt)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_cast_time", err.Error())
+		return
+	}
+	result, err := daliuren.CastByTime(at)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
+		return
+	}
+	recordID := s.saveDivinationRecord(r, "daliuren", req.Question, daliurenSummary(result), result, at)
+	resp := map[string]any{"result": result, "castAt": at.Unix()}
 	if recordID != "" {
 		resp["recordId"] = recordID
 	}
@@ -314,7 +348,7 @@ func (s *Server) handleListDivinations(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	kind := r.URL.Query().Get("kind")
-	if kind != "meihua" && kind != "liuyao" && kind != "xiaoliuren" {
+	if kind != "meihua" && kind != "liuyao" && kind != "xiaoliuren" && kind != "daliuren" {
 		kind = "" // 非法/缺省一律全部
 	}
 	records, total, err := s.store.ListDivinations(r.Context(), claims.Sub, kind, limit, offset)

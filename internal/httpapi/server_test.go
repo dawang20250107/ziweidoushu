@@ -329,6 +329,37 @@ func TestInterpretSSE(t *testing.T) {
 	}
 }
 
+func TestDaLiuRenEndpoint(t *testing.T) {
+	ts := newTestServer(t, nil)
+	resp, raw := postJSON(t, ts.URL+"/api/v1/divination/daliuren", map[string]any{
+		"question": "问事", // castAt 缺省=当下(受近 24h 校验约束)
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("大六壬起课 %d: %s", resp.StatusCode, truncate(raw))
+	}
+	var out struct {
+		Data struct {
+			Result struct {
+				KeType   string    `json:"keType"`
+				Chuan    [3]string `json:"chuan"`
+				Judgment struct {
+					Conclusion string `json:"conclusion"`
+					Level      string `json:"level"`
+				} `json:"judgment"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Data.Result.KeType == "" || out.Data.Result.Chuan[0] == "" {
+		t.Errorf("起课结果不完整: %+v", out.Data.Result)
+	}
+	if out.Data.Result.Judgment.Conclusion == "" || out.Data.Result.Judgment.Level == "" {
+		t.Errorf("大六壬断语缺失: %+v", out.Data.Result.Judgment)
+	}
+}
+
 func TestTimingEndpoints(t *testing.T) {
 	ts := newTestServer(t, nil)
 

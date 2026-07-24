@@ -50,6 +50,9 @@ type Result struct {
 	Ke      [4]Ke      `json:"ke"`     // 四课(自第一至第四)
 	Chuan   [3]string  `json:"chuan"`  // 三传(初/中/末)
 	KeType  string     `json:"keType"` // 课体:贼克/比用/涉害/遥克/昴星/别责/八专/伏吟/返吟
+
+	// Judgment 确定性断语(课体 + 三传对日干生克,见 judge.go)。
+	Judgment *Judgment `json:"judgment,omitempty"`
 }
 
 // tianPanOf 天盘布局:月将加于占时之上,顺行十二地支。
@@ -104,6 +107,7 @@ func Cast(dayStem, dayBranch, hour, monthGen int) (*Result, error) {
 	})
 	r.Chuan = [3]string{string(branches[chuan[0]]), string(branches[chuan[1]]), string(branches[chuan[2]])}
 	r.KeType = ktype
+	r.Judgment = r.Judge() // 确定性断语,随起课即出
 	return r, nil
 }
 
