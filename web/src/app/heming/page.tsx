@@ -6,6 +6,7 @@ import type { HemingResponse, HemingSide } from "@/lib/types";
 import { ChartBoard } from "@/components/chart/ChartBoard";
 import { Markdown } from "@/components/chat/Markdown";
 import { BirthFields, toBirthInfo, type BirthValue } from "@/components/heming/BirthFields";
+import { HemingReadingPanel } from "@/components/heming/HemingReadingPanel";
 
 const DEFAULT_A: BirthValue = { name: "", date: "1990-06-15", hour: 6, gender: "female" };
 const DEFAULT_B: BirthValue = { name: "", date: "1988-03-02", hour: 7, gender: "male" };
@@ -71,6 +72,9 @@ export default function HemingPage() {
 
       {result && (
         <div className="mt-12 flex flex-col gap-8 md:mt-16">
+          {/* 合盘契合度(确定性,比对双盘) */}
+          <HemingReadingPanel reading={result.reading} />
+
           {/* 夫妻宫断语(双方并列) */}
           <div className="grid gap-6 lg:grid-cols-2">
             <SidePanel title={a.name || "甲方"} side={result.a} />

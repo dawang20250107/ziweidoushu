@@ -345,6 +345,13 @@ func TestHemingEndpoint(t *testing.T) {
 				Readings  []any    `json:"readings"`
 			} `json:"a"`
 			Methodology string `json:"methodology"`
+			Reading     struct {
+				Score    int    `json:"score"`
+				Level    string `json:"level"`
+				Sections []struct {
+					Key string `json:"key"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
@@ -352,6 +359,19 @@ func TestHemingEndpoint(t *testing.T) {
 	}
 	if len(out.Data.A.FuqiStars) == 0 || out.Data.Methodology == "" {
 		t.Fatalf("合盘数据不完整: %+v", out.Data)
+	}
+	// 合盘确定性契合断语须随响应返回。
+	if out.Data.Reading.Score < 20 || out.Data.Reading.Level == "" {
+		t.Errorf("合盘契合断语缺失或分数越界: %+v", out.Data.Reading)
+	}
+	rkeys := map[string]bool{}
+	for _, sct := range out.Data.Reading.Sections {
+		rkeys[sct.Key] = true
+	}
+	for _, want := range []string{"nianming", "sihuafly", "echo", "advice"} {
+		if !rkeys[want] {
+			t.Errorf("合盘断语缺维度 %s(全键:%v)", want, rkeys)
+		}
 	}
 }
 

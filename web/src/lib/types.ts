@@ -277,11 +277,20 @@ export interface HemingSide {
   readings: HemingReading[];
 }
 
+// 合盘确定性契合断语(比对双盘:年命相合/四化互飞/夫妻宫呼应/相处建议)。
+export interface HemingMatchReading {
+  score: number; // 20-100
+  level: string; // 上上缘/上等姻缘/中上可成/中平宜经营/宜慎重
+  summary: string;
+  sections: ReadingSection[];
+}
+
 export interface HemingResponse {
   a: HemingSide;
   b: HemingSide;
   methodology: string;
   scoreCriteria: Record<string, string>;
+  reading?: HemingMatchReading; // 确定性契合断语,随合盘生成
 }
 
 // ── 古籍 ──────────────────────────────────────────────
