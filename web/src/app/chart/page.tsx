@@ -12,6 +12,7 @@ import { TimelineBar, type TimelineSelection } from "@/components/chart/Timeline
 import { SiZhuPanel } from "@/components/chart/SiZhuPanel";
 import { ReadingPanel } from "@/components/chart/ReadingPanel";
 import { HoroscopeReadingPanel } from "@/components/chart/HoroscopeReadingPanel";
+import { TimingPicker } from "@/components/chart/TimingPicker";
 import { LuopanCast } from "@/components/chart/LuopanCast";
 import { SaveProfileButton } from "@/components/profiles/SaveProfileButton";
 
@@ -200,6 +201,9 @@ export default function ChartPage() {
 
           {/* 多维断语:逐宫断语骨架(随盘而异,确定性) */}
           {data.reading && <ReadingPanel reading={data.reading} />}
+
+          {/* 事项择吉:选事项 → 利年/利月/利日(确定性) */}
+          {birth && <TimingPicker birth={birth} />}
 
           {/* 四柱视角:八字附加层(可折叠) */}
           {data.chart.siZhu && <SiZhuPanel siZhu={data.chart.siZhu} />}

@@ -329,6 +329,61 @@ func TestInterpretSSE(t *testing.T) {
 	}
 }
 
+func TestTimingEndpoints(t *testing.T) {
+	ts := newTestServer(t, nil)
+
+	// 事项目录。
+	resp, raw := getJSON(t, ts.URL+"/api/v1/timing/events")
+	if resp.StatusCode != 200 {
+		t.Fatalf("择吉目录 %d: %s", resp.StatusCode, truncate(raw))
+	}
+	var cat struct {
+		Data struct {
+			Events []struct {
+				Key    string `json:"key"`
+				Palace string `json:"palace"`
+			} `json:"events"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &cat); err != nil {
+		t.Fatal(err)
+	}
+	if len(cat.Data.Events) != 7 {
+		t.Fatalf("择吉事项应 7 项,得 %d", len(cat.Data.Events))
+	}
+
+	// 事项择吉。
+	resp, raw = postJSON(t, ts.URL+"/api/v1/timing/event", map[string]any{
+		"year": 1990, "month": 6, "day": 15, "hour": 5, "gender": "male", "event": "wealth",
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("事项择吉 %d: %s", resp.StatusCode, truncate(raw))
+	}
+	var out struct {
+		Data struct {
+			Timing struct {
+				Palace  string `json:"palace"`
+				Summary string `json:"summary"`
+				Advice  string `json:"advice"`
+			} `json:"timing"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Data.Timing.Palace != "财帛" || out.Data.Timing.Summary == "" || out.Data.Timing.Advice == "" {
+		t.Errorf("求财择吉结果异常: %+v", out.Data.Timing)
+	}
+
+	// 未知事项 400。
+	resp, _ = postJSON(t, ts.URL+"/api/v1/timing/event", map[string]any{
+		"year": 1990, "month": 6, "day": 15, "hour": 5, "gender": "male", "event": "nope",
+	})
+	if resp.StatusCode != 400 {
+		t.Errorf("未知事项应 400,得 %d", resp.StatusCode)
+	}
+}
+
 func TestHemingEndpoint(t *testing.T) {
 	ts := newTestServer(t, nil)
 	resp, raw := postJSON(t, ts.URL+"/api/v1/heming", map[string]any{

@@ -105,6 +105,36 @@ func (s *Server) handleWorldCities(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"cities": s.kb.WorldCities})
 }
 
+// eventTimingRequest 事项择吉请求:生辰 + 事项键。
+type eventTimingRequest struct {
+	chartRequest
+	Event string `json:"event"`
+}
+
+// handleTimingEvents 择吉事项目录。
+func (s *Server) handleTimingEvents(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{"events": ai.EventCatalog()})
+}
+
+// handleEventTiming 事项择吉:利年→利月→利日。
+func (s *Server) handleEventTiming(w http.ResponseWriter, r *http.Request) {
+	var req eventTimingRequest
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	resp, err := s.computeChart(req.chartRequest)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_birth", err.Error())
+		return
+	}
+	et := s.interp.BuildEventTiming(resp.Chart, req.Event)
+	if et == nil {
+		writeError(w, http.StatusBadRequest, "bad_event", "未知事项,请从 /api/v1/timing/events 选择")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"timing": et})
+}
+
 func (s *Server) handleFamousList(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"persons": s.kb.Famous})
 }

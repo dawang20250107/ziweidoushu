@@ -5,7 +5,7 @@
 import type {
   BirthInfo, ChartResponse, Horoscope, BookMeta, Book, Chapter,
   SearchHit, InterpretResult, FamousPerson, HemingResponse, Chart, Pattern,
-  WorldCity, ProvinceCities, HoroscopeReading,
+  WorldCity, ProvinceCities, HoroscopeReading, EventCatalogItem, EventTiming,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
@@ -58,6 +58,14 @@ export function fetchChart(birth: BirthInfo): Promise<ChartResponse> {
 
 export function fetchWorldCities(): Promise<{ cities: WorldCity[] }> {
   return get("/api/v1/world-cities");
+}
+
+export function fetchTimingEvents(): Promise<{ events: EventCatalogItem[] }> {
+  return get("/api/v1/timing/events");
+}
+
+export function fetchEventTiming(birth: BirthInfo, event: string): Promise<{ timing: EventTiming }> {
+  return post("/api/v1/timing/event", { ...birth, event });
 }
 
 export function fetchChinaCities(): Promise<{ provinces: ProvinceCities[] }> {

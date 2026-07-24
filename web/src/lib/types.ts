@@ -242,6 +242,27 @@ export interface HoroscopeReading {
   sections: ReadingSection[];
 }
 
+// ── 事项择吉 ──────────────────────────────────────────
+export interface EventCatalogItem {
+  key: string;
+  label: string;
+  palace: string;
+}
+export interface TimingYear {
+  year: number;
+  ganZhi: string;
+  note: string;
+}
+export interface EventTiming {
+  event: string;
+  palace: string;
+  summary: string;
+  years: TimingYear[];
+  bestMonth?: string;
+  bestDays?: string[];
+  advice: string;
+}
+
 // ── 合盘与名人 ────────────────────────────────────────
 
 export interface FamousPerson {
