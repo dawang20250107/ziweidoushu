@@ -179,6 +179,9 @@ type Result struct {
 	// 元忌力量评估(增删有力/无力条目对照,见 power.go;倾向供参,判定在解卦层)
 	YuanShenPower []PowerNote `json:"yuanShenPower"`
 	JiShenPower   []PowerNote `json:"jiShenPower"`
+
+	// Judgment 确定性断语(用神旺衰/元忌力量/动变/世应/应期,见 judge.go)。
+	Judgment *Judgment `json:"judgment,omitempty"`
 }
 
 var seqNames = []string{"八纯卦", "一世卦", "二世卦", "三世卦", "四世卦", "五世卦", "游魂卦", "归魂卦"}
@@ -542,6 +545,7 @@ func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
 	r.Tosses = append([]int(nil), tosses...)
 	r.applyYongShen()
 	r.applyPower()
+	r.Judgment = r.Judge() // 确定性断语,随起卦即出(免费层)
 	return r, nil
 }
 

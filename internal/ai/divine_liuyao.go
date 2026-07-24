@@ -125,6 +125,15 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 		}
 	}
 
+	// 确定性断语骨架:据用神旺衰/元忌力量/动变/世应机械推演,供 LLM 贴卦发挥。
+	if j := r.Judgment; j != nil {
+		sb.WriteString("\n## 断语骨架(确定性推演,须据此贴卦、不得脱卦空谈)\n\n")
+		sb.WriteString(j.Conclusion + "\n")
+		for _, p := range j.Points {
+			sb.WriteString("- " + p + "\n")
+		}
+	}
+
 	// 语料引文:每书限一条,分散引用面
 	if it.store != nil {
 		var cites []string
