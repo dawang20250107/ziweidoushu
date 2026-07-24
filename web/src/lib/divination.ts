@@ -274,6 +274,9 @@ export interface DaLiuRenResult {
   ke: DaLiuRenKe[]; // 四课
   chuan: string[]; // 三传(初/中/末)
   keType: string; // 课体
+  tianJiang?: string[]; // 地盘十二位所乘天将
+  chuanJiang?: string[]; // 三传所乘天将
+  guiIsDay?: boolean;
   judgment?: DaLiuRenJudgment;
 }
 

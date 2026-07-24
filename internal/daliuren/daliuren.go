@@ -50,6 +50,11 @@ type Result struct {
 	Ke      [4]Ke      `json:"ke"`     // 四课(自第一至第四)
 	Chuan   [3]string  `json:"chuan"`  // 三传(初/中/末)
 	KeType  string     `json:"keType"` // 课体:贼克/比用/涉害/遥克/昴星/别责/八专/伏吟/返吟
+	// TianJiang[i] = 地盘 i 位上所乘十二天将(贵人歌两书互证,亥~辰顺布)。
+	TianJiang [12]string `json:"tianJiang"`
+	// ChuanJiang 三传所乘天将;GuiIsDay 本课用昼贵与否。
+	ChuanJiang [3]string `json:"chuanJiang"`
+	GuiIsDay   bool      `json:"guiIsDay"`
 
 	// Judgment 确定性断语(课体 + 三传对日干生克,见 judge.go)。
 	Judgment *Judgment `json:"judgment,omitempty"`
@@ -107,6 +112,20 @@ func Cast(dayStem, dayBranch, hour, monthGen int) (*Result, error) {
 	})
 	r.Chuan = [3]string{string(branches[chuan[0]]), string(branches[chuan[1]]), string(branches[chuan[2]])}
 	r.KeType = ktype
+	// 十二天将:随天盘布于地盘十二位;三传乘将取该传之神所在地盘位
+	jiang, _, isDay := placeTianJiang(tp, dayStem, hour)
+	r.GuiIsDay = isDay
+	for i := 0; i < 12; i++ {
+		r.TianJiang[i] = TianJiangNames[jiang[i]]
+	}
+	for c := 0; c < 3; c++ {
+		for i := 0; i < 12; i++ {
+			if tp[i] == chuan[c] {
+				r.ChuanJiang[c] = TianJiangNames[jiang[i]]
+				break
+			}
+		}
+	}
 	r.Judgment = r.Judge() // 确定性断语,随起课即出
 	return r, nil
 }

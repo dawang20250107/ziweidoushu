@@ -126,6 +126,16 @@ func (r *Result) Judge() *Judgment {
 		}
 		score += d * w
 		line := fmt.Sprintf("%s:%s(%s),%s", frames[i], r.Chuan[i], elementNames[branchElement[ci]], txt)
+		// 乘将附断:凶将小减、贵人青龙小增(吉凶系于天将,大全义)
+		if jg := r.ChuanJiang[i]; jg != "" {
+			line += ";乘" + jg + "——" + jiangNote[jg]
+			switch jg {
+			case "贵人", "青龙", "六合", "太常", "太阴":
+				score++
+			case "白虎", "玄武", "螣蛇", "天空", "勾陈":
+				score--
+			}
+		}
 		j.SanChuan = append(j.SanChuan, line)
 	}
 	j.Points = append(j.Points, j.SanChuan...)
