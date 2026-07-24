@@ -247,6 +247,7 @@ export interface EventCatalogItem {
   key: string;
   label: string;
   palace: string;
+  kind: "auspicious" | "avoid";
 }
 export interface TimingYear {
   year: number;
@@ -256,10 +257,13 @@ export interface TimingYear {
 export interface EventTiming {
   event: string;
   palace: string;
+  kind: "auspicious" | "avoid";
   summary: string;
   years: TimingYear[];
   bestMonth?: string;
   bestDays?: string[];
+  baseQuality: string; // 佳/中/弱
+  baseNote: string;
   advice: string;
 }
 

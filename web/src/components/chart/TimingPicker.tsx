@@ -46,26 +46,37 @@ export function TimingPicker({ birth }: { birth: BirthInfo }) {
         <span className="text-[12px] tracking-[0.24em] text-gold">事项择吉</span>
         <span className="text-[11px] text-ink-faint">利年 · 利月 · 利日</span>
       </div>
-      <p className="mt-1.5 text-[12px] text-ink-faint">选所问之事,按对应宫逐层择时(叠大限共振,确定性)。</p>
+      <p className="mt-1.5 text-[12px] text-ink-faint">选所问之事,按对应宫逐层择时(叠本命底色与大限共振,确定性)。</p>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {events.map((e) => (
-          <button
-            key={e.key}
-            type="button"
-            aria-pressed={active === e.key}
-            onClick={() => pick(e.key)}
-            className={[
-              "min-h-[36px] rounded-full px-3.5 py-1.5 text-[13px] transition-colors",
-              active === e.key
-                ? "bg-[var(--gold-glow)] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
-                : "text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] hover:text-ink",
-            ].join(" ")}
-          >
-            {e.label}
-          </button>
-        ))}
-      </div>
+      {(["auspicious", "avoid"] as const).map((kind) => {
+        const items = events.filter((e) => e.kind === kind);
+        if (items.length === 0) return null;
+        return (
+          <div key={kind} className="mt-3">
+            <p className="mb-1.5 text-[11px] tracking-[0.16em] text-ink-faint">
+              {kind === "auspicious" ? "择吉 · 宜择良时" : "避忌 · 宜避凶时"}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {items.map((e) => (
+                <button
+                  key={e.key}
+                  type="button"
+                  aria-pressed={active === e.key}
+                  onClick={() => pick(e.key)}
+                  className={[
+                    "min-h-[36px] rounded-full px-3.5 py-1.5 text-[13px] transition-colors",
+                    active === e.key
+                      ? "bg-[var(--gold-glow)] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                      : "text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] hover:text-ink",
+                  ].join(" ")}
+                >
+                  {e.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
 
       {loading && <p className="mt-4 text-[13px] text-ink-faint">推算中…</p>}
       {error && <p className="mt-4 text-[13px] text-danger">{error}</p>}
@@ -73,10 +84,17 @@ export function TimingPicker({ birth }: { birth: BirthInfo }) {
       {result && !loading && (
         <div className="mt-4 flex flex-col gap-3 border-t border-line pt-4">
           <p className="text-[13.5px] leading-[1.85] text-ink-secondary">{result.summary}</p>
+          {result.baseNote && (
+            <p className="rounded-[6px] bg-bg px-3 py-2 text-[12.5px] leading-[1.8] text-ink-faint shadow-[inset_0_0_0_1px_var(--line)]">
+              本命底色 · {result.baseQuality}：{result.baseNote}
+            </p>
+          )}
 
           {result.years.length > 0 && (
             <div>
-              <p className="mb-1.5 text-[11px] tracking-[0.16em] text-ink-faint">利年(未来十年)</p>
+              <p className="mb-1.5 text-[11px] tracking-[0.16em] text-ink-faint">
+                {result.kind === "avoid" ? "忌年(未来十年宜避)" : "利年(未来十年)"}
+              </p>
               <ul className="flex flex-col gap-1.5">
                 {result.years.map((y) => (
                   <li key={y.year} className="rounded-[6px] bg-bg px-3 py-2 shadow-[inset_0_0_0_1px_var(--line)]">
@@ -92,7 +110,7 @@ export function TimingPicker({ birth }: { birth: BirthInfo }) {
           <div className="grid gap-3 sm:grid-cols-2">
             {result.bestMonth && (
               <div className="rounded-[6px] bg-bg px-3 py-2 shadow-[inset_0_0_0_1px_var(--line)]">
-                <p className="text-[11px] tracking-[0.16em] text-ink-faint">利月</p>
+                <p className="text-[11px] tracking-[0.16em] text-ink-faint">{result.kind === "avoid" ? "忌月" : "利月"}</p>
                 <p className="mt-0.5 text-[13.5px] text-ink-secondary">{result.bestMonth}</p>
               </div>
             )}

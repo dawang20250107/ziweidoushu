@@ -348,8 +348,8 @@ func TestTimingEndpoints(t *testing.T) {
 	if err := json.Unmarshal(raw, &cat); err != nil {
 		t.Fatal(err)
 	}
-	if len(cat.Data.Events) != 7 {
-		t.Fatalf("择吉事项应 7 项,得 %d", len(cat.Data.Events))
+	if len(cat.Data.Events) != 11 { // 7 择吉 + 4 避忌
+		t.Fatalf("事项应 11 项,得 %d", len(cat.Data.Events))
 	}
 
 	// 事项择吉。

@@ -22,7 +22,7 @@ type eventSpec struct {
 	Stars   []rune        // 利此事的流曜末字
 }
 
-// eventOrder 事项目录顺序(前端下拉展示用)。
+// eventOrder 择吉事项顺序(前端下拉展示用)。
 var eventOrder = []string{"exam", "contract", "wealth", "career", "marriage", "relocate", "travel"}
 
 var eventSpecs = map[string]eventSpec{
@@ -35,36 +35,123 @@ var eventSpecs = map[string]eventSpec{
 	"travel":   {"出行·远行", "迁移", []ziwei.SiHua{ziwei.HuaLu}, []rune{'马', '禄'}},
 }
 
+// avoidSpec 忌事(避险)择时规格:找该宫逢煞忌之年月，宜避。
+type avoidSpec struct {
+	Label  string
+	Palace string
+}
+
+var avoidOrder = []string{"surgery", "litigation", "travelrisk", "investrisk"}
+
+var avoidSpecs = map[string]avoidSpec{
+	"surgery":    {"手术·开刀", "疾厄"},
+	"litigation": {"诉讼·官非", "官禄"},
+	"travelrisk": {"远行·避险", "迁移"},
+	"investrisk": {"投资·防破", "财帛"},
+}
+
 // EventCatalogItem 事项目录项(供前端渲染下拉)。
 type EventCatalogItem struct {
 	Key    string `json:"key"`
 	Label  string `json:"label"`
 	Palace string `json:"palace"`
+	Kind   string `json:"kind"` // auspicious=择吉 / avoid=避忌
 }
 
-// EventCatalog 全部可择吉事项。
+// EventCatalog 全部事项(先择吉后避忌)。
 func EventCatalog() []EventCatalogItem {
-	out := make([]EventCatalogItem, 0, len(eventOrder))
+	out := make([]EventCatalogItem, 0, len(eventOrder)+len(avoidOrder))
 	for _, k := range eventOrder {
 		s := eventSpecs[k]
-		out = append(out, EventCatalogItem{Key: k, Label: s.Label, Palace: s.Palace})
+		out = append(out, EventCatalogItem{Key: k, Label: s.Label, Palace: s.Palace, Kind: "auspicious"})
+	}
+	for _, k := range avoidOrder {
+		s := avoidSpecs[k]
+		out = append(out, EventCatalogItem{Key: k, Label: s.Label, Palace: s.Palace, Kind: "avoid"})
 	}
 	return out
 }
 
-// EventTiming 某事项的择吉结果。
-type EventTiming struct {
-	Event     string       `json:"event"`
-	Palace    string       `json:"palace"`
-	Summary   string       `json:"summary"`
-	Years     []TimingYear `json:"years"`               // 未来十年利此事之年
-	BestMonth string       `json:"bestMonth,omitempty"` // 就近利年内的利月
-	BestDays  []string     `json:"bestDays,omitempty"`  // 利月内的利日
-	Advice    string       `json:"advice"`
+// natalPalaceQuality 本命某宫的吉凶底分(与逐宫综论同源:庙陷+四化+煞吉+应验档)。
+func natalPalaceQuality(chart *ziwei.Chart, p *ziwei.Palace) int {
+	majors, borrowed := palaceMajors(p)
+	bright, dim, sihua, sha, lucky := scanPalace(p)
+	score := 0
+	for _, name := range majors {
+		if bright[name] {
+			score += 2
+		} else if dim[name] {
+			score -= 2
+		} else {
+			score++
+		}
+		if h, ok := sihua[name]; ok {
+			if h == ziwei.HuaJi {
+				score -= 3
+			} else {
+				score += 2
+			}
+		}
+	}
+	score += len(lucky) - len(sha)
+	if !borrowed {
+		_, d := escalations(chart, p, majors, dim, sihua)
+		score += d
+	}
+	return score
 }
 
-// BuildEventTiming 事项择吉:利年→利月→利日逐层。
+// baseQualityNote 本命底色对择吉/避忌的加权提示。
+func baseQualityNote(palace string, q int, avoid bool) (word, note string) {
+	switch {
+	case q >= 3:
+		word = "佳"
+	case q <= -2:
+		word = "弱"
+	default:
+		word = "中"
+	}
+	if avoid {
+		switch word {
+		case "弱":
+			note = fmt.Sprintf("本命%s宫本偏弱(落陷/逢煞忌),忌年忌月尤须谨慎、能避则避。", palace)
+		case "佳":
+			note = fmt.Sprintf("本命%s宫根基尚佳,纵逢忌时亦有缓冲,仍以稳妥为上。", palace)
+		default:
+			note = fmt.Sprintf("本命%s宫中平,忌时避其锋、平时无需过虑。", palace)
+		}
+		return
+	}
+	switch word {
+	case "佳":
+		note = fmt.Sprintf("本命%s宫根基佳(庙旺/得吉),此事本有底气,逢利时更易水到渠成。", palace)
+	case "弱":
+		note = fmt.Sprintf("本命%s宫偏弱(落陷/逢煞忌),纵逢利时亦须加倍用心、量力而为,择吉为辅。", palace)
+	default:
+		note = fmt.Sprintf("本命%s宫中平,成事在人为,利时把握、平时经营。", palace)
+	}
+	return
+}
+
+// EventTiming 某事项的择时结果(择吉或避忌)。
+type EventTiming struct {
+	Event       string       `json:"event"`
+	Palace      string       `json:"palace"`
+	Kind        string       `json:"kind"` // auspicious / avoid
+	Summary     string       `json:"summary"`
+	Years       []TimingYear `json:"years"`               // 择吉=利年 / 避忌=忌年
+	BestMonth   string       `json:"bestMonth,omitempty"` // 择吉=利月 / 避忌=忌月
+	BestDays    []string     `json:"bestDays,omitempty"`  // 择吉=利日
+	BaseQuality string       `json:"baseQuality"`         // 本命该宫底色:佳/中/弱
+	BaseNote    string       `json:"baseNote"`
+	Advice      string       `json:"advice"`
+}
+
+// BuildEventTiming 事项择时:择吉(利年→利月→利日)或避忌(忌年→忌月)。
 func (it *Interpreter) BuildEventTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
+	if _, ok := avoidSpecs[eventKey]; ok {
+		return buildAvoidTiming(chart, eventKey)
+	}
 	return buildEventTiming(chart, eventKey)
 }
 
@@ -93,7 +180,8 @@ func buildEventTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
 		return nil
 	}
 
-	et := &EventTiming{Event: spec.Label, Palace: spec.Palace}
+	et := &EventTiming{Event: spec.Label, Palace: spec.Palace, Kind: "auspicious"}
+	et.BaseQuality, et.BaseNote = baseQualityNote(spec.Palace, natalPalaceQuality(chart, target), false)
 
 	// 利年:扫未来十年。
 	for y := base; y < base+10; y++ {
@@ -154,6 +242,95 @@ func buildEventTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
 	}
 	et.Advice = eventAdvice(spec, len(et.Years) > 0)
 	return et
+}
+
+// buildAvoidTiming 忌事择时:找该宫逢流年化忌/流羊陀之年月,宜避。
+func buildAvoidTiming(chart *ziwei.Chart, eventKey string) *EventTiming {
+	spec, ok := avoidSpecs[eventKey]
+	if !ok || chart == nil {
+		return nil
+	}
+	target := chart.PalaceByName(spec.Palace)
+	base := chart.ReferenceYear
+	if target == nil || base <= 0 {
+		return nil
+	}
+	et := &EventTiming{Event: spec.Label, Palace: spec.Palace, Kind: "avoid"}
+	et.BaseQuality, et.BaseNote = baseQualityNote(spec.Palace, natalPalaceQuality(chart, target), true)
+
+	for y := base; y < base+10; y++ {
+		h, err := ziwei.GenerateHoroscope(chart, y, 6, 15, 6)
+		if err != nil {
+			continue
+		}
+		yr := h.Yearly
+		score := 0
+		var rs []string
+		if star := mutagenStar(yr.Mutagen, ziwei.HuaJi); star != "" && mutagenInPalace(chart, star, spec.Palace) {
+			score += 2
+			rs = append(rs, "流年化忌入"+spec.Palace)
+		}
+		if la := liuYaoAround(yr, target.Branch); la['羊'] || la['陀'] {
+			score++
+			rs = append(rs, "流羊陀会照"+spec.Palace)
+		}
+		if yr.PalaceBranch == target.Branch && score > 0 {
+			rs = append(rs, "流年运程亦行至此宫、感受更切")
+		}
+		if score >= 2 {
+			gz := ziwei.Stems[ziwei.YearStemIndex(y)] + ziwei.Branches[ziwei.YearBranchIndex(y)]
+			et.Years = append(et.Years, TimingYear{Year: y, GanZhi: gz, Note: strings.Join(rs, ";")})
+		}
+	}
+
+	// 忌月:就近忌年(无则本年)内该宫逢煞忌之月。
+	dy := base
+	if len(et.Years) > 0 {
+		dy = et.Years[0].Year
+	}
+	worstMonth, worst := 0, 0
+	for _, md := range monthDaySamples() {
+		h, err := ziwei.GenerateHoroscope(chart, dy, md[0], md[1], 6)
+		if err != nil {
+			continue
+		}
+		s := 0
+		if h.Monthly.PalaceBranch == target.Branch {
+			s++
+		}
+		if la := liuYaoAround(h.Monthly, target.Branch); la['羊'] || la['陀'] {
+			s += 2
+		}
+		if s > worst {
+			worst, worstMonth = s, md[0]
+		}
+	}
+	if worstMonth > 0 && worst >= 2 {
+		et.BestMonth = fmt.Sprintf("%d 年阳历 %d 月前后(该宫逢煞、宜避)", dy, worstMonth)
+	}
+
+	if len(et.Years) > 0 {
+		et.Summary = fmt.Sprintf("为「%s」避忌(应事之宫:%s)。未来十年宜避之年 %d 个,此事若可择期,避开为上、不得已则加倍谨慎。", spec.Label, spec.Palace, len(et.Years))
+	} else {
+		et.Summary = fmt.Sprintf("为「%s」避忌(应事之宫:%s)。未来十年%s宫无强煞忌引动,风险平平,循常谨慎即可。", spec.Label, spec.Palace, spec.Palace)
+	}
+	et.Advice = avoidAdvice(spec.Palace) + et.BaseNote
+	return et
+}
+
+func avoidAdvice(palace string) string {
+	switch palace {
+	case "疾厄":
+		return "忌年忌月宜避择期手术、慎防意外与旧疾复发,平日强健体魄、定期检查(不代医疗诊断);"
+	case "官禄":
+		return "忌年忌月慎涉诉讼、纠纷、担保背书,合约条款严审、留证据、少与人争;"
+	case "迁移":
+		return "忌年忌月远行宜谨慎,注意交通与人身安全、避险地险事、备应急;"
+	case "财帛":
+		return "忌年忌月忌大额投资、投机、借贷担保,守成为上、防被骗破财;"
+	default:
+		return "忌年忌月宜避其锋、稳妥行事;"
+	}
 }
 
 // yearEventScore 流年层评分(四化为倪师认可,参与计分)。
