@@ -55,10 +55,10 @@ export function PricingCard({
   return (
     <div
       className={[
-        "lift relative flex flex-col rounded-[10px] bg-bg-raised p-6 md:p-8",
+        "relative flex flex-col rounded-[10px] bg-bg-raised p-6 md:p-8",
         featured
-          ? "shadow-[0_0_0_2px_var(--gold),0_0_24px_var(--gold-glow)]"
-          : "shadow-[0_0_0_1px_var(--line)]",
+          ? "lift shadow-[0_0_0_2px_var(--gold),0_0_24px_var(--gold-glow)]"
+          : "card-glow shadow-[0_0_0_1px_var(--line)]",
       ].join(" ")}
     >
       {featured && (
@@ -72,7 +72,12 @@ export function PricingCard({
 
       {/* 价格 */}
       <div className="mt-5 flex items-baseline gap-2">
-        <span className="font-display text-3xl font-semibold text-ink tnum">
+        <span
+          className={[
+            "font-display text-3xl font-semibold tnum",
+            featured ? "text-gold-gradient" : "text-ink",
+          ].join(" ")}
+        >
           {formatPrice(product.priceCents)}
         </span>
         {product.originalPriceCents && product.originalPriceCents > product.priceCents && (

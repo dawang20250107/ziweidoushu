@@ -1,0 +1,43 @@
+   ▲ Next.js 15.5.20
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 7.8s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/18) ...
+   Generating static pages (4/18) 
+   Generating static pages (8/18) 
+   Generating static pages (13/18) 
+ ✓ Generating static pages (18/18)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    3.88 kB         110 kB
+├ ○ /_not-found                            993 B         103 kB
+├ ○ /account                             4.67 kB         110 kB
+├ ○ /chart                               13.8 kB         124 kB
+├ ○ /chat                                5.42 kB         111 kB
+├ ○ /divination                          8.49 kB         119 kB
+├ ○ /divinations                         4.05 kB         110 kB
+├ ƒ /divinations/[id]                    2.74 kB         113 kB
+├ ○ /famous                              3.03 kB         114 kB
+├ ○ /heming                              6.31 kB         114 kB
+├ ○ /icon.svg                                0 B            0 B
+├ ○ /library                             6.32 kB         112 kB
+├ ƒ /library/[slug]                      4.31 kB         110 kB
+├ ƒ /library/[slug]/[chapter]            8.09 kB         114 kB
+├ ○ /library/search                      3.17 kB         109 kB
+├ ○ /login                               2.53 kB         108 kB
+├ ○ /pricing                              5.9 kB         112 kB
+├ ○ /profiles                            4.03 kB         110 kB
+└ ○ /reports                             4.74 kB         111 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/255-3981a3d1f3561bd8.js       46.2 kB
+  ├ chunks/4bd1b696-c023c6e3521b1417.js  54.2 kB
+  └ other shared chunks (total)          1.92 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

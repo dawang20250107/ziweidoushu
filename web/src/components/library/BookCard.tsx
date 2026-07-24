@@ -38,7 +38,7 @@ export function BookCard({ book, progress }: { book: BookMeta; progress?: CardPr
           ? `${book.title} · 继续阅读 第 ${progress!.chapterIdx + 1} 章`
           : `${book.title} · 开始阅读`
       }
-      className="lift group relative flex flex-col overflow-hidden rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--gold-dim)]"
+      className="card-glow group relative flex flex-col overflow-hidden rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)]"
     >
       {/* 星象顶饰 */}
       <div className="mb-5 h-12 opacity-80 transition-opacity duration-500 group-hover:opacity-100">

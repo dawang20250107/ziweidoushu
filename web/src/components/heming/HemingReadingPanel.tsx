@@ -25,13 +25,14 @@ export function HemingReadingPanel({ reading }: { reading: HemingMatchReading | 
         <div
           className="relative grid h-28 w-28 shrink-0 place-items-center rounded-full"
           style={{
-            background: `conic-gradient(var(--gold) ${pct * 3.6}deg, var(--line) 0deg)`,
+            background: `conic-gradient(var(--gold-dim) 0deg, var(--gold) ${pct * 1.8}deg, var(--gold-bright) ${pct * 3.6}deg, var(--line) ${pct * 3.6}deg)`,
+            boxShadow: "0 0 26px rgba(217, 179, 108, 0.18)",
           }}
           role="img"
           aria-label={`契合度 ${pct} 分`}
         >
           <div className="grid h-[92px] w-[92px] place-items-center rounded-full bg-bg-raised">
-            <span className="font-display text-[30px] font-semibold leading-none text-gold">{pct}</span>
+            <span className="text-gold-gradient font-display text-[30px] font-semibold leading-none">{pct}</span>
             <span className="mt-1 text-[11px] tracking-[0.16em] text-ink-faint">契合度</span>
           </div>
         </div>
