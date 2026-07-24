@@ -46,7 +46,7 @@ const HEADING_CLS: Record<number, string> = {
   3: "font-display text-[15px] font-semibold text-ink-secondary",
 };
 
-export function Markdown({ text }: { text: string }) {
+export function Markdown({ text, elder = false }: { text: string; elder?: boolean }) {
   const lines = text.replace(/\r\n/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
   let para: string[] = [];
@@ -142,5 +142,5 @@ export function Markdown({ text }: { text: string }) {
   }
   flushPara();
 
-  return <div className="space-y-2 text-[15px]">{blocks}</div>;
+  return <div className={["space-y-2 text-[15px]", elder ? "prose-elder" : ""].join(" ")}>{blocks}</div>;
 }

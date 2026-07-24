@@ -46,7 +46,7 @@ function AssistantBubble({ m }: { m: ChatMessage }) {
           <>
             {m.content && (
               <div className={m.streaming ? "stream-md" : undefined}>
-                <Markdown text={m.content} />
+                <Markdown text={m.content} elder />
               </div>
             )}
             {m.streaming && !m.content && (

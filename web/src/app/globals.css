@@ -347,6 +347,50 @@ mark {
     repeating-linear-gradient(0deg, rgba(112, 96, 56, 0.02) 0 1px, transparent 1px 3px);
 }
 
+/* 长者叙述体:AI 解读正文——楷体娓娓道来,段落舒展,逐段浮现 */
+@keyframes block-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.prose-elder > * {
+  animation: block-in 460ms var(--ease-out) both;
+}
+.prose-elder > :nth-child(1) { animation-delay: 0ms; }
+.prose-elder > :nth-child(2) { animation-delay: 90ms; }
+.prose-elder > :nth-child(3) { animation-delay: 180ms; }
+.prose-elder > :nth-child(4) { animation-delay: 270ms; }
+.prose-elder > :nth-child(5) { animation-delay: 360ms; }
+.prose-elder > :nth-child(6) { animation-delay: 450ms; }
+.prose-elder > :nth-child(7) { animation-delay: 540ms; }
+.prose-elder > :nth-child(n + 8) { animation-delay: 620ms; }
+.prose-elder p {
+  font-family: var(--font-reading);
+  font-size: 15.5px;
+  line-height: 2.02;
+  letter-spacing: 0.012em;
+  color: var(--ink);
+}
+.prose-elder h3::before,
+.prose-elder h4::before {
+  content: "◆";
+  margin-right: 8px;
+  font-size: 9px;
+  vertical-align: 2px;
+  color: var(--gold-dim);
+}
+.prose-elder blockquote {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  background: linear-gradient(to right, var(--gold-glow), transparent 70%);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
 /* 问星流式:行内打字光标(挂在流式消息最后一个块的末尾) */
 @keyframes caret-blink {
   0%,
@@ -465,7 +509,8 @@ button:not(:disabled):active {
   }
   .stream-md > :last-child::after,
   .think-dot,
-  .bubble-streaming {
+  .bubble-streaming,
+  .prose-elder > * {
     animation: none;
   }
 }
