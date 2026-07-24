@@ -164,6 +164,14 @@ func buildReading(chart *ziwei.Chart, patterns []ziwei.Pattern) *Reading {
 	if s := sectionForLiuNian(chart); s != nil { // 流年:当年一岁之气
 		rd.Sections = append(rd.Sections, *s)
 	}
+	// 流年择时:未来十年健康预警 + 财官催旺
+	health, wealth, career := annualTiming(chart)
+	if s := sectionForHealthTiming(chart, health); s != nil {
+		rd.Sections = append(rd.Sections, *s)
+	}
+	if s := sectionForFortuneTiming(chart, wealth, career); s != nil {
+		rd.Sections = append(rd.Sections, *s)
+	}
 	return rd
 }
 

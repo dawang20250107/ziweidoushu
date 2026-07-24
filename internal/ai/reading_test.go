@@ -273,6 +273,41 @@ func TestHealthLayer(t *testing.T) {
 	}
 }
 
+// TestAnnualTiming 流年择时:健康预警与财官催旺两维度须随盘给出,择时年落十年窗口。
+func TestAnnualTiming(t *testing.T) {
+	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2026})
+	if err != nil {
+		t.Fatal(err)
+	}
+	secs := buildReading(c, ziwei.DetectPatterns(c)).Sections
+	got := map[string]string{}
+	for _, s := range secs {
+		got[s.Key] = s.Text
+	}
+	if _, ok := got["healthtiming"]; !ok {
+		t.Error("缺健康预警·流年维度")
+	}
+	ft, ok := got["fortunetiming"]
+	if !ok {
+		t.Error("缺财官择时·流年维度")
+	}
+	if !strings.Contains(ft, "财运") || !strings.Contains(ft, "事业") {
+		t.Errorf("财官择时应含财运与事业两段:%s", ft)
+	}
+	// 择时年份须落在 ReferenceYear 起十年窗口。
+	health, wealth, career := annualTiming(c)
+	for _, grp := range [][]TimingYear{health, wealth, career} {
+		for _, ty := range grp {
+			if ty.Year < 2026 || ty.Year >= 2036 {
+				t.Errorf("择时年 %d 越出十年窗口", ty.Year)
+			}
+			if ty.GanZhi == "" || ty.Note == "" {
+				t.Errorf("择时年 %d 缺干支或理由", ty.Year)
+			}
+		}
+	}
+}
+
 // TestReadingChartGrounded 断语须引用本盘实配星曜(非通用套话)。
 func TestReadingChartGrounded(t *testing.T) {
 	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2024})
