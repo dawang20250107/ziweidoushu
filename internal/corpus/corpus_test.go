@@ -21,16 +21,19 @@ func newTestStore(t *testing.T) *Store {
 func TestEmbeddedBooks(t *testing.T) {
 	s := newTestStore(t)
 	books := s.Books()
-	if len(books) != 3 {
-		t.Fatalf("内置古籍数量: got %d want 3", len(books))
+	if len(books) != 4 {
+		t.Fatalf("内置古籍数量: got %d want 4", len(books))
 	}
-	// 与迁移时的统计对齐:共 75 段
+	// 紫微三典 75 段 + 《梅花易数》597 段(维基文库三卷合编本)
 	stats := s.Stats()
-	if stats["paragraphs"] != 75 {
-		t.Errorf("总段落数: got %d want 75", stats["paragraphs"])
+	if stats["paragraphs"] != 75+597 {
+		t.Errorf("总段落数: got %d want %d", stats["paragraphs"], 75+597)
 	}
 	if b := s.Book("gusuifu"); b == nil || b.Title != "骨髓赋" {
 		t.Errorf("按 slug 取书失败: %+v", b)
+	}
+	if b := s.Book("meihuayishu"); b == nil || b.Title != "梅花易数" || len(b.Chapters) != 13 {
+		t.Errorf("梅花易数入库失败: %+v", b)
 	}
 	if b, c := s.Chapter("quanji", 0); b == nil || c == nil || len(c.Paragraphs) == 0 {
 		t.Errorf("取章节失败")
@@ -94,8 +97,8 @@ func TestExternalIngest(t *testing.T) {
 	if n != 1 {
 		t.Fatalf("导入数量: got %d want 1", n)
 	}
-	if len(s.Books()) != 4 {
-		t.Fatalf("导入后书目: got %d want 4", len(s.Books()))
+	if len(s.Books()) != 5 {
+		t.Fatalf("导入后书目: got %d want 5", len(s.Books()))
 	}
 	if b := s.Book("tianjidao-test"); b == nil || b.Source != "external" {
 		t.Fatalf("外部书目缺失或来源标记错误: %+v", b)
@@ -110,8 +113,8 @@ func TestExternalIngest(t *testing.T) {
 	if _, err := s.LoadExternalDir(dir); err != nil {
 		t.Fatalf("重复导入失败: %v", err)
 	}
-	if len(s.Books()) != 4 {
-		t.Fatalf("重复导入后书目应仍为 4, got %d", len(s.Books()))
+	if len(s.Books()) != 5 {
+		t.Fatalf("重复导入后书目应仍为 5, got %d", len(s.Books()))
 	}
 
 	// 非法 JSON 拒绝且不破坏现有数据
@@ -121,7 +124,7 @@ func TestExternalIngest(t *testing.T) {
 	if _, err := s.LoadExternalDir(dir); err == nil {
 		t.Fatal("非法 JSON 应报错")
 	}
-	if len(s.Books()) != 4 {
+	if len(s.Books()) != 5 {
 		t.Fatalf("失败导入不应破坏现有数据: got %d", len(s.Books()))
 	}
 }
