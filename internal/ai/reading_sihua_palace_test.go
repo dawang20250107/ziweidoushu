@@ -31,7 +31,7 @@ func TestSiHuaGongInReading(t *testing.T) {
 		t.Fatal("四化节为空")
 	}
 	for _, kw := range []string{
-		"病有速愈",  // 化禄入疾厄
+		"病有速愈",   // 化禄入疾厄
 		"平辈中有强人", // 化权入兄弟
 		"不大起大落",  // 化科入官禄
 		"磨折方成",   // 化忌入官禄
