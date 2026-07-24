@@ -253,7 +253,8 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 		}
 		starTags = append(starTags, tag)
 		// 宫位透镜按星细化:优先取「星×宫」专属断语,缺项回退通用星性。
-		if sp := starInPalace(name, pname); sp != "" {
+		// 疾厄宫的身体部位交由 healthClause 专断,此处只述星性,避免重复。
+		if sp := starInPalace(name, pname); sp != "" && pname != "疾厄" {
 			clauses = append(clauses, name+"："+sp)
 		} else {
 			clauses = append(clauses, name+"("+slant+")")
@@ -285,6 +286,10 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 			}
 			score += d
 		}
+	}
+	// 疾厄宫健康专层:主星→身体部位、会照煞→病厄应验
+	if pname == "疾厄" {
+		b.WriteString(healthClause(chart, p, majors, bright, dim))
 	}
 	// 四化点睛
 	for name, h := range sihua {

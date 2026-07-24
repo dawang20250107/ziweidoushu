@@ -243,6 +243,36 @@ func TestEscalationFires(t *testing.T) {
 	}
 }
 
+// TestHealthLayer 疾厄宫健康专层:健康专断 + 免责声明,且按星曜给身体部位。
+func TestHealthLayer(t *testing.T) {
+	// 遍历样本,取到有实配主星的疾厄宫,验证健康专断落地。
+	for y := 1985; y <= 1995; y++ {
+		for h := 0; h < 12; h += 2 {
+			c, err := ziwei.Generate(ziwei.BirthInfo{Year: y, Month: 6, Day: 12, Hour: h, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2026})
+			if err != nil {
+				continue
+			}
+			jie := c.PalaceByName("疾厄")
+			if jie == nil || len(jie.MajorStarNames()) == 0 {
+				continue
+			}
+			var text string
+			for _, s := range buildReading(c, ziwei.DetectPatterns(c)).Sections {
+				if s.Key == "jie" {
+					text = s.Text
+				}
+			}
+			if !strings.Contains(text, "健康专断") {
+				t.Fatalf("疾厄有主星却无健康专断:%s", text)
+			}
+			if !strings.Contains(text, "不代医疗诊断") {
+				t.Errorf("健康断语应含免责声明:%s", text)
+			}
+			return // 验证一例即可
+		}
+	}
+}
+
 // TestReadingChartGrounded 断语须引用本盘实配星曜(非通用套话)。
 func TestReadingChartGrounded(t *testing.T) {
 	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2024})

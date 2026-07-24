@@ -21,6 +21,14 @@ type HemingReading struct {
 	Level    string           `json:"level"` // 上上缘/上等姻缘/中上可成/中平宜经营/宜慎重
 	Summary  string           `json:"summary"`
 	Sections []ReadingSection `json:"sections"`
+	Timing   []HemingYear     `json:"timing,omitempty"` // 婚嫁共振流年
+}
+
+// HemingYear 双方婚庆信号共振的流年。
+type HemingYear struct {
+	Year   int    `json:"year"`
+	GanZhi string `json:"ganZhi"`
+	Note   string `json:"note"`
 }
 
 // BuildHemingReading 由甲乙双方命盘生成合盘契合断语。
@@ -57,12 +65,103 @@ func buildHemingReading(a, b *ziwei.Chart) *HemingReading {
 	if score < 20 {
 		score = 20
 	}
+	// 婚嫁流年:未来十年双方婚庆信号共振之年。
+	timing := hemingTiming(a, b)
+	secs = append(secs, ReadingSection{Key: "timing", Title: "婚嫁流年", Level: timingLevel(timing), Text: timingText(timing)})
+
 	level := hemingLevel(score)
 	summary := fmt.Sprintf("合盘契合度 %d 分(%s)。%s三项合参:年命之气、四化互飞之情、夫妻宫之应,吉则顺缘、不足处以后天经营补之。",
 		score, level, strongestSignal(relDelta, flyDelta, echoDelta))
 	secs = append(secs, ReadingSection{Key: "advice", Title: "相处建议", Level: "neutral", Text: hemingAdvice(score, relDelta, flyDelta, echoDelta, flyHasJi)})
 
-	return &HemingReading{Score: score, Level: level, Summary: summary, Sections: secs}
+	return &HemingReading{Score: score, Level: level, Summary: summary, Sections: secs, Timing: timing}
+}
+
+// personMarriageYear 某人某年的婚嫁指数 + 触发说明。
+// 信号:流年命宫入夫妻宫、流鸾流喜照命/夫妻、流年化禄入夫妻(化忌扰夫妻则减)。
+func personMarriageYear(chart *ziwei.Chart, year int) (score int, reasons []string) {
+	h, err := ziwei.GenerateHoroscope(chart, year, 6, 15, 6)
+	if err != nil {
+		return 0, nil
+	}
+	fuqi := chart.PalaceByName("夫妻")
+	ming := chart.MingGong()
+	if fuqi == nil || ming == nil {
+		return 0, nil
+	}
+	y := h.Yearly
+	if y.PalaceBranch == fuqi.Branch {
+		score += 2
+		reasons = append(reasons, "流年行至夫妻宫")
+	}
+	luanXi := false
+	for bi := 0; bi < len(y.Stars); bi++ {
+		if bi != fuqi.Branch && bi != ming.Branch {
+			continue
+		}
+		for _, st := range y.Stars[bi] {
+			if r := lastRune(st.Name); r == '鸾' || r == '喜' {
+				luanXi = true
+			}
+		}
+	}
+	if luanXi {
+		score += 2
+		reasons = append(reasons, "流年红鸾天喜照命/夫妻")
+	}
+	if s := y.Mutagen[0]; s != "" { // 流年化禄
+		if fp := findStarPalace(chart, s); fp != nil && fp.Name == "夫妻" {
+			score++
+			reasons = append(reasons, "流年化禄入夫妻宫")
+		}
+	}
+	if s := y.Mutagen[3]; s != "" { // 流年化忌
+		if fp := findStarPalace(chart, s); fp != nil && fp.Name == "夫妻" {
+			score--
+			reasons = append(reasons, "流年化忌扰夫妻(婚事宜缓)")
+		}
+	}
+	return score, reasons
+}
+
+// hemingTiming 未来十年双方婚庆信号共振之年(双方指数均达标)。
+func hemingTiming(a, b *ziwei.Chart) []HemingYear {
+	base := a.ReferenceYear
+	if base <= 0 {
+		return nil
+	}
+	var out []HemingYear
+	for y := base; y < base+10; y++ {
+		sa, ra := personMarriageYear(a, y)
+		sb, rb := personMarriageYear(b, y)
+		if sa >= 2 && sb >= 2 {
+			gz := ziwei.Stems[ziwei.YearStemIndex(y)] + ziwei.Branches[ziwei.YearBranchIndex(y)]
+			out = append(out, HemingYear{
+				Year:   y,
+				GanZhi: gz,
+				Note:   fmt.Sprintf("甲方%s;乙方%s", strings.Join(ra, "、"), strings.Join(rb, "、")),
+			})
+		}
+	}
+	return out
+}
+
+func timingLevel(ts []HemingYear) string {
+	if len(ts) > 0 {
+		return "good"
+	}
+	return "neutral"
+}
+
+func timingText(ts []HemingYear) string {
+	if len(ts) == 0 {
+		return "未来十年双方婚庆信号未见强烈共振,姻缘更需主动经营;亦可各自参看流年催旺(红鸾天喜、流年行至夫妻宫之年)。"
+	}
+	var ys []string
+	for _, t := range ts {
+		ys = append(ys, fmt.Sprintf("%d年(%s):%s", t.Year, t.GanZhi, t.Note))
+	}
+	return "未来十年双方婚庆信号共振、宜把握的年份:" + strings.Join(ys, ";") + "。此为双方红鸾天喜、流年行至夫妻宫等信号叠合之年,利订婚、成婚、感情升温。"
 }
 
 // yearBranchRelation 年支关系:六合/三合/相冲/相刑/相害/同支/中性。

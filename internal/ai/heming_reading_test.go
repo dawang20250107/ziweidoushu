@@ -49,6 +49,50 @@ func TestHemingReading(t *testing.T) {
 	}
 }
 
+// TestHemingTiming 婚嫁流年:共振年须双方指数均达标,且 timing 维度随响应给出。
+func TestHemingTiming(t *testing.T) {
+	a, _ := ziwei.Generate(ziwei.BirthInfo{Year: 1990, Month: 6, Day: 15, Hour: 6, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2026})
+	b, _ := ziwei.Generate(ziwei.BirthInfo{Year: 1992, Month: 3, Day: 8, Hour: 4, Gender: ziwei.Female}, ziwei.Options{ReferenceYear: 2026})
+	hr := buildHemingReading(a, b)
+	// timing 维度必然存在(有共振年或说明无共振)。
+	var hasTiming bool
+	for _, s := range hr.Sections {
+		if s.Key == "timing" {
+			hasTiming = true
+			if s.Text == "" {
+				t.Error("婚嫁流年断语为空")
+			}
+		}
+	}
+	if !hasTiming {
+		t.Error("缺婚嫁流年维度")
+	}
+	// 若给出共振年,须落在未来十年窗口内。
+	for _, ty := range hr.Timing {
+		if ty.Year < 2026 || ty.Year >= 2036 {
+			t.Errorf("共振年 %d 超出十年窗口", ty.Year)
+		}
+		if ty.Note == "" || ty.GanZhi == "" {
+			t.Errorf("共振年 %d 缺干支或说明", ty.Year)
+		}
+	}
+	// 单人婚嫁指数:流年行至夫妻宫应加分。
+	fuqi := a.PalaceByName("夫妻")
+	found := false
+	for y := 2026; y < 2040 && !found; y++ {
+		h, err := ziwei.GenerateHoroscope(a, y, 6, 15, 6)
+		if err != nil {
+			continue
+		}
+		if h.Yearly.PalaceBranch == fuqi.Branch {
+			if sc, _ := personMarriageYear(a, y); sc < 2 {
+				t.Errorf("流年行至夫妻宫之年 %d 婚嫁指数应≥2,得 %d", y, sc)
+			}
+			found = true
+		}
+	}
+}
+
 // TestYearBranchRelation 年支关系判定正确(合/冲/害/刑各取一例)。
 func TestYearBranchRelation(t *testing.T) {
 	// 卯(3)戌(10)六合。
