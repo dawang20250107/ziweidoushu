@@ -46,8 +46,8 @@ func (it *Interpreter) DivineDaLiuRen(ctx context.Context, r *daliuren.Result, q
 		gui = "昼贵"
 	}
 	sb.WriteString("## 起课\n\n")
-	sb.WriteString(fmt.Sprintf("- %s%s日 %s时占,月将%s,用%s,课体【%s】\n",
-		r.DayStem, r.DayBranch, r.HourBranch, r.MonthGen, gui, r.KeType))
+	sb.WriteString(fmt.Sprintf("- %s%s日 %s时占,月将%s,用%s,课体【%s】,旬空%s%s\n",
+		r.DayStem, r.DayBranch, r.HourBranch, r.MonthGen, gui, r.KeType, r.XunKong[0], r.XunKong[1]))
 	branches := []string{"子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"}
 	var tp []string
 	for i := 0; i < 12; i++ {
@@ -59,8 +59,14 @@ func (it *Interpreter) DivineDaLiuRen(ctx context.Context, r *daliuren.Result, q
 		ke = append(ke, fmt.Sprintf("%d课%s/%s", i+1, k.Upper, k.Lower))
 	}
 	sb.WriteString("- 四课:" + strings.Join(ke, " ") + "\n")
-	sb.WriteString(fmt.Sprintf("- 三传:初%s乘%s、中%s乘%s、末%s乘%s\n\n",
-		r.Chuan[0], r.ChuanJiang[0], r.Chuan[1], r.ChuanJiang[1], r.Chuan[2], r.ChuanJiang[2]))
+	dun := func(i int) string {
+		if r.ChuanDunGan[i] == "" {
+			return "空亡"
+		}
+		return "遁" + r.ChuanDunGan[i]
+	}
+	sb.WriteString(fmt.Sprintf("- 三传:初%s(%s)乘%s、中%s(%s)乘%s、末%s(%s)乘%s\n\n",
+		r.Chuan[0], dun(0), r.ChuanJiang[0], r.Chuan[1], dun(1), r.ChuanJiang[1], r.Chuan[2], dun(2), r.ChuanJiang[2]))
 
 	if j := r.Judgment; j != nil {
 		sb.WriteString("## 断语骨架(确定性推演,须据此贴课、不得脱课空谈)\n\n")

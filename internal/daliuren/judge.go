@@ -138,6 +138,11 @@ func (r *Result) Judge() *Judgment {
 				score--
 			}
 		}
+		// 传落旬空:传空事虚(遁干无着即落空亡)
+		if r.XunKong[0] != "" && r.ChuanDunGan[i] == "" {
+			line += ";落空亡——传空事虚,待出空填实"
+			score--
+		}
 		j.SanChuan = append(j.SanChuan, line)
 	}
 	j.Points = append(j.Points, j.SanChuan...)
