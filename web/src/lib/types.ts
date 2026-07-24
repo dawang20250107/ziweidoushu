@@ -149,6 +149,8 @@ export interface SiZhuView {
   geJu?: SiZhuGeJu;
   shenSha?: ShenSha[];
   daYun?: DaYunView;
+  /** 历法口径说明:四柱按子平节气分界,与紫微盘面四柱(正月初一分界)或异 */
+  note?: string;
 }
 
 export interface Chart {

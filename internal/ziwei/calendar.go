@@ -65,6 +65,21 @@ func takeCalendar(year, month, day, timeIndex int) calendarSnapshot {
 	return snap
 }
 
+// takeSiZhuPillars 子平节气口径四柱:年柱起立春、月柱起节(均精确到交接时刻)、
+// 晚子时日柱归次日(EightChar 流派 1,与紫微中宫日柱 Exact 同口径)。
+// 紫微盘面四柱(takeCalendar)遵 iztro 正月初一/初一分界口径,两者在岁首
+// (初一与立春之间)与节交前后可能相差一柱;四柱视角按《子平真诠》论月令
+// 取格,必须用节气口径,故独立取此套四柱(其配套大运 lunar-go Yun 同为节气法)。
+func takeSiZhuPillars(year, month, day, timeIndex int) FourPillars {
+	hour := timeIndex*2 - 1
+	if hour < 0 {
+		hour = 0
+	}
+	ec := calendar.NewSolar(year, month, day, hour, 30, 0).GetLunar().GetEightChar()
+	ec.SetSect(1) // 流派1:晚子时日柱算次日,与 takeCalendar 的 GetDayGanExact 一致
+	return FourPillars{Year: ec.GetYear(), Month: ec.GetMonth(), Day: ec.GetDay(), Hour: ec.GetTime()}
+}
+
 func abs(n int) int {
 	if n < 0 {
 		return -n

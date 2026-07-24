@@ -31,7 +31,8 @@ func CastByTime(at time.Time) (*Result, error) {
 		return nil, fmt.Errorf("时间超出支持范围(1902-2098)")
 	}
 	lunar := calendar.NewSolarFromDate(at).GetLunar()
-	dgz := []rune(lunar.GetDayInGanZhi())
+	// 日干支 Exact:夜子时(23 点后)归次日,与四柱/六爻日辰同口径。
+	dgz := []rune(lunar.GetDayInGanZhiExact())
 	if len(dgz) != 2 {
 		return nil, fmt.Errorf("日干支解析失败")
 	}

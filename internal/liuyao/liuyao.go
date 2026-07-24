@@ -489,13 +489,16 @@ func tossToYao(backs int) (yang, moving bool, err error) {
 	}
 }
 
-// dayGanZhi 当前时刻 → 农历日干支索引与月建。
+// dayGanZhi 当前时刻 → 日辰干支索引与月建。
+// 日辰用 Exact 口径:夜子时(23 点后)日辰归次日,与四柱/紫微日柱一致;
+// 月建以节交接的精确时刻分界(卜筮以节令换月,非农历初一)。
 func dayGanZhi(t time.Time) (dayStem, dayBranch int, monthJian rune, lunarText string, err error) {
 	if t.Year() < 1902 || t.Year() > 2098 {
 		return 0, 0, ' ', "", fmt.Errorf("时间超出支持范围(1902-2098)")
 	}
 	lunar := calendar.NewSolarFromDate(t).GetLunar()
-	dgz := []rune(lunar.GetDayInGanZhi())
+	dayGZ := lunar.GetDayInGanZhiExact()
+	dgz := []rune(dayGZ)
 	if len(dgz) != 2 {
 		return 0, 0, ' ', "", fmt.Errorf("日干支解析失败")
 	}
@@ -509,9 +512,12 @@ func dayGanZhi(t time.Time) (dayStem, dayBranch int, monthJian rune, lunarText s
 			dayBranch = i
 		}
 	}
-	mgz := []rune(lunar.GetMonthInGanZhi())
+	mgz := []rune(lunar.GetMonthInGanZhiExact())
 	monthJian = mgz[len(mgz)-1]
-	lunarText = fmt.Sprintf("%s月%s日(%s日)", lunar.GetMonthInChinese(), lunar.GetDayInChinese(), lunar.GetDayInGanZhi())
+	lunarText = fmt.Sprintf("%s月%s日(%s日)", lunar.GetMonthInChinese(), lunar.GetDayInChinese(), dayGZ)
+	if dayGZ != lunar.GetDayInGanZhi() {
+		lunarText += "(夜子时起,日辰归次日)"
+	}
 	return dayStem, dayBranch, monthJian, lunarText, nil
 }
 

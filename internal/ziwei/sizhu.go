@@ -42,7 +42,13 @@ type SiZhuView struct {
 	ShenSha []ShenSha `json:"shenSha"`
 	// DaYun 大运/流年(八字视角,与紫微同源)。
 	DaYun *DaYunView `json:"daYun,omitempty"`
+	// Note 历法口径说明(与紫微盘面四柱的分界差异)。
+	Note string `json:"note,omitempty"`
 }
+
+// siZhuCaliberNote 四柱视角历法口径说明(前端展示)。
+const siZhuCaliberNote = "四柱视角按子平节气分界:年柱起立春、月柱起节(精确到交接时刻)、晚子时日柱归次日。" +
+	"紫微盘面四柱按正月初一分界(iztro 口径),岁首与节交前后两者或相差一柱,属两派口径并存,非计算歧误。"
 
 var (
 	szStems    = []rune("甲乙丙丁戊己庚辛壬癸")

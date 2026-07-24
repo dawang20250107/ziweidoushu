@@ -222,6 +222,9 @@ export function SiZhuPanel({ siZhu }: { siZhu: SiZhuView }) {
                 (以本气计,藏干未入分布)
               </p>
             )}
+            {siZhu.note && (
+              <p className="mt-3 border-t border-line pt-3 text-[12px] leading-relaxed text-ink-faint">{siZhu.note}</p>
+            )}
           </div>
         </div>
       )}

@@ -193,9 +193,13 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 		CurrentAge:         currentAge,
 		CurrentDaXianIndex: currentDX,
 	}
-	chart.SiZhu = buildSiZhu(chart.FourPillars) // 四柱视角(八字同源附加层)
+	// 四柱视角:子平节气口径(年起立春、月起节、晚子归次日),与紫微盘面四柱
+	// (初一分界)独立——月令取格与大运顺逆均须按节气才符《子平真诠》。
+	// 日期用真太阳时校正后的 sYear/sMonth/sDay(跨日进退随之生效)。
+	chart.SiZhu = buildSiZhu(takeSiZhuPillars(sYear, sMonth, sDay, timeIndex))
 	if chart.SiZhu != nil {
-		chart.SiZhu.DaYun = buildDaYun(b, timeIndex, refYear) // 大运/流年(与紫微同源)
+		chart.SiZhu.Note = siZhuCaliberNote
+		chart.SiZhu.DaYun = buildDaYun(b.Gender, sYear, sMonth, sDay, timeIndex, refYear)
 	}
 	return chart, nil
 }

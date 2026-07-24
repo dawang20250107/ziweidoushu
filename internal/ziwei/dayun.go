@@ -68,15 +68,17 @@ func enrichGanZhi(ganZhi string, dayStem int) (shiShenStr, naYinStr string) {
 
 // buildDaYun 排大运与当前大运流年。refYear 为参照公历年,用于按「年」标注当前
 // 运/流年(避免八字虚岁与紫微计龄口径不一致的歧义)。
-func buildDaYun(b BirthInfo, timeIndex, refYear int) *DaYunView {
-	solar := calendar.NewSolar(b.Year, b.Month, b.Day, solarClockHour(timeIndex), 30, 0)
+// year/month/day 须传真太阳时校正后的公历日期(与四柱视角同源)。
+func buildDaYun(gender Gender, year, month, day, timeIndex, refYear int) *DaYunView {
+	solar := calendar.NewSolar(year, month, day, solarClockHour(timeIndex), 30, 0)
 	lunar := solar.GetLunar()
 	ec := lunar.GetEightChar()
+	ec.SetSect(1) // 晚子时日柱归次日,与 takeSiZhuPillars/takeCalendar 日柱同口径
 	dayStem := stemIndex([]rune(ec.GetDayGan())[0])
 	if dayStem < 0 {
 		return nil
 	}
-	yun := ec.GetYun(genderCode(b.Gender))
+	yun := ec.GetYun(genderCode(gender))
 	daYuns := yun.GetDaYun() // [0] 为起运前(童限),GanZhi 空
 
 	view := &DaYunView{
