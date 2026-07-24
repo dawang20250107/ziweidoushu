@@ -1105,6 +1105,13 @@
    "format": ".pdf",
    "chars": 938236,
    "topdir": "八字"
+  },
+  {
+   "file": "f25d97c6-紫微斗数精成.txt",
+   "source": "用户上传 8dceaf14-*.doc(2008 撰/2013 存,603 页)",
+   "format": ".doc",
+   "chars": 508610,
+   "topdir": "批次四·单册上传"
   }
  ],
  "skipped": [
@@ -1560,6 +1567,11 @@
    "batch": 2,
    "docs": 16,
    "chars": 3140509
+  },
+  {
+   "batch": 4,
+   "docs": 1,
+   "chars": 508610
   }
  ]
 }
