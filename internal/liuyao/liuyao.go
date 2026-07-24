@@ -161,6 +161,15 @@ type Result struct {
 	Yaos       [6]Yao `json:"yaos"`
 	MovingNums []int  `json:"movingNums"` // 动爻位置列表(可为空=静卦)
 
+	// 卦性:六爻三对(初四/二五/三上)支支相冲为六冲卦、相合为六合卦(空则平常)
+	BenXingZhi  string `json:"benXingZhi,omitempty"`
+	BianXingZhi string `json:"bianXingZhi,omitempty"`
+
+	// FuShen 用神不上卦时之伏神(本宫首卦纳甲取,见 enrich.go)
+	FuShen *FuShen `json:"fuShen,omitempty"`
+
+	palaceIdx int // 本卦所属宫索引(伏神取本宫首卦纳甲用,不序列化)
+
 	// Tosses 摇卦原始记录(每爻背面数 0-3;报数起卦为空)
 	Tosses []int `json:"tosses,omitempty"`
 
@@ -358,6 +367,7 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 		MonthJian: string(monthJian),
 		// 静卦时也须输出 [] 而非 null(JSON 列表契约)
 		MovingNums: []int{},
+		palaceIdx:  entry.palace,
 	}
 	if len(movingSet) > 0 {
 		bl := meihua.TrigramByLines([3]bool{bianLines[0], bianLines[1], bianLines[2]})
@@ -456,6 +466,23 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 			r.MovingNums = append(r.MovingNums, pos)
 		}
 	}
+
+	// 卦性(六冲/六合):本卦按各爻纳甲支;变卦按变卦自身内外卦全六位纳甲
+	var benBs, bianBs [6]int
+	for i := 0; i < 6; i++ {
+		benBs[i] = branchIndexOf(r.Yaos[i].Branch)
+		var bb rune
+		if i < 3 {
+			bb = najia[bianLower.Num-1].inner[i]
+		} else {
+			bb = najia[bianUpper.Num-1].outer[i-3]
+		}
+		bianBs[i] = branchIndexOf(string(bb))
+	}
+	r.BenXingZhi = guaXingZhi(benBs)
+	if len(movingSet) > 0 {
+		r.BianXingZhi = guaXingZhi(bianBs)
+	}
 	return r, nil
 }
 
@@ -550,6 +577,7 @@ func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
 	r.LunarText = lt
 	r.Tosses = append([]int(nil), tosses...)
 	r.applyYongShen()
+	r.applyFuShen()
 	r.applyPower()
 	r.Judgment = r.Judge() // 确定性断语,随起卦即出(免费层)
 	return r, nil
