@@ -292,6 +292,18 @@ export async function castDaLiuRen(
   return parse(res);
 }
 
+/** AI 深度解课(大六壬,需登录,消耗 1 次)。 */
+export async function divineDaLiuRenAI(
+  input: { castAt: number; question: string; recordId?: string },
+): Promise<{ reading: DivineReading; remainingCredits: number }> {
+  const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ kind: "daliuren", ...input }),
+  });
+  return parse(res);
+}
+
 /** 小六壬快占(免费,匿名可用;登录则自动存入卦档)。 */
 export async function castXiaoLiuRen(
   input?: { question?: string; castAt?: number },

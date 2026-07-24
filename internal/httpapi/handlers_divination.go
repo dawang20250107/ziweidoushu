@@ -264,10 +264,17 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	// 按占法起卦(服务端重推,客户端不可伪造)
 	var meihuaResult *meihua.Result
 	var liuyaoResult *liuyao.Result
+	var daliurenResult *daliuren.Result
 	var castErr error
-	if req.Kind == "liuyao" {
+	switch req.Kind {
+	case "liuyao":
 		liuyaoResult, castErr = castLiuYao(req)
-	} else {
+	case "daliuren":
+		var at time.Time
+		if at, castErr = castTime(req.CastAt); castErr == nil {
+			daliurenResult, castErr = daliuren.CastByTime(at)
+		}
+	default:
 		meihuaResult, castErr = castMeihua(req)
 	}
 	if castErr != nil {
@@ -287,9 +294,12 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	s.metrics.aiRequests.Add(1)
 	var reading ai.Result
 	var err error
-	if liuyaoResult != nil {
+	switch {
+	case liuyaoResult != nil:
 		reading, err = s.interp.DivineLiuYao(r.Context(), liuyaoResult, nil)
-	} else {
+	case daliurenResult != nil:
+		reading, err = s.interp.DivineDaLiuRen(r.Context(), daliurenResult, req.Question, nil)
+	default:
 		reading, err = s.interp.Divine(r.Context(), meihuaResult, nil)
 	}
 	if err != nil {
@@ -307,9 +317,12 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	// 卦档:已有记录回填解卦;无记录(如匿名起卦后才登录)补建一条带解卦的档
 	var kind, summary string
 	var payloadAny any
-	if liuyaoResult != nil {
+	switch {
+	case liuyaoResult != nil:
 		kind, summary, payloadAny = "liuyao", liuyaoSummary(liuyaoResult), liuyaoResult
-	} else {
+	case daliurenResult != nil:
+		kind, summary, payloadAny = "daliuren", daliurenSummary(daliurenResult), daliurenResult
+	default:
 		kind, summary, payloadAny = "meihua", meihuaSummary(meihuaResult), meihuaResult
 	}
 	if req.RecordID != "" {
@@ -328,6 +341,9 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	var resultAny any = meihuaResult
 	if liuyaoResult != nil {
 		resultAny = liuyaoResult
+	}
+	if daliurenResult != nil {
+		resultAny = daliurenResult
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"result":           resultAny,

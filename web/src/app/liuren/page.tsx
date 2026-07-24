@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { castDaLiuRen, DivinationError, type DaLiuRenResult } from "@/lib/divination";
+import { castDaLiuRen, divineDaLiuRenAI, DivinationError, type DaLiuRenResult } from "@/lib/divination";
+import { currentUser } from "@/lib/auth";
+import { ReportText } from "@/components/profiles/ReportText";
 import { XiaoLiuRen } from "@/components/divination/XiaoLiuRen";
 
 const BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
@@ -23,14 +25,45 @@ export default function LiuRenPage() {
   const [casting, setCasting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [r, setR] = useState<DaLiuRenResult | null>(null);
+  const [castAt, setCastAt] = useState<number | null>(null);
+  const [recordId, setRecordId] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [reading, setReading] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const divine = async () => {
+    if (aiLoading || castAt == null) return;
+    setAiLoading(true);
+    setAiError(null);
+    setReading(null);
+    try {
+      const { reading: rd } = await divineDaLiuRenAI({
+        castAt,
+        question: question.trim() || "断大势",
+        recordId: recordId ?? undefined,
+      });
+      setReading(rd.text);
+    } catch (e) {
+      if (e instanceof DivinationError && e.status === 401) setAiError("登录后即可 AI 深度解课。");
+      else if (e instanceof DivinationError && (e.status === 402 || e.code === "no_credits")) setAiError("解卦次数不足,请先购买次卡。");
+      else if (e instanceof DivinationError && (e.status === 503 || e.code === "ai_unavailable")) setAiError("AI 服务暂不可用,本次未扣次数。");
+      else setAiError(e instanceof DivinationError ? e.message : "解课失败,请重试");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const cast = async () => {
     if (casting) return;
     setCasting(true);
     setError(null);
     try {
-      const { result } = await castDaLiuRen({ question: question.trim() || undefined });
-      setR(result);
+      const resp = await castDaLiuRen({ question: question.trim() || undefined });
+      setR(resp.result);
+      setCastAt(resp.castAt);
+      setRecordId(resp.recordId ?? null);
+      setReading(null);
+      setAiError(null);
     } catch (e) {
       setR(null);
       setError(e instanceof DivinationError ? e.message : "起课失败,请重试");
@@ -177,6 +210,40 @@ export default function LiuRenPage() {
               </ul>
             </div>
           )}
+
+          {/* ── AI 深度解课 ── */}
+          <div className="mt-8">
+            {reading != null && !aiLoading ? (
+              <article className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)] md:px-10 md:py-10">
+                <p className="mb-5 text-[12px] font-medium tracking-[0.24em] text-gold">AI 深度解课</p>
+                <ReportText text={reading} />
+                <p className="mt-6 border-t border-line pt-4 text-[11px] leading-relaxed text-ink-faint">
+                  占卜为传统文化参考,不构成决策建议。
+                </p>
+              </article>
+            ) : aiLoading ? (
+              <div className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)]" role="status">
+                <div className="flex flex-col gap-3">
+                  {[94, 100, 86, 72].map((w, i) => (
+                    <div key={i} className="h-4 animate-pulse rounded-[2px] bg-line" style={{ width: `${w}%` }} aria-hidden />
+                  ))}
+                </div>
+                <p className="mt-5 text-[12px] text-ink-faint">AI 正在依课象逐层解读,通常需 20 秒以上…</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-start gap-2.5">
+                <button
+                  type="button"
+                  onClick={divine}
+                  className="glow-gold inline-flex min-h-[48px] w-full items-center justify-center rounded-[6px] bg-gold px-7 py-3 text-[16px] font-medium text-[#161206] transition-colors hover:bg-gold-bright sm:w-auto"
+                >
+                  {currentUser() ? "AI 深度解课(消耗 1 次)" : "登录后 AI 深度解课"}
+                </button>
+                <p className="text-[12px] text-ink-faint">依课体三传天将与断语骨架逐层解读。</p>
+                {aiError && <p className="text-[13px] text-danger">{aiError}</p>}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
