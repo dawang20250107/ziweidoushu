@@ -302,6 +302,8 @@ export interface DaLiuRenResult {
   tianJiang?: string[]; // 地盘十二位所乘天将
   chuanJiang?: string[]; // 三传所乘天将
   guiIsDay?: boolean;
+  xunKong?: string[]; // 旬空两支
+  chuanDunGan?: string[]; // 三传旬遁干(传落空亡为空串)
   judgment?: DaLiuRenJudgment;
 }
 

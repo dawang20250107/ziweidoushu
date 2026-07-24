@@ -119,6 +119,12 @@ export default function LiuRenPage() {
             <span>· {r.hourBranch}时占</span>
             <span>· 月将{r.monthGen}</span>
             {r.guiIsDay != null && <span>· {r.guiIsDay ? "昼贵" : "夜贵"}</span>}
+            {r.xunKong?.length === 2 && (
+              <span>
+                · 旬空{r.xunKong[0]}
+                {r.xunKong[1]}
+              </span>
+            )}
             <span className="rounded-[3px] px-1.5 py-0.5 text-[12px] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]">
               {r.keType}课
             </span>
@@ -165,7 +171,18 @@ export default function LiuRenPage() {
               <div className="mt-4 flex items-center justify-around">
                 {r.chuan.map((c, i) => (
                   <div key={i} className="flex flex-col items-center gap-1.5">
-                    <span className="font-display text-[25px] font-semibold text-ink">{c}</span>
+                    <span className="font-display text-[25px] font-semibold text-ink">
+                      {r.chuanDunGan?.[i] ? (
+                        <span className="mr-0.5 align-middle text-[14px] font-normal text-ink-faint">
+                          {r.chuanDunGan[i]}
+                        </span>
+                      ) : (
+                        r.xunKong?.length === 2 && (
+                          <span className="mr-0.5 align-middle text-[11px] font-normal text-danger">空</span>
+                        )
+                      )}
+                      {c}
+                    </span>
                     {r.chuanJiang?.[i] && (
                       <span className="rounded-[3px] px-1.5 py-0.5 text-[10px] leading-none text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]">
                         {r.chuanJiang[i]}
