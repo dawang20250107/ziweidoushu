@@ -106,15 +106,15 @@ mark {
   background: transparent;
 }
 
-/* 页面切换进场(配 app/template.tsx,每次导航重放) */
+/* 页面切换进场(配 app/template.tsx,每次导航重放)。
+ * 只动 opacity:transform 动画会让 .page-enter 成为 fixed 后代的包含块
+ * (fill-mode both 恒挂 transform),罗盘仪式/阅读进度条等 fixed 层会错位。 */
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 .page-enter {
@@ -170,6 +170,19 @@ mark {
 }
 
 /* ── v3:视觉盛宴层(极光星云 / 渐变金字 / 呼吸辉光 / 罗盘环)── */
+
+/* 宣纸肌理:light 主题全局细纹 + 四缘晕染(阅读主场的纸感) */
+:root[data-theme="light"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(130% 100% at 50% 0%, transparent 62%, rgba(112, 96, 56, 0.07) 100%),
+    repeating-linear-gradient(0deg, rgba(112, 96, 56, 0.016) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(112, 96, 56, 0.011) 0 1px, transparent 1px 3px);
+}
 
 /* 极光星云:双色光斑缓慢漂移。挂在 relative 容器内,自带裁切不外溢。 */
 @keyframes aurora-drift {

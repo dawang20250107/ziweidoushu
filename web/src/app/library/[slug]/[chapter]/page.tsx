@@ -359,7 +359,10 @@ export default function ReaderPage({
     <div>
       {/* 滚动进度条(顶栏之下细金线) */}
       <div className="fixed inset-x-0 top-14 z-40 h-[2px]" aria-hidden>
-        <div className="h-full bg-gold" style={{ width: `${scrollProgress * 100}%` }} />
+        <div
+          className="h-full bg-gold"
+          style={{ width: `${scrollProgress * 100}%`, boxShadow: "0 0 8px var(--gold-glow), 0 1px 6px var(--gold-glow)" }}
+        />
       </div>
 
       <ReaderToolbar
@@ -399,7 +402,11 @@ export default function ReaderPage({
                   {data.chapter.subtitle}
                 </p>
               )}
-              <span className="mx-auto mt-6 block h-px w-10 bg-gold-dim" aria-hidden />
+              <span className="mx-auto mt-6 flex items-center justify-center gap-3" aria-hidden>
+                <span className="h-px w-12 bg-gradient-to-r from-transparent to-[var(--gold-dim)]" />
+                <span className="text-[10px] leading-none text-gold">✦</span>
+                <span className="h-px w-12 bg-gradient-to-l from-transparent to-[var(--gold-dim)]" />
+              </span>
             </header>
 
             <div className="font-reading">
