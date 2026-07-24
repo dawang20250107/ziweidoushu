@@ -61,6 +61,11 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 		}
 		yr := h.Yearly
 		gz := ziwei.Stems[ziwei.YearStemIndex(y)] + ziwei.Branches[ziwei.YearBranchIndex(y)]
+		// 大限共振:该年所属大限命宫落于本命何宫,本旬主旋律即在此域。
+		decadalName := ""
+		if dp := chart.PalaceByBranch(h.Decadal.PalaceBranch); dp != nil {
+			decadalName = dp.Name
+		}
 
 		// 健康预警。
 		if jie != nil {
@@ -78,6 +83,10 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 			if mutagenInPalace(chart, yr.Mutagen[3], "疾厄") {
 				score += 2
 				rs = append(rs, "流年化忌入疾厄、防病厄是非")
+			}
+			if decadalName == "疾厄" && score >= 1 {
+				score++
+				rs = append(rs, "大限亦行疾厄乡、本旬健康为重、应验尤须留意")
 			}
 			if score >= 2 {
 				health = append(health, TimingYear{Year: y, GanZhi: gz, Note: strings.Join(rs, ";")})
@@ -99,6 +108,10 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 			if mutagenInPalace(chart, yr.Mutagen[0], "财帛") || mutagenInPalace(chart, yr.Mutagen[0], "命宫") {
 				score += 2
 				rs = append(rs, "流年化禄入财帛/命、财源增益")
+			}
+			if (decadalName == "财帛" || decadalName == "命宫") && score >= 1 {
+				score++
+				rs = append(rs, "大限行财乡、本旬财运为主轴、催旺尤验")
 			}
 			if score >= 2 {
 				wealth = append(wealth, TimingYear{Year: y, GanZhi: gz, Note: strings.Join(rs, ";")})
@@ -124,6 +137,10 @@ func annualTiming(chart *ziwei.Chart) (health, wealth, career []TimingYear) {
 			if mutagenInPalace(chart, yr.Mutagen[2], "官禄") || mutagenInPalace(chart, yr.Mutagen[2], "命宫") {
 				score++
 				rs = append(rs, "流年化科入官禄/命、名声考试之喜")
+			}
+			if (decadalName == "官禄" || decadalName == "命宫") && score >= 1 {
+				score++
+				rs = append(rs, "大限行官乡、本旬事业为主轴、升迁尤验")
 			}
 			if score >= 2 {
 				career = append(career, TimingYear{Year: y, GanZhi: gz, Note: strings.Join(rs, ";")})
@@ -168,6 +185,74 @@ func sectionForFortuneTiming(chart *ziwei.Chart, wealth, career []TimingYear) *R
 		level = "good"
 	}
 	return &ReadingSection{Key: "fortunetiming", Title: "财官择时·流年", Level: level, Text: b.String()}
+}
+
+// sectionForMonthTiming 本年(ReferenceYear)流月择日下钻:利财月/利官月/健康留意月。
+// 流月命宫十二月轮一周,故每域恰有一个月被引动;月禄/月魁钺/月羊陀会照再作加强。
+func sectionForMonthTiming(chart *ziwei.Chart) *ReadingSection {
+	year := chart.ReferenceYear
+	if year <= 0 {
+		return nil
+	}
+	cai := chart.PalaceByName("财帛")
+	guan := chart.PalaceByName("官禄")
+	jie := chart.PalaceByName("疾厄")
+	var caiM, guanM, jieM string
+	// 每月取两日采样(6 日、21 日),确保农历/阳历错位时每个流月都被覆盖。
+	for _, md := range monthDaySamples() {
+		if caiM != "" && guanM != "" && jieM != "" {
+			break
+		}
+		h, err := ziwei.GenerateHoroscope(chart, year, md[0], md[1], 6)
+		if err != nil {
+			continue
+		}
+		m := md[0]
+		mo := h.Monthly
+		if cai != nil && caiM == "" && mo.PalaceBranch == cai.Branch {
+			extra := ""
+			if liuYaoAround(mo, cai.Branch)['禄'] {
+				extra = "、月禄会照更旺"
+			}
+			caiM = fmt.Sprintf("阳历 %d 月前后(流月命宫行财帛%s)", m, extra)
+		}
+		if guan != nil && guanM == "" && mo.PalaceBranch == guan.Branch {
+			extra := ""
+			if la := liuYaoAround(mo, guan.Branch); la['魁'] || la['钺'] {
+				extra = "、月魁钺会照得贵人"
+			}
+			guanM = fmt.Sprintf("阳历 %d 月前后(流月命宫行官禄%s)", m, extra)
+		}
+		if jie != nil && jieM == "" && mo.PalaceBranch == jie.Branch {
+			extra := ""
+			if la := liuYaoAround(mo, jie.Branch); la['羊'] || la['陀'] {
+				extra = "、月羊陀会照尤须防"
+			}
+			jieM = fmt.Sprintf("阳历 %d 月前后(流月命宫行疾厄%s)", m, extra)
+		}
+	}
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("%d 年月度择时(流月命宫逐月轮转,各域一月被引动):", year))
+	if caiM != "" {
+		b.WriteString("利财月—" + caiM + ";")
+	}
+	if guanM != "" {
+		b.WriteString("利事业月—" + guanM + ";")
+	}
+	if jieM != "" {
+		b.WriteString("健康留意月—" + jieM + ";")
+	}
+	b.WriteString("月份为阳历近值,精确到日需再推流日、择吉。")
+	return &ReadingSection{Key: "monthtiming", Title: "本年月度择时", Level: "neutral", Text: b.String()}
+}
+
+// monthDaySamples 按时间顺序的采样点(每月 6 日、21 日),覆盖全年各流月。
+func monthDaySamples() [][2]int {
+	var out [][2]int
+	for m := 1; m <= 12; m++ {
+		out = append(out, [2]int{m, 6}, [2]int{m, 21})
+	}
+	return out
 }
 
 func joinTimingYears(ts []TimingYear) string {

@@ -172,6 +172,9 @@ func buildReading(chart *ziwei.Chart, patterns []ziwei.Pattern) *Reading {
 	if s := sectionForFortuneTiming(chart, wealth, career); s != nil {
 		rd.Sections = append(rd.Sections, *s)
 	}
+	if s := sectionForMonthTiming(chart); s != nil { // 择日下钻:本年流月择时
+		rd.Sections = append(rd.Sections, *s)
+	}
 	return rd
 }
 

@@ -294,6 +294,11 @@ func TestAnnualTiming(t *testing.T) {
 	if !strings.Contains(ft, "财运") || !strings.Contains(ft, "事业") {
 		t.Errorf("财官择时应含财运与事业两段:%s", ft)
 	}
+	// 择日下钻:本年月度择时维度须给出。
+	mt, ok := got["monthtiming"]
+	if !ok || !strings.Contains(mt, "月度择时") {
+		t.Errorf("缺本年月度择时维度:%q", mt)
+	}
 	// 择时年份须落在 ReferenceYear 起十年窗口。
 	health, wealth, career := annualTiming(c)
 	for _, grp := range [][]TimingYear{health, wealth, career} {
