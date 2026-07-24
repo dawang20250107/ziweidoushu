@@ -88,7 +88,7 @@ export default function DivinationsPage() {
       {/* 占法筛选 */}
       {signedIn && (
         <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="按占法筛选">
-          {([["", "全部"], ["meihua", "梅花易数"], ["liuyao", "六爻纳甲"], ["xiaoliuren", "小六壬"]] as const).map(
+          {([["", "全部"], ["meihua", "梅花易数"], ["liuyao", "六爻纳甲"], ["daliuren", "大六壬"], ["xiaoliuren", "小六壬"]] as const).map(
             ([k, label]) => {
               const active = kindFilter === k;
               return (

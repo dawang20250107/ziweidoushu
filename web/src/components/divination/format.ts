@@ -4,6 +4,7 @@ export const DIVINATION_KIND_LABEL: Record<string, string> = {
   meihua: "梅花易数",
   liuyao: "六爻纳甲",
   xiaoliuren: "小六壬",
+  daliuren: "大六壬",
 };
 
 /** ISO 时间 → 「2026-07-18 09:30」。 */

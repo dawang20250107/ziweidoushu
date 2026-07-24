@@ -14,9 +14,11 @@ import {
   type LiuYaoResult,
   type MeihuaResult,
   type XiaoLiuRenResult,
+  type DaLiuRenResult,
 } from "@/lib/divination";
 import { DIVINATION_KIND_LABEL, formatDivinationTime } from "@/components/divination/format";
 import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
+import { LiurenPan } from "@/components/divination/LiurenPan";
 import { HexagramView } from "@/components/divination/HexagramView";
 import { toneBadgeClass } from "@/components/divination/tone";
 import { ReportText } from "@/components/profiles/ReportText";
@@ -139,6 +141,9 @@ function RecordView({ record }: { record: DivinationRecord }) {
       <div className="mt-8">
         {record.kind === "liuyao" && record.payload && <LiuYaoPan result={record.payload as LiuYaoResult} />}
         {record.kind === "meihua" && record.payload && <MeihuaView result={record.payload as MeihuaResult} />}
+        {record.kind === "daliuren" && record.payload && (
+          <DaLiuRenView result={record.payload as DaLiuRenResult} />
+        )}
         {record.kind === "xiaoliuren" && record.payload && (
           <XiaoLiuRenView result={record.payload as XiaoLiuRenResult} />
         )}
@@ -159,6 +164,29 @@ function RecordView({ record }: { record: DivinationRecord }) {
           <p className="text-[13px] text-ink-faint">此卦未做 AI 解卦。解卦须在起卦当下进行,新问题可去对应板块重占。</p>
         )}
       </div>
+      )}
+    </div>
+  );
+}
+
+/** 大六壬重现:式盘(天地盘/天将/三传/课骨)+ 确定性断语。 */
+function DaLiuRenView({ result }: { result: DaLiuRenResult }) {
+  return (
+    <div>
+      <LiurenPan result={result} />
+      {result.judgment && (
+        <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
+          <p className="text-[12px] font-medium tracking-[0.24em] text-gold">断语 · 课体三传</p>
+          <p className="mt-4 font-reading text-[16px] leading-[1.9] text-ink">{result.judgment.conclusion}</p>
+          <ul className="mt-3 flex flex-col gap-2 border-t border-line pt-3">
+            {result.judgment.points.map((p, i) => (
+              <li key={i} className="flex gap-2 text-[14px] leading-relaxed text-ink-secondary">
+                <span aria-hidden className="mt-[9px] h-[3px] w-[3px] shrink-0 rounded-full bg-gold-dim" />
+                {p}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );

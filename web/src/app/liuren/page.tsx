@@ -5,9 +5,13 @@ import { castDaLiuRen, divineDaLiuRenAI, DivinationError, type DaLiuRenResult } 
 import { currentUser } from "@/lib/auth";
 import { ReportText } from "@/components/profiles/ReportText";
 import { XiaoLiuRen } from "@/components/divination/XiaoLiuRen";
+import { LiurenPan } from "@/components/divination/LiurenPan";
+import { LiurenCast } from "@/components/divination/LiurenCast";
+import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
-const BRANCHES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
 const KE_NAMES = ["一课", "二课", "三课", "四课"];
+// 起课仪式总时长(月将加时→天将布位→课成)
+const CAST_ANIM_MS = 3200;
 const CHUAN_NAMES = ["初传", "中传", "末传"];
 const LEVEL_CLS: Record<string, string> = {
   good: "text-ok shadow-[inset_0_0_0_1px_var(--ok)]",
@@ -57,8 +61,12 @@ export default function LiuRenPage() {
     if (casting) return;
     setCasting(true);
     setError(null);
+    const startedAt = Date.now();
     try {
       const resp = await castDaLiuRen({ question: question.trim() || undefined });
+      // 仪式演满再揭课(reduced-motion 直出)
+      const wait = (prefersReducedMotion() ? 0 : CAST_ANIM_MS) - (Date.now() - startedAt);
+      if (wait > 0) await new Promise((res) => setTimeout(res, wait));
       setR(resp.result);
       setCastAt(resp.castAt);
       setRecordId(resp.recordId ?? null);
@@ -108,45 +116,13 @@ export default function LiuRenPage() {
         </div>
       </section>
 
-      {r && (
-        <div className="page-enter mt-10">
-          {/* 课骨:日干支/占时/月将/课体 */}
-          <div className="tnum flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-ink-secondary">
-            <span>
-              {r.dayStem}
-              {r.dayBranch}日
-            </span>
-            <span>· {r.hourBranch}时占</span>
-            <span>· 月将{r.monthGen}</span>
-            {r.guiIsDay != null && <span>· {r.guiIsDay ? "昼贵" : "夜贵"}</span>}
-            {r.xunKong?.length === 2 && (
-              <span>
-                · 旬空{r.xunKong[0]}
-                {r.xunKong[1]}
-              </span>
-            )}
-            <span className="rounded-[3px] px-1.5 py-0.5 text-[12px] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]">
-              {r.keType}课
-            </span>
-          </div>
+      {/* 起课仪式 */}
+      {casting && <LiurenCast />}
 
-          {/* 天地盘 */}
-          <div className="mt-6 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
-            <p className="text-[12px] font-medium tracking-[0.24em] text-gold">天地盘</p>
-            <div className="mt-4 grid grid-cols-6 gap-1.5 sm:grid-cols-12">
-              {BRANCHES.map((b, i) => (
-                <div
-                  key={b}
-                  className="flex flex-col items-center gap-1 rounded-[6px] bg-bg px-1 py-2.5 shadow-[inset_0_0_0_1px_var(--line)]"
-                >
-                  <span className="font-display text-[15px] text-gold">{r.tianPan[i]}</span>
-                  {r.tianJiang && <span className="text-[10px] leading-none text-ink-secondary">{r.tianJiang[i]}</span>}
-                  <span className="text-[11px] text-ink-faint">{b}</span>
-                </div>
-              ))}
-            </div>
-            <p className="mt-2 text-[11px] text-ink-faint">上行天盘之神,下行地盘定位(月将加时顺布)。</p>
-          </div>
+      {r && !casting && (
+        <div className="page-enter mt-10">
+          {/* 式盘:天地盘/天将/三传/课骨一体呈现 */}
+          <LiurenPan result={r} />
 
           {/* 四课 / 三传 */}
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">

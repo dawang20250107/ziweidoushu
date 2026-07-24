@@ -177,10 +177,10 @@ export interface DivineReading {
 /** 卦档记录。列表态无 payload/reading;详情态 payload 为对应卦象 JSON。 */
 export interface DivinationRecord {
   id: string;
-  kind: "meihua" | "liuyao" | "xiaoliuren";
+  kind: "meihua" | "liuyao" | "xiaoliuren" | "daliuren";
   question: string;
-  summary: string; // 「地天泰 → 山风蛊」/「泽火革 · 用克体」/「速喜 · 吉」
-  payload?: MeihuaResult | LiuYaoResult | XiaoLiuRenResult;
+  summary: string; // 「地天泰 → 山风蛊」/「泽火革 · 用克体」/「速喜 · 吉」/「元首课 · 三传辰申子」
+  payload?: MeihuaResult | LiuYaoResult | XiaoLiuRenResult | DaLiuRenResult;
   reading?: string;
   readingProvider?: string;
   hasReading: boolean;
