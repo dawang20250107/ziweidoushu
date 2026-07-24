@@ -325,6 +325,83 @@ mark {
     0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
+/* 阅读面(墨纸/宣纸统一):阅读栏后衬暖色微光 + 细纹,双主题同构。
+ * 玄穹下为「墨纸」——金晕极淡自上而下;宣纸下叠加于全局纸纹之上,加重列内质感。 */
+.ink-paper {
+  position: relative;
+}
+.ink-paper::before {
+  content: "";
+  position: absolute;
+  inset: -8px -24px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(217, 179, 108, 0.045), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(217, 179, 108, 0.013) 0 1px, transparent 1px 3px);
+}
+:root[data-theme="light"] .ink-paper::before {
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(112, 96, 56, 0.05), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(112, 96, 56, 0.02) 0 1px, transparent 1px 3px);
+}
+
+/* 问星流式:行内打字光标(挂在流式消息最后一个块的末尾) */
+@keyframes caret-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+.stream-md > :last-child::after {
+  content: "▍";
+  margin-left: 1px;
+  color: var(--gold);
+  text-shadow: 0 0 8px var(--gold-glow);
+  animation: caret-blink 0.9s steps(1) infinite;
+}
+/* 思索三点:等待首字时金点起伏 */
+@keyframes dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: none;
+    opacity: 0.35;
+  }
+  40% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+.think-dot {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--gold);
+  animation: dot-bounce 1.2s var(--ease-inout) infinite;
+}
+/* 流式中的气泡呼吸描边 */
+@keyframes bubble-stream {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px var(--line);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px var(--gold-dim),
+      0 0 14px rgba(217, 179, 108, 0.08);
+  }
+}
+.bubble-streaming {
+  animation: bubble-stream 2.4s var(--ease-inout) infinite;
+}
+
 /* 滚动显现叙事:区块进入视口时上浮渐显(scroll-driven animations,渐进增强) */
 @keyframes reveal-up {
   from {
@@ -385,5 +462,10 @@ button:not(:disabled):active {
   button:not(:disabled):active {
     transition: none;
     transform: none;
+  }
+  .stream-md > :last-child::after,
+  .think-dot,
+  .bubble-streaming {
+    animation: none;
   }
 }

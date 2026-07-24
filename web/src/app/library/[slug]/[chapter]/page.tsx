@@ -377,7 +377,7 @@ export default function ReaderPage({
       />
 
       <article
-        className="mx-auto max-w-[68ch] px-5 py-8 md:py-12"
+        className="ink-paper mx-auto max-w-[68ch] px-5 py-8 md:py-12"
         style={{ fontSize: `${size}px`, lineHeight: 1.9 }}
       >
         {error && (
