@@ -46,8 +46,12 @@ func (it *Interpreter) DivineDaLiuRen(ctx context.Context, r *daliuren.Result, q
 		gui = "昼贵"
 	}
 	sb.WriteString("## 起课\n\n")
-	sb.WriteString(fmt.Sprintf("- %s%s日 %s时占,月将%s,用%s,课体【%s】,旬空%s%s\n",
-		r.DayStem, r.DayBranch, r.HourBranch, r.MonthGen, gui, r.KeType, r.XunKong[0], r.XunKong[1]))
+	hourText := r.HourBranch + "时占"
+	if r.HourNote != "" { // 活时报数:占时由报数自子顺数而定,非实际钟点
+		hourText += "(" + r.HourNote + ",占时由报数定,非实际钟点)"
+	}
+	sb.WriteString(fmt.Sprintf("- %s%s日 %s,月将%s,用%s,课体【%s】,旬空%s%s\n",
+		r.DayStem, r.DayBranch, hourText, r.MonthGen, gui, r.KeType, r.XunKong[0], r.XunKong[1]))
 	branches := []string{"子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"}
 	var tp []string
 	for i := 0; i < 12; i++ {

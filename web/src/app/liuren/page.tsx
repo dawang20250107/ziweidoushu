@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { castDaLiuRen, divineDaLiuRenAI, DivinationError, type DaLiuRenResult } from "@/lib/divination";
 import { currentUser } from "@/lib/auth";
 import { ReportText } from "@/components/profiles/ReportText";
@@ -36,22 +36,28 @@ export default function LiuRenPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [reading, setReading] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  // 起课问辞快照(解读须扣起课之问,非点击解课时输入框的最新文本)
+  const [castQuestion, setCastQuestion] = useState("");
+  // 起课序号:解课途中若重新起课,迟到的解读不得错挂到新课上
+  const castSeq = useRef(0);
 
   const divine = async () => {
     if (aiLoading || castAt == null) return;
+    const seq = castSeq.current;
     setAiLoading(true);
     setAiError(null);
     setReading(null);
     try {
       const { reading: rd } = await divineDaLiuRenAI({
         castAt,
-        question: question.trim() || "断大势",
+        question: castQuestion || "断大势",
         recordId: recordId ?? undefined,
         // 活时课须以同一报数重推同一课(服务端代摇之数已随课回传)
         baoShu: r?.baoShu || undefined,
       });
-      setReading(rd.text);
+      if (seq === castSeq.current) setReading(rd.text);
     } catch (e) {
+      if (seq !== castSeq.current) return;
       if (e instanceof DivinationError && e.status === 401) setAiError("登录后即可 AI 深度解课。");
       else if (e instanceof DivinationError && (e.status === 402 || e.code === "no_credits")) setAiError("解卦次数不足,请先购买次卡。");
       else if (e instanceof DivinationError && (e.status === 503 || e.code === "ai_unavailable")) setAiError("AI 服务暂不可用,本次未扣次数。");
@@ -63,19 +69,34 @@ export default function LiuRenPage() {
 
   const cast = async () => {
     if (casting) return;
+    // 活时:报数定占时(留空由服务端代摇);正时:同一时辰之课人人相同,古以年命分断
+    let bao: number | undefined;
+    if (shiMode === "bao") {
+      const t = baoInput.trim();
+      if (t === "") {
+        bao = 0; // 代摇
+      } else {
+        const n = Number(t);
+        if (!Number.isInteger(n) || n < 1 || n > 99) {
+          setError("报数请输入 1-99 的整数,或留空由天心代摇");
+          return;
+        }
+        bao = n;
+      }
+    }
     setCasting(true);
     setError(null);
     const startedAt = Date.now();
     try {
-      // 活时:报数定占时(留空由服务端代摇);正时:同一时辰之课人人相同,古以年命分断
-      const bao = shiMode === "bao" ? Math.max(0, parseInt(baoInput, 10) || 0) : undefined;
       const resp = await castDaLiuRen({ question: question.trim() || undefined, baoShu: bao });
       // 仪式演满再揭课(reduced-motion 直出)
       const wait = (prefersReducedMotion() ? 0 : CAST_ANIM_MS) - (Date.now() - startedAt);
       if (wait > 0) await new Promise((res) => setTimeout(res, wait));
+      castSeq.current += 1;
       setR(resp.result);
       setCastAt(resp.castAt);
       setRecordId(resp.recordId ?? null);
+      setCastQuestion(question.trim());
       setReading(null);
       setAiError(null);
     } catch (e) {

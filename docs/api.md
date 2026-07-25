@@ -284,11 +284,15 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 起卦免费;AI 深度解卦按次付费(credit_type=divination,商品 divine_3/divine_10)。
 
+问辞上限均为 200 字(按字符计)。
+
 ### POST /api/v1/divination/meihua
 
 `{method: "time"|"number", numbers?, castAt?, question?}` → `{result, castAt}`。
-时间起卦按服务端农历推演(年支+月+日→上卦,加时辰→下卦,总和取六余为动爻);
-数字起卦支持两数/三数式。result 含本卦/互卦/变卦/动爻/体用五行生克与吉凶倾向。
+`time` 法:**有问辞按字数起数**(声音占义:问辞字数起上卦、加时辰数配下卦并
+取动爻——众人同刻问辞各异,卦自不同;`result.castBasis` 溯源起数依据),
+无问辞回退年月日时法(观梅体);数字起卦支持两数/三数式。result 含本卦/
+互卦/变卦(各带 `guaCi` 周易卦辞)/动爻/体用五行生克与吉凶倾向。
 `castAt` 须在近 24 小时内(防伪造历史卦)。正确性由邵康节观梅占黄金测试钉住。
 
 ### POST /api/v1/divination/liuyao
@@ -300,6 +304,17 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 动变爻,及月建日辰与摇卦原始记录 `tosses`(回传同一卦的凭据)。静卦
 `movingNums` 恒为 `[]`。正确性由《卜筮正宗》八宫六十四卦定表逐卦对照钉住。
 
+### POST /api/v1/divination/daliuren
+
+`{question?, castAt?, baoShu?}` → `{result, castAt, recordId?}`。
+`baoShu` 三态:**缺省=正时起课**(以当下时辰——同一时辰之课人人相同,
+古以年命分断);**0=活时代摇**(服务端 crypto 取 1-12);**>0=活时报数**
+(自子顺数报数所至之支为占时,日干支/月将仍按实时)。result 为完整起课:
+天地盘/四课/三传(带旬遁干 `chuanDunGan`)/课体/十二天将/旬空 `xunKong`/
+确定性断语,活时课带 `baoShu` 与 `hourNote`(「活时·报数7」)溯源——
+复现同一课的凭据为 `castAt+baoShu`。正确性由《六壬断案》全书 205 例
+批量回归钉住。
+
 ### POST /api/v1/divination/xiaoliuren
 
 小六壬快占(倪师《天纪》课堂教法):`{question?, castAt?}` →
@@ -307,11 +322,14 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 ### POST /api/v1/ai/divine(需鉴权,消耗 1 次 divination)
 
-`{kind?: "meihua"|"liuyao", method, numbers?, tosses?, castAt?, question}`
-(question 必填,kind 缺省 meihua)→ `{result, reading, remainingCredits}`。
-服务端按 kind 重推卦象(不信任客户端;六爻须回传起卦返回的 tosses+castAt
-以复原同一卦)、引语料 RAG 解卦;AI 失败自动退还;未配置 LLM 返回 503
-不扣次;次数不足 402 `no_credits`。
+`{kind?: "meihua"|"liuyao"|"daliuren", method?, numbers?, tosses?, castAt?,
+baoShu?, question}`(question 必填,kind 缺省 meihua)→
+`{result, reading, remainingCredits}`。
+服务端按 kind 重推卦象(不信任客户端;六爻须回传起卦返回的 tosses+castAt、
+大六壬活时课须回传 castAt+baoShu 以复原同一卦课;daliuren 的 baoShu≤0
+在此端点返回 400 `bad_baoshu`——付费解课不代摇)、引语料 RAG 解卦;
+AI 失败自动退还;未配置 LLM 返回 503 不扣次;次数不足 402 `no_credits`。
+注:梅花 time 法卦象依赖问辞字数,回传时问辞须与起卦时一致方为同一卦。
 
 ### 卦档(登录后自动存档)
 
@@ -322,7 +340,7 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 - `GET /api/v1/me/divinations?limit&offset&kind` → `{records, total}`
   (轻量列表:kind/question/summary/hasReading/castAt,无卦象与解卦全文;
-  `kind` 可选 meihua|liuyao|xiaoliuren,缺省全部)
+  `kind` 可选 meihua|liuyao|daliuren|xiaoliuren,缺省全部)
 - `GET /api/v1/me/divinations/{id}` → `{record}`(含 payload 卦象与 reading)
 - `DELETE /api/v1/me/divinations/{id}` → `{deleted: true}`(仅本人)
 

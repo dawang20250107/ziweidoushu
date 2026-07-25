@@ -33,9 +33,12 @@ func BuildDivinePrompt(r *meihua.Result, store *corpus.Store) Request {
 	}
 
 	sb.WriteString("## 卦象\n\n")
-	if r.Method == "time" {
+	switch {
+	case r.Method == "time" && r.CastBasis != "":
+		sb.WriteString(fmt.Sprintf("- 起卦:%s,农历 %s\n", r.CastBasis, r.LunarText))
+	case r.Method == "time":
 		sb.WriteString(fmt.Sprintf("- 起卦:时间起卦,农历 %s\n", r.LunarText))
-	} else {
+	default:
 		sb.WriteString(fmt.Sprintf("- 起卦:数字起卦 %v\n", r.Numbers))
 	}
 	sb.WriteString(fmt.Sprintf("- 本卦:%s(上%s%s·下%s%s)",

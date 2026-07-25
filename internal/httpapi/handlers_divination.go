@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/dawang20250107/ziweidoushu/internal/ai"
 	"github.com/dawang20250107/ziweidoushu/internal/auth"
@@ -36,11 +37,8 @@ type divinationRequest struct {
 }
 
 // castDaLiuRenReq 大六壬起课:正时,或活时报数(自子顺数定占时;0 为服务端代摇)。
-func castDaLiuRenReq(req divinationRequest) (*daliuren.Result, error) {
-	at, err := castTime(req.CastAt)
-	if err != nil {
-		return nil, err
-	}
+// at 由调用方 castTime 解析一次传入,保证课象、响应 castAt 与卦档同源(单一时刻)。
+func castDaLiuRenReq(req divinationRequest, at time.Time) (*daliuren.Result, error) {
 	if req.BaoShu == nil {
 		return daliuren.CastByTime(at)
 	}
@@ -115,23 +113,16 @@ func castTime(castAt int64) (time.Time, error) {
 }
 
 // castMeihua 依请求重推卦象(服务端起卦,客户端不可伪造)。
-func castMeihua(req divinationRequest) (*meihua.Result, error) {
+// at 由调用方 castTime 解析一次传入:课卦、响应 castAt 与卦档同源(单一时刻)。
+func castMeihua(req divinationRequest, at time.Time) (*meihua.Result, error) {
 	switch req.Method {
 	case "number":
-		at, err := castTime(req.CastAt)
-		if err != nil {
-			return nil, err
-		}
 		r, err := meihua.ByNumbers(req.Numbers, at, req.Question)
 		if err != nil {
 			return nil, err
 		}
 		return &r, nil
 	default: // time:有问辞按字数起数(声音占义,众人同刻各卦),无问辞守年月日时
-		at, err := castTime(req.CastAt)
-		if err != nil {
-			return nil, err
-		}
 		r, err := meihua.ByTimeAndText(at, req.Question)
 		if err != nil {
 			return nil, err
@@ -140,12 +131,8 @@ func castMeihua(req divinationRequest) (*meihua.Result, error) {
 	}
 }
 
-// castLiuYao 六爻起卦(服务端摇卦或按用户报爻重现)。
-func castLiuYao(req divinationRequest) (*liuyao.Result, error) {
-	at, err := castTime(req.CastAt)
-	if err != nil {
-		return nil, err
-	}
+// castLiuYao 六爻起卦(服务端摇卦或按用户报爻重现);at 口径同 castMeihua。
+func castLiuYao(req divinationRequest, at time.Time) (*liuyao.Result, error) {
 	if req.Method == "tosses" || len(req.Tosses) > 0 {
 		return liuyao.ByTosses(req.Tosses, at, req.Question)
 	}
@@ -158,18 +145,22 @@ func (s *Server) handleLiuYao(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if len(req.Question) > 200 {
+	if utf8.RuneCountInString(req.Question) > 200 {
 		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
 		return
 	}
-	result, err := castLiuYao(req)
+	at, err := castTime(req.CastAt)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_cast_time", err.Error())
+		return
+	}
+	result, err := castLiuYao(req, at)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
 		return
 	}
-	castAt := time.Now()
-	recordID := s.saveDivinationRecord(r, "liuyao", req.Question, liuyaoSummary(result), result, castAt)
-	resp := map[string]any{"result": result, "castAt": castAt.Unix()}
+	recordID := s.saveDivinationRecord(r, "liuyao", req.Question, liuyaoSummary(result), result, at)
+	resp := map[string]any{"result": result, "castAt": at.Unix()}
 	if recordID != "" {
 		resp["recordId"] = recordID
 	}
@@ -187,7 +178,7 @@ func (s *Server) handleDaLiuRen(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if len(req.Question) > 200 {
+	if utf8.RuneCountInString(req.Question) > 200 {
 		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
 		return
 	}
@@ -196,7 +187,7 @@ func (s *Server) handleDaLiuRen(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_cast_time", err.Error())
 		return
 	}
-	result, err := castDaLiuRenReq(req)
+	result, err := castDaLiuRenReq(req, at)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
 		return
@@ -215,18 +206,22 @@ func (s *Server) handleMeihua(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if len(req.Question) > 200 {
+	if utf8.RuneCountInString(req.Question) > 200 {
 		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
 		return
 	}
-	result, err := castMeihua(req)
+	at, err := castTime(req.CastAt)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_cast_time", err.Error())
+		return
+	}
+	result, err := castMeihua(req, at)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
 		return
 	}
-	castAt := time.Now()
-	recordID := s.saveDivinationRecord(r, "meihua", req.Question, meihuaSummary(result), result, castAt)
-	resp := map[string]any{"result": result, "castAt": castAt.Unix()}
+	recordID := s.saveDivinationRecord(r, "meihua", req.Question, meihuaSummary(result), result, at)
+	resp := map[string]any{"result": result, "castAt": at.Unix()}
 	if recordID != "" {
 		resp["recordId"] = recordID
 	}
@@ -239,7 +234,7 @@ func (s *Server) handleXiaoLiuRen(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &req) {
 		return
 	}
-	if len(req.Question) > 200 {
+	if utf8.RuneCountInString(req.Question) > 200 {
 		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
 		return
 	}
@@ -276,7 +271,7 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "question_required", "请写明求测之事,解卦才有落点")
 		return
 	}
-	if len(req.Question) > 200 {
+	if utf8.RuneCountInString(req.Question) > 200 {
 		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
 		return
 	}
@@ -285,18 +280,28 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "ai_unavailable", "AI 服务暂不可用,未扣次数")
 		return
 	}
-	// 按占法起卦(服务端重推,客户端不可伪造)
+	// 按占法起卦(服务端重推,客户端不可伪造);at 单次解析,课象/归档同源
+	at, atErr := castTime(req.CastAt)
+	if atErr != nil {
+		writeError(w, http.StatusBadRequest, "bad_cast_time", atErr.Error())
+		return
+	}
 	var meihuaResult *meihua.Result
 	var liuyaoResult *liuyao.Result
 	var daliurenResult *daliuren.Result
 	var castErr error
 	switch req.Kind {
 	case "liuyao":
-		liuyaoResult, castErr = castLiuYao(req)
+		liuyaoResult, castErr = castLiuYao(req, at)
 	case "daliuren":
-		daliurenResult, castErr = castDaLiuRenReq(req)
+		// 付费解课须复现用户所见之课:代摇(baoShu<=0)只属首次起课端点
+		if req.BaoShu != nil && *req.BaoShu <= 0 {
+			writeError(w, http.StatusBadRequest, "bad_baoshu", "解课须回传起课时的报数(baoShu>0),不可代摇")
+			return
+		}
+		daliurenResult, castErr = castDaLiuRenReq(req, at)
 	default:
-		meihuaResult, castErr = castMeihua(req)
+		meihuaResult, castErr = castMeihua(req, at)
 	}
 	if castErr != nil {
 		writeError(w, http.StatusBadRequest, "cast_failed", castErr.Error())
@@ -351,7 +356,8 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 			s.logger.Error("卦档解卦回填失败", "user", claims.Sub, "record", req.RecordID, "err", aerr)
 		}
 	} else if raw, merr := json.Marshal(payloadAny); merr == nil {
-		if id, serr := s.store.SaveDivination(r.Context(), claims.Sub, kind, req.Question, summary, raw, time.Now()); serr == nil {
+		// 归档锚定起卦时刻 at(与 payload 课象同源),而非 divine 时刻
+		if id, serr := s.store.SaveDivination(r.Context(), claims.Sub, kind, req.Question, summary, raw, at); serr == nil {
 			if aerr := s.store.AttachDivinationReading(r.Context(), claims.Sub, id, reading.Text, reading.Provider); aerr != nil {
 				s.logger.Error("卦档解卦写入失败", "user", claims.Sub, "err", aerr)
 			}
