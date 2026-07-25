@@ -2,9 +2,11 @@ package httpapi
 
 import (
 	"context"
+	crand "crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -22,13 +24,35 @@ import (
 // 起卦与卦象展示免费(引流);AI 深度解卦按次付费(credit_type=divination)。
 
 type divinationRequest struct {
-	Kind     string `json:"kind,omitempty"`     // meihua(默认)| liuyao
+	Kind     string `json:"kind,omitempty"`     // meihua(默认)| liuyao | daliuren
 	Method   string `json:"method"`             // 梅花:time | number;六爻:shake | tosses
 	Numbers  []int  `json:"numbers,omitempty"`  // 梅花数字起卦
 	Tosses   []int  `json:"tosses,omitempty"`   // 六爻:六爻背面数(自下而上,每爻 0-3)
 	CastAt   int64  `json:"castAt,omitempty"`   // 起卦时刻(unix 秒,缺省=当下)
 	Question string `json:"question,omitempty"` // 求测之事
 	RecordID string `json:"recordId,omitempty"` // 卦档记录:AI 解卦回填目标
+	// BaoShu 大六壬活时报数:缺省=正时起课;0=代摇(服务端心动即数);>0=以该数定占时
+	BaoShu *int `json:"baoShu,omitempty"`
+}
+
+// castDaLiuRenReq 大六壬起课:正时,或活时报数(自子顺数定占时;0 为服务端代摇)。
+func castDaLiuRenReq(req divinationRequest) (*daliuren.Result, error) {
+	at, err := castTime(req.CastAt)
+	if err != nil {
+		return nil, err
+	}
+	if req.BaoShu == nil {
+		return daliuren.CastByTime(at)
+	}
+	n := *req.BaoShu
+	if n <= 0 { // 代摇:crypto 取 1-12
+		v, err := crand.Int(crand.Reader, big.NewInt(12))
+		if err != nil {
+			return nil, err
+		}
+		n = int(v.Int64()) + 1
+	}
+	return daliuren.CastByTimeBaoShu(at, n)
 }
 
 // optionalClaims 起卦免费接口的可选鉴权:带合法 Bearer 则识别用户(用于卦档),否则匿名。
@@ -103,12 +127,12 @@ func castMeihua(req divinationRequest) (*meihua.Result, error) {
 			return nil, err
 		}
 		return &r, nil
-	default: // time
+	default: // time:有问辞按字数起数(声音占义,众人同刻各卦),无问辞守年月日时
 		at, err := castTime(req.CastAt)
 		if err != nil {
 			return nil, err
 		}
-		r, err := meihua.ByTime(at, req.Question)
+		r, err := meihua.ByTimeAndText(at, req.Question)
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +196,7 @@ func (s *Server) handleDaLiuRen(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "bad_cast_time", err.Error())
 		return
 	}
-	result, err := daliuren.CastByTime(at)
+	result, err := castDaLiuRenReq(req)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
 		return
@@ -270,10 +294,7 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	case "liuyao":
 		liuyaoResult, castErr = castLiuYao(req)
 	case "daliuren":
-		var at time.Time
-		if at, castErr = castTime(req.CastAt); castErr == nil {
-			daliurenResult, castErr = daliuren.CastByTime(at)
-		}
+		daliurenResult, castErr = castDaLiuRenReq(req)
 	default:
 		meihuaResult, castErr = castMeihua(req)
 	}

@@ -389,9 +389,10 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           {/* 起卦信息 */}
           <div className="flex flex-col gap-2">
             <div className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
-              <span>{result.method === "time" ? "时间起卦" : "报数起卦"}</span>
+              <span>{result.method === "time" ? "心易起卦" : "报数起卦"}</span>
               {result.lunarText && <span>· 农历 {result.lunarText}</span>}
               {result.numbers && result.numbers.length > 0 && <span>· 报数 {result.numbers.join("、")}</span>}
+              {result.castBasis && <span>· {result.castBasis}</span>}
             </div>
             {result.question && (
               <p className="font-reading text-[16px] text-ink-secondary">所问:{result.question}</p>

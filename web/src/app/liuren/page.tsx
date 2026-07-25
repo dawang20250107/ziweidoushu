@@ -26,6 +26,8 @@ const LEVEL_LABEL: Record<string, string> = { good: "吉", neutral: "平", cauti
  */
 export default function LiuRenPage() {
   const [question, setQuestion] = useState("");
+  const [shiMode, setShiMode] = useState<"bao" | "zheng">("bao");
+  const [baoInput, setBaoInput] = useState("");
   const [casting, setCasting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [r, setR] = useState<DaLiuRenResult | null>(null);
@@ -45,6 +47,8 @@ export default function LiuRenPage() {
         castAt,
         question: question.trim() || "断大势",
         recordId: recordId ?? undefined,
+        // 活时课须以同一报数重推同一课(服务端代摇之数已随课回传)
+        baoShu: r?.baoShu || undefined,
       });
       setReading(rd.text);
     } catch (e) {
@@ -63,7 +67,9 @@ export default function LiuRenPage() {
     setError(null);
     const startedAt = Date.now();
     try {
-      const resp = await castDaLiuRen({ question: question.trim() || undefined });
+      // 活时:报数定占时(留空由服务端代摇);正时:同一时辰之课人人相同,古以年命分断
+      const bao = shiMode === "bao" ? Math.max(0, parseInt(baoInput, 10) || 0) : undefined;
+      const resp = await castDaLiuRen({ question: question.trim() || undefined, baoShu: bao });
       // 仪式演满再揭课(reduced-motion 直出)
       const wait = (prefersReducedMotion() ? 0 : CAST_ANIM_MS) - (Date.now() - startedAt);
       if (wait > 0) await new Promise((res) => setTimeout(res, wait));
@@ -103,6 +109,57 @@ export default function LiuRenPage() {
           placeholder="例如:此事近期可有转机?"
           className="mt-3 w-full resize-none rounded-[6px] bg-bg px-4 py-3 text-[15px] leading-relaxed text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
         />
+        {/* 占时方式:活时报数(众人同刻各课)/正时(同一时辰课同,古以年命分断) */}
+        <p className="mt-5 text-[13px] font-medium tracking-[0.06em] text-gold">占时</p>
+        <div className="mt-2.5 flex flex-wrap items-stretch gap-2">
+          <button
+            type="button"
+            aria-pressed={shiMode === "bao"}
+            onClick={() => setShiMode("bao")}
+            className={[
+              "flex min-h-[48px] flex-col justify-center rounded-[6px] px-4 py-2 text-left transition-shadow",
+              shiMode === "bao"
+                ? "bg-[var(--gold-glow)] shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                : "bg-bg shadow-[inset_0_0_0_1px_var(--line)]",
+            ].join(" ")}
+          >
+            <span className={`text-[14px] ${shiMode === "bao" ? "font-medium text-gold" : "text-ink"}`}>报数活时</span>
+            <span className="text-[11px] text-ink-faint">心动报一数定占时 · 主推</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={shiMode === "zheng"}
+            onClick={() => setShiMode("zheng")}
+            className={[
+              "flex min-h-[48px] flex-col justify-center rounded-[6px] px-4 py-2 text-left transition-shadow",
+              shiMode === "zheng"
+                ? "bg-[var(--gold-glow)] shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                : "bg-bg shadow-[inset_0_0_0_1px_var(--line)]",
+            ].join(" ")}
+          >
+            <span className={`text-[14px] ${shiMode === "zheng" ? "font-medium text-gold" : "text-ink"}`}>正时起课</span>
+            <span className="text-[11px] text-ink-faint">以当下时辰 · 同辰课同</span>
+          </button>
+          {shiMode === "bao" && (
+            <input
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={99}
+              value={baoInput}
+              onChange={(e) => setBaoInput(e.target.value.slice(0, 2))}
+              placeholder="报数,留空代摇"
+              aria-label="活时报数(1-99,留空由服务端代摇)"
+              className="tnum min-h-[48px] w-36 rounded-[6px] bg-bg px-3.5 text-[14px] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+            />
+          )}
+        </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
+          {shiMode === "bao"
+            ? "自子顺数至所报之数定占时,众人同刻各得其课;留空则由天心代摇一数。"
+            : "正时之课同一时辰人人相同,古以问者年命分断;欲各得其课请用报数活时。"}
+        </p>
+
         <div className="mt-5 flex flex-col items-start gap-2.5">
           <button
             type="button"
@@ -110,7 +167,7 @@ export default function LiuRenPage() {
             disabled={casting}
             className="glow-gold inline-flex min-h-[48px] w-full items-center justify-center rounded-[6px] bg-gold px-8 py-3 text-[16px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-45 sm:w-auto"
           >
-            {casting ? "起课中…" : "以此时起课"}
+            {casting ? "起课中…" : shiMode === "bao" ? "报数起课" : "以此时起课"}
           </button>
           {error && <p className="text-[13px] text-danger">{error}</p>}
         </div>

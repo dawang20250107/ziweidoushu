@@ -10,7 +10,9 @@ package meihua
 
 import (
 	"fmt"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/6tail/lunar-go/calendar"
 	"github.com/dawang20250107/ziweidoushu/internal/zhouyi"
@@ -149,6 +151,7 @@ type Result struct {
 	// 起卦参数溯源(可复现)
 	LunarText string `json:"lunarText,omitempty"` // 时间起卦:农历「辰年十二月十七日申时」
 	Numbers   []int  `json:"numbers,omitempty"`   // 数字起卦的原始数
+	CastBasis string `json:"castBasis,omitempty"` // 起数依据(如「问辞12字起上卦,加申时数9配下卦」)
 
 	Ben    Hexagram `json:"ben"`    // 本卦
 	Hu     Hexagram `json:"hu"`     // 互卦
@@ -276,6 +279,50 @@ func ByTime(t time.Time, question string) (Result, error) {
 	r := derive(upperN, lowerN, moving)
 	r.Method = "time"
 	r.Question = question
+	r.CastBasis = "年月日时起卦(观梅体)"
+	r.LunarText = fmt.Sprintf("%s年%s月%s日%s时",
+		lunar.GetYearZhi(), lunar.GetMonthInChinese(), lunar.GetDayInChinese(), lunar.GetTimeZhi())
+	r.Judgment = r.Judge(monthN, question)
+	return r, nil
+}
+
+// ByTimeAndText 心易字数起卦(产品「以此时起卦」默认口径):以所问之辞
+// 字数为上卦数,加时辰数配下卦,总数取动爻——《梅花易数·声音占》
+// 「凡闻声音,数得数目,起作上卦,加时数配作下卦」之义,问辞即闻声之数。
+// 同一时辰众人问辞各异,卦自不同;无问辞则回退年月日时起卦(观梅体)。
+func ByTimeAndText(t time.Time, question string) (Result, error) {
+	wc := utf8.RuneCountInString(strings.TrimSpace(question))
+	if wc == 0 {
+		return ByTime(t, question)
+	}
+	if t.Year() < 1902 || t.Year() > 2098 {
+		return Result{}, fmt.Errorf("时间超出支持范围(1902-2098)")
+	}
+	lunar := calendar.NewSolarFromDate(t).GetLunar()
+	monthN := lunar.GetMonth()
+	if monthN < 0 {
+		monthN = -monthN
+	}
+	hourN := branchNum(lunar.GetTimeZhi())
+
+	upperN := wc % 8
+	if upperN == 0 {
+		upperN = 8
+	}
+	lowerSum := wc + hourN
+	lowerN := lowerSum % 8
+	if lowerN == 0 {
+		lowerN = 8
+	}
+	moving := lowerSum % 6
+	if moving == 0 {
+		moving = 6
+	}
+
+	r := derive(upperN, lowerN, moving)
+	r.Method = "time"
+	r.Question = question
+	r.CastBasis = fmt.Sprintf("问辞%d字起上卦,加%s时数%d配下卦(声音占义)", wc, lunar.GetTimeZhi(), hourN)
 	r.LunarText = fmt.Sprintf("%s年%s月%s日%s时",
 		lunar.GetYearZhi(), lunar.GetMonthInChinese(), lunar.GetDayInChinese(), lunar.GetTimeZhi())
 	r.Judgment = r.Judge(monthN, question)

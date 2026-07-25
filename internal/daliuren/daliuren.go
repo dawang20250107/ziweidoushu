@@ -58,6 +58,9 @@ type Result struct {
 	// XunKong 日干支所在旬的空亡两支;ChuanDunGan 三传旬遁干(传落空亡则空串)。
 	XunKong     [2]string `json:"xunKong"`
 	ChuanDunGan [3]string `json:"chuanDunGan"`
+	// 活时报数起课溯源(正时为零值):BaoShu 所报之数,HourNote 如「活时·报数7」。
+	BaoShu   int    `json:"baoShu,omitempty"`
+	HourNote string `json:"hourNote,omitempty"`
 
 	// Judgment 确定性断语(课体 + 三传对日干生克,见 judge.go)。
 	Judgment *Judgment `json:"judgment,omitempty"`

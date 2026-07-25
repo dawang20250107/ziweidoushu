@@ -105,6 +105,7 @@ export function LiurenPan({ result: r }: { result: DaLiuRenResult }) {
           <p className="tnum text-[12px] leading-relaxed text-ink-secondary">
             {r.dayStem}
             {r.dayBranch}日 · {r.hourBranch}时占
+            {r.hourNote && <span className="text-gold">({r.hourNote})</span>}
             <br />
             月将{r.monthGen}
             {r.guiIsDay != null && ` · ${r.guiIsDay ? "昼贵" : "夜贵"}`}

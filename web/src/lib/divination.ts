@@ -63,6 +63,7 @@ export interface MeihuaResult {
   question?: string;
   lunarText?: string; // 时间卦:「午年六月初四日申时」
   numbers?: number[]; // 数字卦原始数
+  castBasis?: string; // 起数依据(如「问辞12字起上卦,加申时数9配下卦」)
   ben: Hexagram; // 本卦
   hu: Hexagram; // 互卦
   bian: Hexagram; // 变卦
@@ -314,12 +315,14 @@ export interface DaLiuRenResult {
   guiIsDay?: boolean;
   xunKong?: string[]; // 旬空两支
   chuanDunGan?: string[]; // 三传旬遁干(传落空亡为空串)
+  baoShu?: number; // 活时报数(正时无)
+  hourNote?: string; // 「活时·报数7」
   judgment?: DaLiuRenJudgment;
 }
 
 /** 大六壬起课(免费,匿名可用;登录则自动存入卦档)。 */
 export async function castDaLiuRen(
-  input?: { question?: string; castAt?: number },
+  input?: { question?: string; castAt?: number; baoShu?: number },
 ): Promise<{ result: DaLiuRenResult; castAt: number; recordId?: string }> {
   const res = await fetch(`${BASE}/api/v1/divination/daliuren`, {
     method: "POST",
@@ -331,7 +334,7 @@ export async function castDaLiuRen(
 
 /** AI 深度解课(大六壬,需登录,消耗 1 次)。 */
 export async function divineDaLiuRenAI(
-  input: { castAt: number; question: string; recordId?: string },
+  input: { castAt: number; question: string; recordId?: string; baoShu?: number },
 ): Promise<{ reading: DivineReading; remainingCredits: number }> {
   const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
     method: "POST",
