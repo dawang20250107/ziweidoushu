@@ -97,6 +97,82 @@ func TestPairTraitOf(t *testing.T) {
 	}
 }
 
+// TestBorrowedMingDifferentiation 借宫去雷同回归(实测用户报告案例):
+// 甲 1993-11-20(农历十月初七)辰时女,命宫未,太阳太阴坐守;
+// 乙 1994-02-24(农历正月十五)未时男,命宫未无正曜,借丑宫太阳太阴。
+// 修复前两盘总论念同一段【太阳太阴】模板 + 同一段形神速写,被用户指「雷同」。
+// 修后三处分道:①借宫只取组合首句并落衰减语;②借宫不套形神速写;
+// ③日月丑未庙陷之辨(未=日明月晦,丑=月朗日晦,恰好相反)。
+func TestBorrowedMingDifferentiation(t *testing.T) {
+	seated, err := ziwei.Generate(ziwei.BirthInfo{Year: 1993, Month: 11, Day: 20, Hour: 4, Gender: ziwei.Female}, ziwei.Options{ReferenceYear: 2026})
+	if err != nil {
+		t.Fatal(err)
+	}
+	borrowed, err := ziwei.Generate(ziwei.BirthInfo{Year: 1994, Month: 2, Day: 24, Hour: 7, Gender: ziwei.Male}, ziwei.Options{ReferenceYear: 2026})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 前置自检:盘型须确如案例(坐守 vs 借宫),否则本测试失去意义。
+	sm, bm := seated.MingGong(), borrowed.MingGong()
+	if got := strings.Join(sm.MajorStarNames(), ""); got != "太阳太阴" {
+		t.Fatalf("甲盘命宫应坐太阳太阴,得 %q", got)
+	}
+	if len(bm.MajorStarNames()) != 0 || strings.Join(bm.BorrowedStars, "") != "太阳太阴" {
+		t.Fatalf("乙盘命宫应空宫借太阳太阴,得实配%v 借%v", bm.MajorStarNames(), bm.BorrowedStars)
+	}
+	ovS := buildOverview(seated, ziwei.DetectPatterns(seated))
+	ovB := buildOverview(borrowed, ziwei.DetectPatterns(borrowed))
+	// 坐守盘:全段组合模板 + 形神速写 + 未宫「日明月晦」之辨。
+	for _, want := range []string{"命宫双主星【太阳太阴】", "丑未之地尤须细察", "形神多见", "日明月晦"} {
+		if !strings.Contains(ovS, want) {
+			t.Errorf("坐守盘总论应含 %q,实际:%s", want, ovS)
+		}
+	}
+	// 借宫盘:组合只取首句 + 衰减语 + 形神豁免 + 丑宫「月朗日晦」之辨。
+	for _, want := range []string{"借会双主星【太阳太阴】", "借对宫之光", "月朗日晦", "不以一格拘"} {
+		if !strings.Contains(ovB, want) {
+			t.Errorf("借宫盘总论应含 %q,实际:%s", want, ovB)
+		}
+	}
+	for _, ban := range []string{"丑未之地尤须细察", "形神多见", "日明月晦"} {
+		if strings.Contains(ovB, ban) {
+			t.Errorf("借宫盘总论不应照搬坐守模板片段 %q,实际:%s", ban, ovB)
+		}
+	}
+	// 命宫维度断语同样须分道:借宫段含衰减语,两盘文本不同。
+	secS := sectionForPalace(seated, "命宫", sm)
+	secB := sectionForPalace(borrowed, "命宫", bm)
+	if secS.Text == secB.Text {
+		t.Error("坐守与借宫的命宫断语不应相同")
+	}
+	if !strings.Contains(secB.Text, "借对宫之光") || !strings.Contains(secB.Text, "月朗日晦") {
+		t.Errorf("借宫命宫断语应含衰减语与丑宫日月之辨,实际:%s", secB.Text)
+	}
+	if !strings.Contains(secS.Text, "此为【太阳太阴】同宫") || !strings.Contains(secS.Text, "日明月晦") {
+		t.Errorf("坐守命宫断语应含全段组合与未宫日月之辨,实际:%s", secS.Text)
+	}
+}
+
+// TestRiYueChouWeiClause 日月同宫之辨:丑未两垣断语必须相反,其余支位返回空。
+func TestRiYueChouWeiClause(t *testing.T) {
+	chou, wei := riYueChouWeiClause(1), riYueChouWeiClause(7)
+	if chou == "" || wei == "" || chou == wei {
+		t.Fatalf("丑未两垣应各有其辨且不同:丑=%q 未=%q", chou, wei)
+	}
+	if !strings.Contains(chou, "月朗日晦") || !strings.Contains(wei, "日明月晦") {
+		t.Errorf("丑应月朗日晦、未应日明月晦:丑=%q 未=%q", chou, wei)
+	}
+	for b := 0; b < 12; b++ {
+		if b != 1 && b != 7 && riYueChouWeiClause(b) != "" {
+			t.Errorf("支位 %d 非丑未不应有日月之辨", b)
+		}
+	}
+	// 借宫取对宫支:未宫借丑、丑宫借未。
+	if riYueBranch(7, true) != 1 || riYueBranch(1, true) != 7 || riYueBranch(7, false) != 7 {
+		t.Error("riYueBranch 借宫应取对宫支、坐守取本宫支")
+	}
+}
+
 // TestSihuaLanding 生年四化落宫串联:四化须各自定位到宫,section 与总论贴盘。
 func TestSihuaLanding(t *testing.T) {
 	c, err := ziwei.Generate(ziwei.BirthInfo{Year: 1988, Month: 3, Day: 8, Hour: 4, Gender: ziwei.Female}, ziwei.Options{ReferenceYear: 2026})

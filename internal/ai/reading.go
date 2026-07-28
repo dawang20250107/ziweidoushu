@@ -136,6 +136,31 @@ func pairTraitOf(majors []string) (name, trait string) {
 	return "", ""
 }
 
+// borrowDecayClause 借宫断语的衰减语:空宫借对宫,力隔一层,吉凶皆打折扣。
+// 借星断语若不加此语,空宫命与坐守命会念出同一段双星模板,两盘雷同(实测教训)。
+const borrowDecayClause = "惟本宫无正曜,以上皆借对宫之光而论——隔一层则力打折扣,显发不如坐守之直接:得力处在善用对宫与三方之势、依人依境而成,自主发动之力则弱,吉不全吉、凶不全凶。"
+
+// riYueChouWeiClause 日月同宫之辨:太阳太阴同宫仅见于丑未两垣,而两垣庙陷相反,
+// 断语必须分开(未宫日得地而月陷;丑宫月入庙而日陷),不可共用一段模板。
+// starBranch 为星曜实际坐落之地支(借宫时取对宫支)。
+func riYueChouWeiClause(starBranch int) string {
+	switch ((starBranch % 12) + 12) % 12 {
+	case 1: // 丑:月朗日晦
+		return "日月居丑,月入庙而日落陷,是「月朗日晦」之局:阴柔面胜于阳刚,沉潜内蕴、宜夜宜静,长于幕后积累与谋定后动,母缘女缘较父缘为亲;不宜以锋芒争先,厚积徐图方是正路。"
+	case 7: // 未:日明月晦
+		return "日月居未,日得地而月落陷,是「日明月晦」之局:阳刚面胜于阴柔,显发外向、宜昼宜动,长于台前任事与开创进取,父缘男缘较母缘为显;惟内里安顿稍逊,宜以静养补之。"
+	}
+	return ""
+}
+
+// riYueBranch 双星为太阳太阴时星曜实际坐落之支:坐守取本宫支,借宫取对宫支。
+func riYueBranch(branch int, borrowed bool) int {
+	if borrowed {
+		return (branch + 6) % 12
+	}
+	return branch % 12
+}
+
 // BuildReading 由命盘组合多维断语(确定性,不走 LLM)。
 func (it *Interpreter) BuildReading(chart *ziwei.Chart, patterns []ziwei.Pattern) *Reading {
 	return buildReading(chart, patterns)
@@ -285,9 +310,20 @@ func sectionForPalace(chart *ziwei.Chart, pname string, p *ziwei.Palace) Reading
 		b.WriteString(fmt.Sprintf("%s坐 %s,主%s。以 %s 之性投于此域:%s。",
 			lead, strings.Join(starTags, "、"), lens[1], strings.Join(majors, "、"), strings.Join(clauses, ";")))
 	}
-	// 双主星同宫组合专断(准头核心:组合自成一格,非特质相加)
+	// 双主星同宫组合专断(准头核心:组合自成一格,非特质相加)。
+	// 借宫只取组合首句并随后加衰减语,避免与坐守之盘念同一整段模板。
 	if pn, pt := pairTraitOf(majors); pt != "" {
-		b.WriteString(fmt.Sprintf("此为【%s】同宫:%s", pn, pt))
+		if borrowed {
+			b.WriteString(fmt.Sprintf("借会【%s】之组:%s", pn, firstSentence(pt)))
+		} else {
+			b.WriteString(fmt.Sprintf("此为【%s】同宫:%s", pn, pt))
+		}
+		if pn == "太阳太阴" {
+			b.WriteString(riYueChouWeiClause(riYueBranch(p.Branch, borrowed)))
+		}
+	}
+	if borrowed && len(majors) > 0 {
+		b.WriteString(borrowDecayClause)
 	}
 	// 应验分档:主星组合再叠煞吉会照,推进到应验档位(仅实配主星,不含借星)
 	if !borrowed {
@@ -512,15 +548,22 @@ func sectionForLiuNian(chart *ziwei.Chart) *ReadingSection {
 	var b strings.Builder
 	var tags []string
 	b.WriteString(fmt.Sprintf("%d 年为%s年,流年命宫落于本命【%s】", year, ganzhi, palaceLabel(lnMing.Name)))
-	majors, _ := palaceMajors(lnMing)
+	majors, lnBorrowed := palaceMajors(lnMing)
 	if len(majors) > 0 {
 		var cl []string
 		for _, n := range majors {
 			cl = append(cl, n+"("+starTrait[n][0]+")")
 		}
-		b.WriteString(fmt.Sprintf("(坐 %s),本年整体气象以此为主题:%s。", strings.Join(majors, "、"), strings.Join(cl, ";")))
+		sit := "坐"
+		if lnBorrowed {
+			sit = "无正曜,借对宫"
+		}
+		b.WriteString(fmt.Sprintf("(%s %s),本年整体气象以此为主题:%s。", sit, strings.Join(majors, "、"), strings.Join(cl, ";")))
 		if pn, pt := pairTraitOf(majors); pt != "" {
 			b.WriteString(fmt.Sprintf("【%s】:%s", pn, firstSentence(pt)))
+		}
+		if lnBorrowed {
+			b.WriteString("借宫之力隔一层,本年主题取其意而减其力。")
 		}
 	} else {
 		b.WriteString(",本宫无正曜,借对宫参看,本年宜守常、随三方之势。")
@@ -585,10 +628,23 @@ func buildOverview(chart *ziwei.Chart, patterns []ziwei.Pattern) string {
 		}
 		b.WriteString(fmt.Sprintf("%s坐 %s,立命之本:%s。", who, strings.Join(majors, "、"), strings.Join(parts, ";")))
 		if pn, pt := pairTraitOf(majors); pt != "" {
-			b.WriteString(fmt.Sprintf("命宫双主星【%s】——%s", pn, pt))
+			if borrowed {
+				b.WriteString(fmt.Sprintf("借会双主星【%s】——%s", pn, firstSentence(pt)))
+			} else {
+				b.WriteString(fmt.Sprintf("命宫双主星【%s】——%s", pn, pt))
+			}
+			if pn == "太阳太阴" {
+				b.WriteString(riYueChouWeiClause(riYueBranch(ming.Branch, borrowed)))
+			}
 		}
-		// 形神速写(形性赋为骨、精成相貌段为肉,义引原创)
-		b.WriteString(xingShenClause(majors))
+		if borrowed {
+			// 空宫借星:先落衰减语,形神不以借星硬套(形貌从坐守之曜,不从借光)
+			b.WriteString(borrowDecayClause)
+			b.WriteString("命宫无正曜者,形神亦不以一格拘:相貌气质随对宫正曜与三方会照而变,多见清秀灵动、神情随境转换之象。")
+		} else {
+			// 形神速写(形性赋为骨、精成相貌段为肉,义引原创)
+			b.WriteString(xingShenClause(majors))
+		}
 	} else {
 		b.WriteString(who + "论命。")
 	}
