@@ -56,6 +56,27 @@ export function fetchChart(birth: BirthInfo): Promise<ChartResponse> {
   return post<ChartResponse>("/api/v1/chart", birth);
 }
 
+/** 农历某年的逐月表(闰月按年内实际位置插入;days 为 29/30)。 */
+export interface LunarMonthMeta {
+  month: number;
+  leap: boolean;
+  days: number;
+}
+
+export function fetchLunarYear(year: number): Promise<{ year: number; months: LunarMonthMeta[] }> {
+  return get(`/api/v1/calendar/lunar-year?year=${year}`);
+}
+
+/** 农历→公历换算(表单农历模式在提交前调用,下游一律公历)。 */
+export function lunarToSolar(input: {
+  year: number;
+  month: number;
+  leap: boolean;
+  day: number;
+}): Promise<{ year: number; month: number; day: number }> {
+  return post("/api/v1/calendar/lunar-to-solar", input);
+}
+
 export function fetchWorldCities(): Promise<{ cities: WorldCity[] }> {
   return get("/api/v1/world-cities");
 }

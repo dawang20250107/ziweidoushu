@@ -74,6 +74,8 @@ func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *
 
 	// 排盘
 	mux.HandleFunc("POST /api/v1/chart", s.handleChart)
+	mux.HandleFunc("GET /api/v1/calendar/lunar-year", s.handleLunarYear)
+	mux.HandleFunc("POST /api/v1/calendar/lunar-to-solar", s.handleLunarToSolar)
 	mux.HandleFunc("POST /api/v1/horoscope", s.handleHoroscope)
 	mux.HandleFunc("GET /api/v1/world-cities", s.handleWorldCities)
 	mux.HandleFunc("GET /api/v1/timing/events", s.handleTimingEvents)

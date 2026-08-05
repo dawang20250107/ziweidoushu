@@ -49,6 +49,18 @@ curl -s localhost:8080/api/v1/chart -d '{
 - `daXians[12]` 大限序列;`currentDaXianIndex` 当前大限
 - `data.patterns[]` 格局:名称、吉凶等级(excellent/good/neutral/caution)、描述、必须/加分/破格条件、古籍出处
 
+### GET /api/v1/calendar/lunar-year?year=1993
+
+农历某年逐月表(供表单农历模式渲染月/日选项;lunar-go 口径,1900-2100)。
+
+响应 `data`: `{ year, months: [{month(1-12), leap, days(29|30)}...] }`,闰月按年内实际位置插入(如 1993 年三月后随闰三月,共 13 项)。
+
+### POST /api/v1/calendar/lunar-to-solar
+
+农历生日 → 公历。请求 `{year, month, leap, day}`(闰月以 `leap:true` 标记);
+响应 `data: {year, month, day}`。不存在的闰月/超出当月天数/区间外年份均 400(`bad_lunar_date`)。
+换算在提交前完成,排盘/档案/问星下游一律公历。
+
 ### POST /api/v1/horoscope
 
 运限叠加:大限(含童限)/ 小限 / 流年 / 流月 / 流日 / 流时。

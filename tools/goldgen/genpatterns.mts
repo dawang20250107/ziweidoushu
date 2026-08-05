@@ -2,9 +2,11 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { gzipSync, gunzipSync } from 'node:zlib';
 
-const REPO = '/home/user/ziweidoushu';
-const { generateChart } = await import(`${REPO}/lib/ziwei/algorithm.ts`);
-const { detectPatterns, getMingGongSummary } = await import(`${REPO}/lib/ziwei/patterns.ts`);
+const REPO = process.env.GOLDGEN_REPO ?? '/home/user/ziweidoushu';
+// 旧 TS 源码检出位置(lib/ 已在 Go 重构时删除,须指向历史提交 worktree)
+const LEGACY = process.env.GOLDGEN_TS_LEGACY ?? REPO;
+const { generateChart } = await import(`${LEGACY}/lib/ziwei/algorithm.ts`);
+const { detectPatterns, getMingGongSummary } = await import(`${LEGACY}/lib/ziwei/patterns.ts`);
 
 const golden = JSON.parse(
   gunzipSync(readFileSync(`${REPO}/internal/ziwei/testdata/iztro_golden.json.gz`)).toString(),
