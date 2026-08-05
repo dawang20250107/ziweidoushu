@@ -123,7 +123,26 @@ func (s *Store) SearchAll(query string, limit int) []SearchHit {
 	return s.search(query, limit, true)
 }
 
+// SearchAllIn 按板块过滤的全域检索(含研究语料,内部专用):
+// 只返回板块落在 cats 内的书的命中。各解读线以此只引本门 + 通用语料,
+// 防他门口诀混入(如梅花脉诀混入紫微报告)。cats 为空退化为 SearchAll。
+func (s *Store) SearchAllIn(query string, limit int, cats ...string) []SearchHit {
+	if len(cats) == 0 {
+		return s.search(query, limit, true)
+	}
+	allow := make(map[string]bool, len(cats))
+	for _, c := range cats {
+		allow[c] = true
+	}
+	return s.searchFiltered(query, limit, true, allow)
+}
+
 func (s *Store) search(query string, limit int, includeResearch bool) []SearchHit {
+	return s.searchFiltered(query, limit, includeResearch, nil)
+}
+
+// searchFiltered allow 非 nil 时只保留板块在 allow 内的书。
+func (s *Store) searchFiltered(query string, limit int, includeResearch bool, allow map[string]bool) []SearchHit {
 	q := strings.TrimSpace(query)
 	if q == "" {
 		return []SearchHit{}
@@ -138,6 +157,9 @@ func (s *Store) search(query string, limit int, includeResearch bool) []SearchHi
 		ref := v.index.paras[id]
 		book := &v.books[ref.bookIdx]
 		if book.Research && !includeResearch {
+			continue
+		}
+		if allow != nil && !allow[v.cats[ref.bookIdx]] {
 			continue
 		}
 		chapter := &book.Chapters[ref.chapterIdx]

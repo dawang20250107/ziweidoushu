@@ -80,13 +80,14 @@ func BuildInterpretPrompt(
 	}
 
 	// 古籍引文(RAG:按命宫主星检索原文;含研究语料——仅内部引用,不对外露出全文)。
-	// 每星每书限引 1 条,分散引用面防单书霸榜。
+	// 每星每书限引 1 条,分散引用面防单书霸榜;按板块过滤只引紫微线语料
+	// (紫微/相法/子平/倪师通论),防梅花脉诀等他门口诀混入。
 	if store != nil && len(mainStars) > 0 {
 		var cites []string
 		seen := map[string]bool{}
 		for _, name := range mainStars {
 			seenBook := map[string]int{}
-			for _, hit := range store.SearchAll(name, 8) {
+			for _, hit := range store.SearchAllIn(name, 8, corpus.CatZiwei, corpus.CatXiang, corpus.CatBazi, corpus.CatNi) {
 				if seen[hit.ParagraphID] || seenBook[hit.BookSlug] >= 1 {
 					continue
 				}

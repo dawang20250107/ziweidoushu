@@ -496,6 +496,21 @@ mark {
   background: var(--gold);
   animation: dot-bounce 1.2s var(--ease-inout) infinite;
 }
+/* 对话气泡入场:轻抬渐显(一次性,非滚动驱动) */
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.msg-in {
+  animation: msg-in 240ms var(--ease-out) both;
+}
+
 /* 流式中的气泡呼吸描边 */
 @keyframes bubble-stream {
   0%,
@@ -681,6 +696,7 @@ button:not(:disabled):active {
   .stream-md > :last-child::after,
   .think-dot,
   .bubble-streaming,
+  .msg-in,
   .prose-elder > * {
     animation: none;
   }

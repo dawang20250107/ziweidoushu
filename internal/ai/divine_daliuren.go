@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dawang20250107/ziweidoushu/internal/corpus"
 	"github.com/dawang20250107/ziweidoushu/internal/daliuren"
 )
 
@@ -81,13 +82,14 @@ func (it *Interpreter) DivineDaLiuRen(ctx context.Context, r *daliuren.Result, q
 		sb.WriteString("\n")
 	}
 
-	// 语料引文:每书限一条(现有六壬语料:精校本六壬大全/课经集/指南注解等)
+	// 语料引文:每书限一条(现有六壬语料:精校本六壬大全/课经集/指南注解等);
+	// 按板块过滤只引六壬线语料,防他门口诀混入。
 	if it.store != nil {
 		var cites []string
 		seenPara := map[string]bool{}
 		seenBook := map[string]int{}
 		for _, q := range []string{r.KeType + "课", "三传", "天将", "月将"} {
-			for _, hit := range it.store.SearchAll(q, 6) {
+			for _, hit := range it.store.SearchAllIn(q, 6, corpus.CatLiuRen) {
 				if seenPara[hit.ParagraphID] || seenBook[hit.BookSlug] >= 1 {
 					continue
 				}

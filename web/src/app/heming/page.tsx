@@ -72,17 +72,19 @@ export default function HemingPage() {
 
       {result && (
         <div className="mt-12 flex flex-col gap-8 md:mt-16">
-          {/* 合盘契合度(确定性,比对双盘) */}
-          <HemingReadingPanel reading={result.reading} />
+          {/* 合盘契合度(确定性,比对双盘);结果区各块与全站同套滚动聚焦节奏 */}
+          <div className="reveal">
+            <HemingReadingPanel reading={result.reading} />
+          </div>
 
           {/* 夫妻宫断语(双方并列) */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="reveal grid gap-6 lg:grid-cols-2">
             <SidePanel title={a.name || "甲方"} side={result.a} />
             <SidePanel title={b.name || "乙方"} side={result.b} />
           </div>
 
           {/* 缘分评级标准 */}
-          <section className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
+          <section className="reveal rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
             <h2 className="font-display text-[20px] font-semibold">缘分评级标准</h2>
             <p className="mt-1.5 text-[13px] leading-relaxed text-ink-faint">
               倪师体系的合盘参照系,对照双方夫妻宫/福德宫星情自评。
@@ -98,7 +100,7 @@ export default function HemingPage() {
           </section>
 
           {/* 双方盘面(移动端显式 1 列:auto 轨道会被盘面 min-w 撑开导致整页溢出) */}
-          <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+          <div className="reveal grid grid-cols-1 gap-8 xl:grid-cols-2">
             {([["甲方", result.a, a], ["乙方", result.b, b]] as const).map(([label, side, v]) => (
               <section key={label}>
                 <h3 className="mb-3 font-display text-[15px] text-ink-secondary">
@@ -119,7 +121,7 @@ export default function HemingPage() {
           </div>
 
           {/* 方法论(折叠) */}
-          <section className="rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
+          <section className="reveal rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)] md:p-8">
             <button
               type="button"
               onClick={() => setShowMethod((s) => !s)}
