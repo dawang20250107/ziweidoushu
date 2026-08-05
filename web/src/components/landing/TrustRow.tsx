@@ -7,9 +7,9 @@ const FACTS = [
 
 export function TrustRow() {
   return (
-    <section className="reveal mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <section className="focus-row mx-auto max-w-6xl px-4 py-16 md:py-24">
       <div
-        className="grid gap-px overflow-hidden rounded-[10px] sm:grid-cols-3"
+        className="reveal grid gap-px overflow-hidden rounded-[10px] sm:grid-cols-3"
         style={{ boxShadow: "inset 0 0 0 1px var(--line)", background: "var(--line)" }}
       >
         {FACTS.map((f) => (

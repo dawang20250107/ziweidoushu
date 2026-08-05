@@ -158,16 +158,23 @@ interface CapabilityRowProps {
 }
 
 function CapabilityRow({ eyebrow, title, body, example, flip = false }: CapabilityRowProps) {
+  // 聚焦式滚动:行级挂退焦(focus-row),列级挂进场(reveal),
+  // 示例卡晚半拍(reveal-late)——同一行内先读文案、再看例子的次序感。
   return (
-    <div className="reveal grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-      <div className={flip ? "lg:order-2" : ""}>
+    <div className="focus-row grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+      <div className={["reveal", flip ? "lg:order-2" : ""].join(" ")}>
         <p className="text-[12px] font-medium tracking-[0.08em] text-gold">{eyebrow}</p>
         <h2 className="mt-4 text-balance font-display text-[26px] font-semibold leading-snug text-ink md:text-[31px]">
           {title}
         </h2>
         <p className="mt-5 max-w-md text-[15px] leading-[1.75] text-ink-secondary">{body}</p>
       </div>
-      <div className={["flex justify-center", flip ? "lg:order-1 lg:justify-start" : "lg:justify-end"].join(" ")}>
+      <div
+        className={[
+          "reveal reveal-late flex justify-center",
+          flip ? "lg:order-1 lg:justify-start" : "lg:justify-end",
+        ].join(" ")}
+      >
         {example}
       </div>
     </div>
