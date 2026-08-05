@@ -211,7 +211,10 @@ export default function ChartPage() {
             <div
               className={[
                 "relative transition-[padding] duration-500",
-                selectedBranch != null ? "lg:pr-[376px]" : "",
+                // 让位量按视口计:抽屉固定于视口右缘(right-5 + 360px),
+                // 盘面右缘 = 抽屉左缘 - 20px 缝;宽屏下容器外边距抵扣让位,
+                // 不再出现「盘面过度左压、与抽屉之间大片空白」。
+                selectedBranch != null ? "lg:pr-[max(0px,calc(400px_-_(100vw_-_100%)/2))]" : "",
               ].join(" ")}
               style={{ transitionTimingFunction: "var(--ease-out)" }}
             >

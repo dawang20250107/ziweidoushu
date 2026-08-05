@@ -97,6 +97,7 @@ export function CalendarDateField({
 
   return (
     <div className="flex flex-col gap-1">
+      {/* 预览随标签行内展示,不另起一行(表单行高保持一致) */}
       <div className="flex items-center gap-2">
         <span className="text-[12px] text-ink-faint">生日</span>
         <div className="flex overflow-hidden rounded-[4px] shadow-[inset_0_0_0_1px_var(--line)]" role="radiogroup" aria-label="历法">
@@ -118,6 +119,9 @@ export function CalendarDateField({
             </button>
           ))}
         </div>
+        {calendar === "lunar" && preview && (
+          <span className="tnum whitespace-nowrap text-[11px] text-ink-faint">≈ 公历 {preview}</span>
+        )}
       </div>
       {calendar === "solar" ? (
         <DateSelect value={value} onChange={onChange} />
@@ -160,9 +164,6 @@ export function CalendarDateField({
             ))}
           </select>
         </div>
-      )}
-      {calendar === "lunar" && preview && (
-        <span className="tnum text-[11px] text-ink-faint">≈ 公历 {preview}</span>
       )}
     </div>
   );
