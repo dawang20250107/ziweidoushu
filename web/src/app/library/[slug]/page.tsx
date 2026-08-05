@@ -140,7 +140,7 @@ export default function BookDetailPage({ params }: { params: Promise<{ slug: str
             </div>
           </header>
 
-          <section className="mt-14 md:mt-16" aria-label="目录">
+          <section className="reveal mt-14 md:mt-16" aria-label="目录">
             <h2 className="mb-5 text-[12px] tracking-[0.24em] text-gold">目录</h2>
             <ol className="divide-y divide-line">
               {book.chapters.map((ch, i) => {

@@ -32,6 +32,8 @@ interface ConnectLine {
   y1: number;
   x2: number;
   y2: number;
+  /** sanfang=选宫三方四正实线;pattern=格局悬停虚线金网 */
+  kind: "sanfang" | "pattern";
 }
 
 /** 4×4 星盘:外环十二宫(地支固定位)+ 中宫命主信息 + 三方四正金线。 */
@@ -44,10 +46,19 @@ export function ChartBoard({
   const boardRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<ConnectLine[]>([]);
 
-  // 选宫 → 量取宫格中心,画三方四正连线(布局变化与缩放时重量)
+  // 格局悬停 → 关联宫支(选宫时让位于三方四正,不同时画两张网)
+  const hlBranches =
+    selectedBranch == null && hlSet != null
+      ? chart.palaces.filter((p) => hlSet.has(p.name)).map((p) => p.branch)
+      : [];
+  const hlKey = hlBranches.join(",");
+
+  // 选宫/格局悬停 → 量取宫格中心画连线(布局变化与缩放时重量):
+  // 选宫画三方四正实线;格局悬停画关联宫两两相连的虚线金网(格局的结构感)。
   useLayoutEffect(() => {
     const board = boardRef.current;
-    if (!board || selectedBranch == null) {
+    const hl = hlKey ? hlKey.split(",").map(Number) : [];
+    if (!board || (selectedBranch == null && hl.length < 2)) {
       setLines([]);
       return;
     }
@@ -60,13 +71,23 @@ export function ChartBoard({
         const r = el.getBoundingClientRect();
         return { x: r.left - origin.left + r.width / 2, y: r.top - origin.top + r.height / 2 };
       };
-      const from = center(selectedBranch!);
-      if (!from) return;
       const next: ConnectLine[] = [];
-      for (const b of sanFangBranches(selectedBranch!)) {
-        if (b === selectedBranch) continue;
-        const to = center(b);
-        if (to) next.push({ key: `${selectedBranch}-${b}`, x1: from.x, y1: from.y, x2: to.x, y2: to.y });
+      if (selectedBranch != null) {
+        const from = center(selectedBranch);
+        if (!from) return;
+        for (const b of sanFangBranches(selectedBranch)) {
+          if (b === selectedBranch) continue;
+          const to = center(b);
+          if (to) next.push({ key: `${selectedBranch}-${b}`, x1: from.x, y1: from.y, x2: to.x, y2: to.y, kind: "sanfang" });
+        }
+      } else {
+        for (let i = 0; i < hl.length; i++) {
+          for (let j = i + 1; j < hl.length; j++) {
+            const a = center(hl[i]);
+            const b = center(hl[j]);
+            if (a && b) next.push({ key: `p${hl[i]}-${hl[j]}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y, kind: "pattern" });
+          }
+        }
       }
       setLines(next);
     }
@@ -79,7 +100,7 @@ export function ChartBoard({
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
-  }, [selectedBranch, density, horoscope, chart]);
+  }, [selectedBranch, hlKey, density, horoscope, chart]);
 
   // 组装每宫的运限叠加数据
   const overlayStarsByBranch = new Map<number, Star[]>();
@@ -144,39 +165,70 @@ export function ChartBoard({
         <ChartCenter chart={chart} horoscope={horoscope ?? undefined} patterns={patterns} onPatternHover={onPatternHover} />
       </div>
 
-      {/* 三方四正金线:选宫时从本宫射向对宫与三合宫 */}
+      {/* 选宫三方四正金线 / 格局悬停虚线金网 */}
       {lines.length > 0 && (
         <svg aria-hidden className="pointer-events-none absolute inset-0 z-10 h-full w-full">
-          {lines.map((l) => (
-            <g key={l.key}>
-              {/* 辉光底衬:宽而淡的金光,让连线像光束而非细线 */}
-              <line
-                x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-                pathLength={1}
-                className="sanfang-line"
-                stroke="var(--gold)"
-                strokeWidth="5"
-                strokeLinecap="round"
-                opacity="0.14"
-              />
-              <line
-                x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-                pathLength={1}
-                className="sanfang-line"
-                stroke="var(--gold-dim)"
-                strokeWidth="1.5"
-                opacity="0.85"
-              />
-              <circle cx={l.x2} cy={l.y2} r="5.5" fill="var(--gold)" opacity="0.18" />
-              <circle cx={l.x2} cy={l.y2} r="3" fill="var(--gold)" opacity="0.9" />
-            </g>
-          ))}
-          {lines[0] && (
+          {lines.map((l) =>
+            l.kind === "sanfang" ? (
+              <g key={l.key}>
+                {/* 辉光底衬:宽而淡的金光,让连线像光束而非细线 */}
+                <line
+                  x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                  pathLength={1}
+                  className="sanfang-line"
+                  stroke="var(--gold)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  opacity="0.14"
+                />
+                <line
+                  x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                  pathLength={1}
+                  className="sanfang-line"
+                  stroke="var(--gold-dim)"
+                  strokeWidth="1.5"
+                  opacity="0.85"
+                />
+                <circle cx={l.x2} cy={l.y2} r="5.5" fill="var(--gold)" opacity="0.18" />
+                <circle cx={l.x2} cy={l.y2} r="3" fill="var(--gold)" opacity="0.9" />
+              </g>
+            ) : (
+              <g key={l.key} className="pattern-line">
+                {/* 格局金网:细虚线两两相连,呈现「此格由这几宫结成」的结构 */}
+                <line
+                  x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                  stroke="var(--gold)"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  opacity="0.08"
+                />
+                <line
+                  x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                  stroke="var(--gold-dim)"
+                  strokeWidth="1"
+                  strokeDasharray="5 7"
+                  opacity="0.75"
+                />
+              </g>
+            ),
+          )}
+          {lines[0]?.kind === "sanfang" && (
             <>
               <circle cx={lines[0].x1} cy={lines[0].y1} r="7" fill="var(--gold)" opacity="0.2" />
               <circle cx={lines[0].x1} cy={lines[0].y1} r="4" fill="var(--gold-bright)" />
             </>
           )}
+          {/* 格局网结点:每个关联宫心一枚金点 */}
+          {lines[0]?.kind === "pattern" &&
+            [...new Map(lines.flatMap((l) => [
+              [`${l.x1},${l.y1}`, { x: l.x1, y: l.y1 }] as const,
+              [`${l.x2},${l.y2}`, { x: l.x2, y: l.y2 }] as const,
+            ])).values()].map((p) => (
+              <g key={`n${p.x},${p.y}`} className="pattern-line">
+                <circle cx={p.x} cy={p.y} r="5" fill="var(--gold)" opacity="0.16" />
+                <circle cx={p.x} cy={p.y} r="2.5" fill="var(--gold)" opacity="0.85" />
+              </g>
+            ))}
         </svg>
       )}
     </div>

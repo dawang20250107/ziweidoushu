@@ -206,9 +206,23 @@ mark {
   animation: line-draw 480ms var(--ease-out) forwards;
 }
 
+/* 格局悬停金网:淡入即可(虚线自带 dasharray,不走描线动画) */
+@keyframes line-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.pattern-line {
+  animation: line-fade 320ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
-  .sanfang-line {
+  .sanfang-line,
+  .pattern-line {
     animation: none;
   }
   .sanfang-line {

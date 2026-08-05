@@ -156,7 +156,10 @@ export default function LibraryPage() {
         {!loading && books.length > 0 && (
           <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {books.map((b) => (
-              <BookCard key={b.slug} book={b} progress={progressMap[b.slug] ?? null} />
+              /* 星牌随下滑逐一入焦(scroll-driven,渐进增强) */
+              <div key={b.slug} className="reveal">
+                <BookCard book={b} progress={progressMap[b.slug] ?? null} />
+              </div>
             ))}
           </div>
         )}

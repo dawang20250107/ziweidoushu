@@ -199,11 +199,13 @@ export default function LiuRenPage() {
 
       {r && !casting && (
         <div className="page-enter mt-10">
-          {/* 式盘:天地盘/天将/三传/课骨一体呈现 */}
-          <LiurenPan result={r} />
+          {/* 式盘:天地盘/天将/三传/课骨一体呈现;各块与全站同套滚动聚焦节奏 */}
+          <div className="reveal">
+            <LiurenPan result={r} />
+          </div>
 
           {/* 四课 / 三传 */}
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="reveal mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)]">
               <p className="text-[12px] font-medium tracking-[0.24em] text-gold">四课</p>
               <div className="mt-4 grid grid-cols-4 gap-2">
@@ -260,7 +262,7 @@ export default function LiuRenPage() {
 
           {/* 断语 */}
           {r.judgment && (
-            <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
+            <div className="reveal mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[12px] font-medium tracking-[0.24em] text-gold">断语 · 课体三传</p>
                 <span
@@ -283,7 +285,7 @@ export default function LiuRenPage() {
           )}
 
           {/* ── AI 深度解课 ── */}
-          <div className="mt-8">
+          <div className="reveal mt-8">
             {reading != null && !aiLoading ? (
               <article className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)] md:px-10 md:py-10">
                 <p className="mb-5 text-[12px] font-medium tracking-[0.24em] text-gold">AI 深度解课</p>
@@ -319,7 +321,9 @@ export default function LiuRenPage() {
       )}
 
       {/* ── 小六壬快占 ── */}
-      <XiaoLiuRen />
+      <div className="reveal">
+        <XiaoLiuRen />
+      </div>
     </div>
   );
 }

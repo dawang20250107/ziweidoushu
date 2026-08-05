@@ -399,13 +399,13 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
             )}
           </div>
 
-          {/* 本卦(大) */}
-          <div className="mt-8 flex justify-center rounded-[10px] bg-bg-raised px-4 py-8 shadow-[0_0_0_1px_var(--line)]">
+          {/* 本卦(大);结果区各块与全站同套滚动聚焦节奏(reveal 渐进增强) */}
+          <div className="reveal mt-8 flex justify-center rounded-[10px] bg-bg-raised px-4 py-8 shadow-[0_0_0_1px_var(--line)]">
             <HexagramView hexagram={result.ben} moving={result.moving} label="本卦" emphasis />
           </div>
 
           {/* 互卦 / 变卦 */}
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="reveal mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex justify-center rounded-[10px] bg-bg-raised px-4 py-7 shadow-[0_0_0_1px_var(--line)]">
               <HexagramView hexagram={result.hu} moving={0} label="互卦" />
             </div>
@@ -416,25 +416,37 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
 
           {/* 周易经文(公版卦辞) */}
           {result.ben.guaCi && (
-            <JingWenCard
-              rows={[
-                { label: `本卦 ${result.ben.name}`, text: result.ben.guaCi },
-                ...(result.bian.guaCi ? [{ label: `变卦 ${result.bian.name}`, text: result.bian.guaCi }] : []),
-              ]}
-            />
+            <div className="reveal">
+              <JingWenCard
+                rows={[
+                  { label: `本卦 ${result.ben.name}`, text: result.ben.guaCi },
+                  ...(result.bian.guaCi ? [{ label: `变卦 ${result.bian.name}`, text: result.bian.guaCi }] : []),
+                ]}
+              />
+            </div>
           )}
 
           {/* 体用生克 */}
-          <TiYongCard result={result} />
+          <div className="reveal">
+            <TiYongCard result={result} />
+          </div>
 
           {/* 断卦骨架(确定性:卦气旺衰/体党用党/互变分层/事类/应期) */}
-          {result.judgment && <JudgeCard j={result.judgment} />}
+          {result.judgment && (
+            <div className="reveal">
+              <JudgeCard j={result.judgment} />
+            </div>
+          )}
 
           {/* 万物类象(体/用/变取象) */}
-          {result.lore && result.lore.length > 0 && <LoreCard lore={result.lore} />}
+          {result.lore && result.lore.length > 0 && (
+            <div className="reveal">
+              <LoreCard lore={result.lore} />
+            </div>
+          )}
 
           {/* ── AI 深度解卦 ── */}
-          <div className="mt-8">
+          <div className="reveal mt-8">
             <AiSection
               signedIn={signedIn}
               credits={credits}
@@ -463,30 +475,36 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
             )}
           </div>
 
-          {/* 装卦盘面 */}
-          <div className="mt-8">
+          {/* 装卦盘面;结果区各块与全站同套滚动聚焦节奏(reveal 渐进增强) */}
+          <div className="reveal mt-8">
             <LiuYaoPan result={lyResult} />
           </div>
 
           {/* 周易经文:本卦辞/动爻爻辞/变卦辞(公版) */}
           {lyResult.jingWen && (
-            <JingWenCard
-              rows={[
-                { label: `本卦 ${lyResult.benName}`, text: lyResult.jingWen.benGuaCi },
-                ...(lyResult.jingWen.yaoCi ?? []).map((yc) => ({ label: "动爻", text: yc, strong: true })),
-                ...(lyResult.jingWen.yong ? [{ label: "六爻皆动", text: lyResult.jingWen.yong, strong: true }] : []),
-                ...(lyResult.jingWen.bianGuaCi && lyResult.bianName
-                  ? [{ label: `变卦 ${lyResult.bianName}`, text: lyResult.jingWen.bianGuaCi }]
-                  : []),
-              ]}
-            />
+            <div className="reveal">
+              <JingWenCard
+                rows={[
+                  { label: `本卦 ${lyResult.benName}`, text: lyResult.jingWen.benGuaCi },
+                  ...(lyResult.jingWen.yaoCi ?? []).map((yc) => ({ label: "动爻", text: yc, strong: true })),
+                  ...(lyResult.jingWen.yong ? [{ label: "六爻皆动", text: lyResult.jingWen.yong, strong: true }] : []),
+                  ...(lyResult.jingWen.bianGuaCi && lyResult.bianName
+                    ? [{ label: `变卦 ${lyResult.bianName}`, text: lyResult.jingWen.bianGuaCi }]
+                    : []),
+                ]}
+              />
+            </div>
           )}
 
           {/* 确定性断语骨架(免费层) */}
-          {lyResult.judgment && <LiuYaoJudgeCard j={lyResult.judgment} xingZhi={lyResult.benXingZhi} />}
+          {lyResult.judgment && (
+            <div className="reveal">
+              <LiuYaoJudgeCard j={lyResult.judgment} xingZhi={lyResult.benXingZhi} />
+            </div>
+          )}
 
           {/* ── AI 深度解卦 ── */}
-          <div className="mt-8">
+          <div className="reveal mt-8">
             <AiSection
               signedIn={signedIn}
               credits={credits}
