@@ -101,6 +101,8 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
   const [aiError, setAiError] = useState<AiErr | null>(null);
 
   const resultRef = useRef<HTMLDivElement>(null);
+  const [resultCue, setResultCue] = useState(0); // 仪式收束→结果区聚焦归位(重放入场)
+  const [spot, setSpot] = useState(false); // 收束光圈:幕布落下时光聚结果区再散开
 
   // 登录态同步 + 拉解卦次数
   useEffect(() => {
@@ -195,6 +197,12 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         setCastNumbers(numbers ?? null);
         setMhRecordId(recordId ?? null);
       }
+      // 仪式收束镜头交接(与排盘罗盘同套):光圈聚拢结果区,结果自微放归位
+      setResultCue((c) => c + 1);
+      if (!reduced) {
+        setSpot(true);
+        setTimeout(() => setSpot(false), 1100);
+      }
     } catch (e) {
       if (kind === "liuyao") setLyResult(null);
       else setResult(null);
@@ -218,6 +226,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         setLyResult(r);
         setLyCastAt(at);
         setLyRecordId(recordId ?? null);
+        setResultCue((c) => c + 1); // 逐爻仪式在掷钱本身,收束只做归位不加光圈
       } catch (e) {
         setLyResult(null);
         setCastError(e instanceof DivinationError ? e.message : "起卦失败,请重试");
@@ -383,9 +392,13 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       {/* ── 起卦动效(逐爻摇卦的仪式在掷钱本身,不再叠加) ── */}
       {casting && (kind === "liuyao" ? (lyMethod === "step" ? null : <LiuYaoCast />) : <MeihuaCast />)}
 
-      {/* ── 卦象展示 ── */}
+      {/* ── 卦象展示(key=resultCue:收束时整区重挂,聚焦归位重放) ── */}
       {kind === "meihua" && result && !casting && (
-        <div ref={resultRef} className="page-enter mt-12 scroll-mt-20">
+        <div
+          ref={resultRef}
+          key={`mh-${resultCue}`}
+          className={["page-enter mt-12 scroll-mt-20", resultCue > 0 ? "board-focus" : ""].join(" ")}
+        >
           {/* 起卦信息 */}
           <div className="flex flex-col gap-2">
             <div className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
@@ -463,7 +476,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       )}
 
       {kind === "liuyao" && lyResult && !casting && (
-        <div ref={resultRef} className="page-enter mt-12 scroll-mt-20">
+        <div
+          ref={resultRef}
+          key={`ly-${resultCue}`}
+          className={["page-enter mt-12 scroll-mt-20", resultCue > 0 ? "board-focus" : ""].join(" ")}
+        >
           {/* 起卦信息 */}
           <div className="flex flex-col gap-2">
             <div className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
@@ -519,6 +536,9 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           </div>
         </div>
       )}
+
+      {/* 收束光圈:仪式幕布落下时光聚结果区再徐徐散开(镜头交接) */}
+      {spot && <div className="cast-spot" aria-hidden />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { castDaLiuRen, divineDaLiuRenAI, DivinationError, type DaLiuRenResult } from "@/lib/divination";
 import { currentUser } from "@/lib/auth";
 import { ReportText } from "@/components/profiles/ReportText";
@@ -40,6 +40,18 @@ export default function LiuRenPage() {
   const [castQuestion, setCastQuestion] = useState("");
   // 起课序号:解课途中若重新起课,迟到的解读不得错挂到新课上
   const castSeq = useRef(0);
+  const [resultCue, setResultCue] = useState(0); // 仪式收束→课盘聚焦归位
+  const [spot, setSpot] = useState(false); // 收束光圈
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  // 收束:课盘滚入视口(与光圈散开、归位动画同步)
+  useEffect(() => {
+    if (resultCue === 0) return;
+    resultRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+  }, [resultCue]);
 
   const divine = async () => {
     if (aiLoading || castAt == null) return;
@@ -99,6 +111,12 @@ export default function LiuRenPage() {
       setCastQuestion(question.trim());
       setReading(null);
       setAiError(null);
+      // 仪式收束镜头交接(与排盘罗盘同套)
+      setResultCue((c) => c + 1);
+      if (!prefersReducedMotion()) {
+        setSpot(true);
+        setTimeout(() => setSpot(false), 1100);
+      }
     } catch (e) {
       setR(null);
       setError(e instanceof DivinationError ? e.message : "起课失败,请重试");
@@ -198,7 +216,11 @@ export default function LiuRenPage() {
       {casting && <LiurenCast />}
 
       {r && !casting && (
-        <div className="page-enter mt-10">
+        <div
+          ref={resultRef}
+          key={resultCue}
+          className={["page-enter mt-10 scroll-mt-20", resultCue > 0 ? "board-focus" : ""].join(" ")}
+        >
           {/* 式盘:天地盘/天将/三传/课骨一体呈现;各块与全站同套滚动聚焦节奏 */}
           <div className="reveal">
             <LiurenPan result={r} />
@@ -324,6 +346,9 @@ export default function LiuRenPage() {
       <div className="reveal">
         <XiaoLiuRen />
       </div>
+
+      {/* 收束光圈:仪式幕布落下时光聚课盘再徐徐散开(镜头交接) */}
+      {spot && <div className="cast-spot" aria-hidden />}
     </div>
   );
 }

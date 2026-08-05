@@ -592,13 +592,23 @@ mark {
     transform: scale(1.1) translateY(-70px);
   }
 }
-/* 一屏一景轻吸附:proximity 不劫持滚动,只在临近时轻轻落定 */
+/* 一屏一景吸附:桌面 mandatory 完全翻页式;移动端场景可能高于一屏,
+ * 保留 proximity(mandatory 会把超屏内容中段变得停不住)。 */
 html.voyage-snap {
   scroll-snap-type: y proximity;
+}
+@media (min-width: 1024px) {
+  html.voyage-snap {
+    scroll-snap-type: y mandatory;
+  }
 }
 .scene {
   scroll-snap-align: start;
   scroll-margin-top: 3.5rem; /* 顶栏高度 */
+}
+/* mandatory 下页脚须自成吸附点,否则滚到底会被弹回上一景 */
+html.voyage-snap footer {
+  scroll-snap-align: end;
 }
 @supports (animation-timeline: view()) {
   .reveal {
