@@ -18,6 +18,8 @@ export interface BirthRequest {
   longitude?: number;
   province?: string;
   city?: string;
+  worldCity?: string;
+  utcOffset?: number;
   trueSolarTime?: boolean;
 }
 

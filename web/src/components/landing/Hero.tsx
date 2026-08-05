@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { HeroChart } from "./HeroChart";
 
-/** 落地页第一屏:左标题区 + 右真实迷你星盘。动效预算集中在星盘。 */
+/** 落地页第一屏:左标题区 + 右真实迷你星盘。动效预算集中在星盘与极光底。 */
 export function Hero() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pt-20 pb-24 md:pt-32 md:pb-32">
+    <section className="relative mx-auto max-w-6xl px-4 pt-20 pb-24 md:pt-32 md:pb-32">
+      {/* 极光星云底:紫金双斑缓慢漂移(宣纸主题自动隐藏) */}
+      <div className="aurora -z-10" aria-hidden />
       <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20">
         {/* 标题区 */}
         <div className="max-w-xl">
@@ -12,8 +14,10 @@ export function Hero() {
             <span className="h-px w-6 bg-gold-dim" aria-hidden />
             观星台 · 紫微斗数
           </p>
-          <h1 className="mt-6 text-balance font-display text-[39px] font-bold leading-[1.08] text-ink sm:text-[49px] md:text-[61px]">
-            把紫微斗数,排到毫厘
+          <h1 className="mt-6 text-balance font-display text-[39px] font-bold leading-[1.12] text-ink sm:text-[49px] md:text-[61px]">
+            把紫微斗数,
+            <br className="hidden sm:block" />
+            <span className="text-gold-gradient">排到毫厘</span>
           </h1>
           <p className="mt-6 max-w-lg text-[16px] leading-[1.75] text-ink-secondary md:text-[17px]">
             完整安星与格局判定,运限逐层下钻;古籍全文可查,解读依盘而言。以倪海厦《天纪》体系为口径,逐字段对齐经典。
@@ -21,13 +25,13 @@ export function Hero() {
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <Link
               href="/chart"
-              className="glow-gold inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-7 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
+              className="cta-breathe inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-7 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
             >
               开始排盘
             </Link>
             <Link
               href="/library"
-              className="inline-flex min-h-[44px] items-center rounded-[6px] border border-line-strong px-7 py-3 text-[15px] text-ink transition-colors hover:border-gold-dim hover:text-gold"
+              className="inline-flex min-h-[44px] items-center rounded-[6px] border border-line-strong px-7 py-3 text-[15px] text-ink transition-all hover:border-gold-dim hover:text-gold hover:shadow-[0_0_18px_rgba(217,179,108,0.12)]"
             >
               查阅古籍
             </Link>

@@ -13,10 +13,14 @@ import (
 
 const divineSystemPrompt = `你是精研邵康节《梅花易数》与倪海厦《天纪》卦象体系的解卦人。
 依据给出的卦象(本卦/互卦/变卦/动爻/体用生克)围绕求测之事解卦:
-先断吉凶大势(以体用生克为纲),再以本卦断当下、互卦断过程、变卦断结果,
-结合卦象类象落到求测的具体事上,给出可操作的建议与应期倾向。
-言之有据:引用给出的古籍参考时注明出处;不确定处直言不确定。
-行文用简体中文,克制、清晰、不故弄玄虚;结尾提醒占卜为传统文化参考。`
+以体用生克为纲、卦气旺衰定力度,本卦断当下、互卦断过程、变卦断结果,
+结合万物类象落到求测的具体人事物上,给出可操作的建议与应期倾向。
+已给出确定性断卦骨架(体用总诀机械推演)——须据此贴卦发挥、不得与骨架
+吉凶相悖空谈;言之有据:引用古籍参考须注明出处;不确定处直言。
+行文如一位断卦多年的长者当面讲解:短段落娓娓道来,先断后释再嘱;
+用 ### 小标题分节(如「卦象大势」「体用之辨」「过程与结局」「应期」「叮嘱」),
+引文单独成 > 引用块,关键断语以 **加粗** 点睛;不用「首先/其次」等腔调、
+不用表情符号。简体中文;结尾「### 叮嘱」提醒占卜为传统文化参考并落一件实事。`
 
 // BuildDivinePrompt 由卦象 + 问题 + 语料引文构建解卦请求。
 func BuildDivinePrompt(r *meihua.Result, store *corpus.Store) Request {
@@ -29,19 +33,58 @@ func BuildDivinePrompt(r *meihua.Result, store *corpus.Store) Request {
 	}
 
 	sb.WriteString("## 卦象\n\n")
-	if r.Method == "time" {
+	switch {
+	case r.Method == "time" && r.CastBasis != "":
+		sb.WriteString(fmt.Sprintf("- 起卦:%s,农历 %s\n", r.CastBasis, r.LunarText))
+	case r.Method == "time":
 		sb.WriteString(fmt.Sprintf("- 起卦:时间起卦,农历 %s\n", r.LunarText))
-	} else {
+	default:
 		sb.WriteString(fmt.Sprintf("- 起卦:数字起卦 %v\n", r.Numbers))
 	}
-	sb.WriteString(fmt.Sprintf("- 本卦:%s(上%s%s·下%s%s)\n",
+	sb.WriteString(fmt.Sprintf("- 本卦:%s(上%s%s·下%s%s)",
 		r.Ben.Name, r.Ben.Upper.Name, r.Ben.Upper.Nature, r.Ben.Lower.Name, r.Ben.Lower.Nature))
+	if r.Ben.GuaCi != "" {
+		sb.WriteString(",卦辞:" + r.Ben.GuaCi)
+	}
+	sb.WriteString("\n")
 	sb.WriteString(fmt.Sprintf("- 动爻:第 %d 爻\n", r.Moving))
 	sb.WriteString(fmt.Sprintf("- 互卦:%s\n", r.Hu.Name))
-	sb.WriteString(fmt.Sprintf("- 变卦:%s\n", r.Bian.Name))
+	sb.WriteString(fmt.Sprintf("- 变卦:%s", r.Bian.Name))
+	if r.Bian.GuaCi != "" {
+		sb.WriteString(",卦辞:" + r.Bian.GuaCi)
+	}
+	sb.WriteString("\n")
 	sb.WriteString(fmt.Sprintf("- 体用:体=%s(%s),用=%s(%s),%s → %s\n\n",
 		r.TiTrigram.Name, r.TiTrigram.Element, r.YongTrigram.Name, r.YongTrigram.Element,
 		r.Relation, r.Verdict))
+
+	// 确定性断卦骨架(体用总诀机械推演:卦气旺衰/体党用党/互变分层/事类/应期)
+	if j := r.Judgment; j != nil {
+		sb.WriteString("## 断卦骨架(确定性推演,须据此贴卦、不得与之相悖空谈)\n\n")
+		sb.WriteString(fmt.Sprintf("体气【%s】;综断:%s\n", j.TiQi, j.Conclusion))
+		for _, p := range j.Points {
+			sb.WriteString("- " + p + "\n")
+		}
+		sb.WriteString("- " + j.YingQi + "\n\n")
+	}
+
+	// 万物类象(体/用/变侧取象,供断辞落到具体人事物;同卦去重)
+	sb.WriteString("## 万物类象参考(邵子八卦类占义)\n\n")
+	seenTg := map[string]bool{}
+	for _, tg := range []struct {
+		label string
+		name  string
+	}{{"体卦", r.TiTrigram.Name}, {"用卦", r.YongTrigram.Name}, {"变卦上", r.Bian.Upper.Name}, {"变卦下", r.Bian.Lower.Name}} {
+		if seenTg[tg.name] {
+			continue
+		}
+		seenTg[tg.name] = true
+		if lore, ok := meihua.LoreOf(tg.name); ok {
+			sb.WriteString(fmt.Sprintf("- %s%s:人物-%s|身体-%s|物-%s|方位-%s|性-%s\n",
+				tg.label, tg.name, lore.Renlun, lore.Shenti, lore.Jingwu, lore.Fangwei, lore.Xing))
+		}
+	}
+	sb.WriteString("\n")
 
 	// 语料引文(含研究语料;仅内部引用)。
 	// 每书限引 1 条:同一典籍在检索中易霸榜,分散引用面让断辞更立体。

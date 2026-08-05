@@ -18,7 +18,10 @@ const liuYaoSystemPrompt = `你是精研火珠林法的六爻解卦人,宗《增
 月破、旬空、暗动、日破,动爻另标动变作用(化进退神/伏吟反吟/化长生
 墓绝合/回头生克)——以上以标注为准,不必自行推算,径直据此论生扶
 克害;应期(冲空实空/墓库冲开/破待填合等)结合古籍参考推断。
-行文简体中文,条理清晰、不故弄玄虚;不确定处直言;结尾提醒占卜为传统文化参考。`
+行文如一位断卦多年的长者当面讲解:以短段落娓娓道来,先断后释再嘱;
+用 ### 小标题分节(如「卦象大势」「用神旺衰」「应期」「叮嘱」),引文单独成 > 引用块,
+关键断语以 **加粗** 点睛;不用「首先/其次」等腔调、不用表情符号。
+简体中文,条理清晰、不故弄玄虚;不确定处直言;结尾「### 叮嘱」提醒占卜为传统文化参考并落一件实事。`
 
 // posText 爻位列表 →「(第 1、5 爻)」;空为不上卦。
 func posText(pos []int) string {
@@ -122,6 +125,30 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 			sb.WriteString(fmt.Sprintf("元神力量:%s;忌神力量:%s——按增删卜易有力/无力条目机械对照,",
 				liuyao.PowerText(r.YuanShenPower), liuyao.PowerText(r.JiShenPower)))
 			sb.WriteString("总贵用神有气:用神无根则元神有力亦难生,忌神无力亦休喜,请合观用神旺衰定之。\n")
+		}
+	}
+
+	// 《周易》经文层:本卦卦辞、动爻所值爻辞、变卦卦辞(公版原文,可直引)。
+	if jw := r.JingWen; jw != nil {
+		sb.WriteString("\n## 周易经文(动爻所值爻辞为断卦要义,须扣辞而断)\n\n")
+		sb.WriteString(fmt.Sprintf("- 本卦%s卦辞:%s\n", r.BenName, jw.BenGuaCi))
+		for _, yc := range jw.YaoCi {
+			sb.WriteString("- 动爻爻辞:" + yc + "\n")
+		}
+		if jw.Yong != "" {
+			sb.WriteString("- 六爻皆动,以" + jw.Yong + "断\n")
+		}
+		if jw.BianGuaCi != "" {
+			sb.WriteString(fmt.Sprintf("- 变卦%s卦辞:%s\n", r.BianName, jw.BianGuaCi))
+		}
+	}
+
+	// 确定性断语骨架:据用神旺衰/元忌力量/动变/世应机械推演,供 LLM 贴卦发挥。
+	if j := r.Judgment; j != nil {
+		sb.WriteString("\n## 断语骨架(确定性推演,须据此贴卦、不得脱卦空谈)\n\n")
+		sb.WriteString(j.Conclusion + "\n")
+		for _, p := range j.Points {
+			sb.WriteString("- " + p + "\n")
 		}
 	}
 

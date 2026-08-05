@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { BirthInfo, Gender } from "@/lib/types";
 import { HOUR_NAMES } from "@/lib/types";
 import { DateSelect } from "@/components/ui/DateSelect";
+import { TrueSolarPicker, emptyTrueSolar, type TrueSolarValue } from "@/components/chart/TrueSolarPicker";
 
 const fieldCls =
   "rounded-[6px] bg-bg px-3 py-2 text-[15px] text-ink shadow-[inset_0_0_0_1px_var(--line)] focus:shadow-[inset_0_0_0_1px_var(--gold-dim)] outline-none transition-shadow";
@@ -22,6 +23,17 @@ export function BirthForm({
   );
   const [hour, setHour] = useState(initial?.hour ?? 6);
   const [gender, setGender] = useState<Gender>(initial?.gender ?? "male");
+  const [solar, setSolar] = useState<TrueSolarValue>(() =>
+    initial?.trueSolarTime
+      ? {
+          enabled: true,
+          region: initial.worldCity ? "intl" : "cn",
+          province: initial.province ?? "",
+          city: initial.city ?? "",
+          worldCity: initial.worldCity ?? "",
+        }
+      : emptyTrueSolar,
+  );
   const [error, setError] = useState("");
 
   function submit(e: React.FormEvent) {
@@ -31,8 +43,26 @@ export function BirthForm({
       setError("请输入 1900-2100 之间的有效公历日期");
       return;
     }
+    if (solar.enabled) {
+      const hasPlace =
+        solar.region === "cn" ? solar.province && solar.city : solar.worldCity;
+      if (!hasPlace) {
+        setError("已开启真太阳时,请选择出生地");
+        return;
+      }
+    }
     setError("");
-    onSubmit({ year: y, month: m, day: d, hour, gender, name: name || undefined });
+    const b: BirthInfo = { year: y, month: m, day: d, hour, gender, name: name || undefined };
+    if (solar.enabled) {
+      b.trueSolarTime = true;
+      if (solar.region === "cn") {
+        b.province = solar.province;
+        b.city = solar.city;
+      } else {
+        b.worldCity = solar.worldCity;
+      }
+    }
+    onSubmit(b);
   }
 
   return (
@@ -89,6 +119,7 @@ export function BirthForm({
       >
         {loading ? "排盘中…" : "排盘"}
       </button>
+      <TrueSolarPicker value={solar} onChange={setSolar} />
       {error && <p className="basis-full text-[13px] text-danger">{error}</p>}
     </form>
   );

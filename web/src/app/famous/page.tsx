@@ -83,7 +83,7 @@ export default function FamousPage() {
                       onClick={() => open(p)}
                       aria-pressed={active}
                       className={[
-                        "lift flex flex-col rounded-[10px] bg-bg-raised p-5 text-left md:p-6",
+                        "card-glow flex flex-col rounded-[10px] bg-bg-raised p-5 text-left md:p-6",
                         active
                           ? "shadow-[0_0_0_2px_var(--gold)]"
                           : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--gold-dim)]",

@@ -28,20 +28,47 @@ export interface Hexagram {
   upper: Trigram;
   lower: Trigram;
   lines: boolean[]; // ×6
+  guaCi?: string; // 《周易》卦辞(公版经文)
 }
 
 /** 体用生克关系。 */
 export type Relation = "用生体" | "比和" | "体克用" | "体生用" | "用克体";
 
 /** 一次梅花起卦的完整卦象。 */
+export interface MeihuaJudgment {
+  level: "good" | "neutral" | "caution";
+  score: number;
+  tiQi: string; // 体卦月令旺衰:旺/相/休/囚/死
+  conclusion: string;
+  points: string[];
+  topic: string;
+  topicNote?: string;
+  yingQi: string;
+}
+
+export interface MeihuaRoleLore {
+  role: string; // 体卦/用卦/变卦
+  name: string;
+  renlun: string;
+  shenti: string;
+  dongwu: string;
+  jingwu: string;
+  fangwei: string;
+  tianshi: string;
+  xing: string;
+}
+
 export interface MeihuaResult {
   method: "time" | "number";
   question?: string;
   lunarText?: string; // 时间卦:「午年六月初四日申时」
   numbers?: number[]; // 数字卦原始数
+  castBasis?: string; // 起数依据(如「问辞12字起上卦,加申时数9配下卦」)
   ben: Hexagram; // 本卦
   hu: Hexagram; // 互卦
   bian: Hexagram; // 变卦
+  judgment?: MeihuaJudgment; // 断卦骨架(体用总诀确定性推演)
+  lore?: MeihuaRoleLore[]; // 万物类象(体/用/变)
   moving: number; // 动爻 1-6
   tiTrigram: Trigram; // 体卦
   yongTrigram: Trigram; // 用卦
@@ -91,6 +118,27 @@ export interface LiuYaoYao {
   bianRelation?: string; // 动爻之变:化进神/化退神/伏吟/反吟/化长生/化墓/化绝/化合/回头生/回头克
 }
 
+/** 六爻确定性断语(用神旺衰/伏神/卦性/动变/世应/应期,免费层)。 */
+export interface LiuYaoJudgment {
+  conclusion: string;
+  level: "good" | "neutral" | "caution";
+  yongShen: string; // 用神状态摘要
+  yingQi: string; // 应期提示(含具体地支)
+  points: string[];
+}
+
+/** 用神不上卦时之伏神(本宫首卦纳甲取)。 */
+export interface LiuYaoFuShen {
+  liuQin: string;
+  branch: string;
+  element: string;
+  pos: number;
+  fei: string; // 飞神支
+  canOut: boolean;
+  note: string;
+  chuFuRi: string;
+}
+
 /** 六爻装卦结果。yaos 自下而上(index 0 = 初爻)。 */
 export interface LiuYaoResult {
   question?: string;
@@ -114,6 +162,19 @@ export interface LiuYaoResult {
   jiShen?: string; // 忌神(克用神者)
   jiShenPos?: number[];
   chouShen?: string; // 仇神(生忌克元者)
+  benXingZhi?: string; // 本卦卦性:六冲/六合
+  bianXingZhi?: string; // 变卦卦性
+  fuShen?: LiuYaoFuShen; // 用神不上卦时之伏神
+  judgment?: LiuYaoJudgment; // 确定性断语骨架
+  jingWen?: LiuYaoJingWen; // 《周易》经文层
+}
+
+/** 《周易》经文层(公版):yaoCi 与动爻同序,文本带爻题。 */
+export interface LiuYaoJingWen {
+  benGuaCi: string;
+  bianGuaCi?: string;
+  yaoCi?: string[];
+  yong?: string; // 六爻皆动:乾用九/坤用六
 }
 
 /** AI 解卦读物。 */
@@ -127,10 +188,10 @@ export interface DivineReading {
 /** 卦档记录。列表态无 payload/reading;详情态 payload 为对应卦象 JSON。 */
 export interface DivinationRecord {
   id: string;
-  kind: "meihua" | "liuyao" | "xiaoliuren";
+  kind: "meihua" | "liuyao" | "xiaoliuren" | "daliuren";
   question: string;
-  summary: string; // 「地天泰 → 山风蛊」/「泽火革 · 用克体」/「速喜 · 吉」
-  payload?: MeihuaResult | LiuYaoResult | XiaoLiuRenResult;
+  summary: string; // 「地天泰 → 山风蛊」/「泽火革 · 用克体」/「速喜 · 吉」/「元首课 · 三传辰申子」
+  payload?: MeihuaResult | LiuYaoResult | XiaoLiuRenResult | DaLiuRenResult;
   reading?: string;
   readingProvider?: string;
   hasReading: boolean;
@@ -222,6 +283,63 @@ export async function castLiuYao(
     method: "POST",
     headers: await castHeaders(),
     body: JSON.stringify(input),
+  });
+  return parse(res);
+}
+
+/** 大六壬起课结果(天地盘/四课/三传/课体 + 确定性断语)。 */
+export interface DaLiuRenKe {
+  lower: string;
+  upper: string;
+}
+
+export interface DaLiuRenJudgment {
+  conclusion: string;
+  level: "good" | "neutral" | "caution";
+  keTypeText: string;
+  sanChuan: string[];
+  points: string[];
+}
+
+export interface DaLiuRenResult {
+  dayStem: string;
+  dayBranch: string;
+  hourBranch: string;
+  monthGen: string; // 月将
+  tianPan: string[]; // 地盘子起十二位上所乘天盘之神
+  ke: DaLiuRenKe[]; // 四课
+  chuan: string[]; // 三传(初/中/末)
+  keType: string; // 课体
+  tianJiang?: string[]; // 地盘十二位所乘天将
+  chuanJiang?: string[]; // 三传所乘天将
+  guiIsDay?: boolean;
+  xunKong?: string[]; // 旬空两支
+  chuanDunGan?: string[]; // 三传旬遁干(传落空亡为空串)
+  baoShu?: number; // 活时报数(正时无)
+  hourNote?: string; // 「活时·报数7」
+  judgment?: DaLiuRenJudgment;
+}
+
+/** 大六壬起课(免费,匿名可用;登录则自动存入卦档)。 */
+export async function castDaLiuRen(
+  input?: { question?: string; castAt?: number; baoShu?: number },
+): Promise<{ result: DaLiuRenResult; castAt: number; recordId?: string }> {
+  const res = await fetch(`${BASE}/api/v1/divination/daliuren`, {
+    method: "POST",
+    headers: await castHeaders(),
+    body: JSON.stringify(input ?? {}),
+  });
+  return parse(res);
+}
+
+/** AI 深度解课(大六壬,需登录,消耗 1 次)。 */
+export async function divineDaLiuRenAI(
+  input: { castAt: number; question: string; recordId?: string; baoShu?: number },
+): Promise<{ reading: DivineReading; remainingCredits: number }> {
+  const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
+    method: "POST",
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ kind: "daliuren", ...input }),
   });
   return parse(res);
 }

@@ -6,26 +6,61 @@ import {
   type Density,
 } from "@/lib/chart-helpers";
 
-/** 星名 + 四化徽章(本命实心;流曜空心由 StarBadge outline 表达) */
-function StarGlyph({ star, size }: { star: Star; size: "lg" | "md" }) {
+/**
+ * 竖排星柱(古典盘式):星名自上而下一柱一星,柱脚缀亮度小字与四化印。
+ * 传统命盘星曜皆竖排,竖柱既省横向空间(多星宫不再折行),又与古籍版式同气。
+ */
+/** 三档密度 → 竖柱字号/柱距:简洁疏朗大字、专业均衡、大师紧凑纳杂曜 */
+const MAJOR_SIZE: Record<Density, string> = {
+  simple: "text-[19px]",
+  pro: "text-[16px]",
+  master: "text-[15px]",
+};
+const ASSIST_SIZE: Record<Density, string> = {
+  simple: "text-[12.5px]",
+  pro: "text-[12.5px]",
+  master: "text-[11.5px]",
+};
+const COL_GAP: Record<Density, string> = {
+  simple: "gap-x-3",
+  pro: "gap-x-2",
+  master: "gap-x-1.5",
+};
+
+function StarColumn({ star, size, fontCls }: { star: Star; size: "lg" | "md"; fontCls: string }) {
   // 庙旺主星带星光辉晕:亮度语义从「颜色」升级为「颜色 + 光」
   const glow =
     size === "lg" && (star.brightness === "庙" || star.brightness === "旺")
       ? { textShadow: "0 0 10px var(--gold-glow), 0 0 18px var(--gold-glow)" }
       : undefined;
+  const color = brightnessVar(star.brightness);
   return (
-    <span
-      className={size === "lg" ? "font-display text-[17px] font-semibold leading-tight" : "text-[13px] leading-tight"}
-      style={{ color: brightnessVar(star.brightness), ...glow }}
-    >
-      {star.name}
+    <span className="inline-flex flex-col items-center gap-0.5">
+      {/* 逐字 block 竖叠(不依赖 writing-mode 的垂直字体度量,跨端稳定) */}
+      <span
+        className={
+          size === "lg" ? `star-major font-display font-semibold ${fontCls}` : fontCls
+        }
+        style={{ color, ...glow }}
+      >
+        {star.name.split("").map((ch, i) => (
+          <span key={i} className="block text-center leading-[1.12]">
+            {ch}
+          </span>
+        ))}
+      </span>
+      {star.brightness && (
+        <span className="text-[9.5px] leading-none opacity-75" style={{ color }}>
+          {star.brightness}
+        </span>
+      )}
       {star.siHua && (
-        <sup
-          className="ml-px rounded-[2px] px-[3px] text-[10px] font-semibold not-italic"
+        <span
+          className="rounded-[2px] px-[3px] py-px text-[9.5px] font-semibold leading-none"
           style={sihuaBadgeStyle(star.siHua)}
         >
           {star.siHua}
-        </sup>
+        </span>
       )}
     </span>
   );
@@ -45,6 +80,10 @@ export interface PalaceCellProps {
   density: Density;
   selected: boolean;
   inSanFang: boolean;
+  /** 格局联动:悬停格局卡/徽章时本宫为其关联宫,点亮金晕 */
+  patternGlow?: boolean;
+  /** 选宫聚焦:他宫被选且本宫不在其三方四正时降暗,让焦点结构浮出 */
+  dimmed?: boolean;
   /** 运限叠加:各激活层在此宫的流曜与运限宫名 */
   overlayStars?: Star[];
   overlayNames?: { scope: string; name: string }[];
@@ -53,7 +92,8 @@ export interface PalaceCellProps {
 }
 
 export function PalaceCell({
-  palace, density, selected, inSanFang, overlayStars, overlayNames, enterDelay = 0, onSelect,
+  palace, density, selected, inSanFang, patternGlow = false, dimmed = false,
+  overlayStars, overlayNames, enterDelay = 0, onSelect,
 }: PalaceCellProps) {
   const { major, assist, adjective } = groupStars(palace.stars);
 
@@ -64,13 +104,17 @@ export function PalaceCell({
       aria-pressed={selected}
       aria-label={`${palace.name},${branchName(palace.branch)}宫`}
       className={[
-        "palace-enter relative flex min-h-[124px] flex-col rounded-[6px] p-2 pb-1.5 text-left transition-shadow",
-        "bg-bg-raised",
+        "palace-cell palace-enter relative flex min-h-[124px] w-full flex-col rounded-[6px] p-2 pb-1.5 text-left",
+        "bg-bg-raised transition-[box-shadow,opacity,filter] duration-300",
+        palace.isMingGong && !dimmed ? "ming-breathe" : "",
         selected
           ? "shadow-[0_0_0_2px_var(--gold),var(--glow-gold)]"
-          : inSanFang
-            ? "shadow-[0_0_0_1px_var(--gold-dim)]"
-            : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--line-strong)]",
+          : patternGlow
+            ? "shadow-[0_0_0_1.5px_var(--gold),0_0_20px_rgba(217,179,108,0.18)]"
+            : inSanFang
+              ? "shadow-[0_0_0_1px_var(--gold-dim),0_0_14px_rgba(217,179,108,0.07)]"
+              : "shadow-[0_0_0_1px_var(--line)] hover:shadow-[0_0_0_1px_var(--gold-dim),0_0_16px_rgba(217,179,108,0.08)]",
+        dimmed ? "opacity-50 saturate-[0.8]" : "opacity-100",
       ].join(" ")}
       style={{
         animationDelay: `${enterDelay}ms`,
@@ -85,31 +129,36 @@ export function PalaceCell({
         </span>
       )}
 
-      {/* 主星行 */}
-      <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+      {/* 星区:主星大柱 + 辅星小柱并排竖排(古典盘式,身宫徽标右上避让;柱距随密度档) */}
+      <div className={["flex flex-wrap items-start gap-y-1", COL_GAP[density], palace.isShenGong ? "pr-6" : ""].join(" ")}>
         {major.map((s) => (
-          <StarGlyph key={s.name} star={s} size="lg" />
+          <StarColumn key={s.name} star={s} size="lg" fontCls={MAJOR_SIZE[density]} />
         ))}
+        {density !== "simple" &&
+          assist.map((s) => <StarColumn key={s.name} star={s} size="md" fontCls={ASSIST_SIZE[density]} />)}
         {major.length === 0 && palace.borrowedStars && palace.borrowedStars.length > 0 && (
-          <span className="text-[13px] text-ink-faint">
-            借<span className="ml-1 text-ink-secondary">{palace.borrowedStars.join(" ")}</span>
-          </span>
+          <>
+            <span className="mt-0.5 text-[10px] leading-none text-ink-faint">借</span>
+            {palace.borrowedStars.map((n) => (
+              <span key={n} className="text-[12.5px] text-ink-secondary opacity-80">
+                {n.split("").map((ch, i) => (
+                  <span key={i} className="block text-center leading-[1.12]">
+                    {ch}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </>
         )}
       </div>
 
-      {/* 辅星行(专业/大师档) */}
-      {density !== "simple" && assist.length > 0 && (
-        <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
-          {assist.map((s) => (
-            <StarGlyph key={s.name} star={s} size="md" />
-          ))}
-        </div>
-      )}
-
-      {/* 杂曜行(大师档) */}
-      {density === "master" && adjective.length > 0 && (
+      {/* 杂曜行(大师档;含年支系补充杂曜大耗/龙德/劫煞) */}
+      {density === "master" && (adjective.length > 0 || (palace.extraStars?.length ?? 0) > 0) && (
         <div className="mt-0.5 flex flex-wrap gap-x-1.5 text-[11px] leading-tight text-ink-faint">
           {adjective.map((s) => (
+            <span key={s.name}>{s.name}</span>
+          ))}
+          {(palace.extraStars ?? []).map((s) => (
             <span key={s.name}>{s.name}</span>
           ))}
         </div>

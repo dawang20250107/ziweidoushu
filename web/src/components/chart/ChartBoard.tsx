@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import type { Chart, Horoscope, Star } from "@/lib/types";
+import type { Chart, Horoscope, Pattern, Star } from "@/lib/types";
 import {
   BOARD_GRID_TEMPLATE, ENTER_ORDER_BY_BRANCH, GRID_AREA_BY_BRANCH,
   sanFangBranches, type Density,
@@ -18,6 +18,12 @@ export interface ChartBoardProps {
   horoscope?: Horoscope | null;
   /** 叠加显示哪些层(默认大限+流年) */
   overlayScopes?: Array<"decadal" | "yearly" | "monthly" | "daily" | "hourly">;
+  /** 已识别格局(中宫徽章锚点) */
+  patterns?: Pattern[];
+  /** 格局联动:悬停格局时点亮其关联宫位(宫名列表),其余降暗 */
+  highlightNames?: string[] | null;
+  /** 中宫格局徽章悬停回调(向上冒泡驱动 highlightNames) */
+  onPatternHover?: (names: string[] | null) => void;
 }
 
 interface ConnectLine {
@@ -30,9 +36,11 @@ interface ConnectLine {
 
 /** 4×4 星盘:外环十二宫(地支固定位)+ 中宫命主信息 + 三方四正金线。 */
 export function ChartBoard({
-  chart, density, selectedBranch, onSelectBranch, horoscope, overlayScopes = ["decadal", "yearly"],
+  chart, density, selectedBranch, onSelectBranch, horoscope, overlayScopes = ["decadal", "yearly"], patterns,
+  highlightNames, onPatternHover,
 }: ChartBoardProps) {
   const sanFang = selectedBranch != null ? new Set(sanFangBranches(selectedBranch)) : null;
+  const hlSet = highlightNames && highlightNames.length > 0 ? new Set(highlightNames) : null;
   const boardRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<ConnectLine[]>([]);
 
@@ -63,8 +71,14 @@ export function ChartBoard({
       setLines(next);
     }
     measure();
+    // ResizeObserver:选宫让位平移/窗口缩放期间连线逐帧追踪宫心,不会错位
+    const ro = new ResizeObserver(measure);
+    ro.observe(board);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
   }, [selectedBranch, density, horoscope, chart]);
 
   // 组装每宫的运限叠加数据
@@ -114,6 +128,11 @@ export function ChartBoard({
             density={density}
             selected={selectedBranch === palace.branch}
             inSanFang={sanFang != null && selectedBranch !== palace.branch && sanFang.has(palace.branch)}
+            patternGlow={hlSet != null && hlSet.has(palace.name)}
+            dimmed={
+              (sanFang != null && !sanFang.has(palace.branch)) ||
+              (hlSet != null && !hlSet.has(palace.name))
+            }
             overlayStars={overlayStarsByBranch.get(palace.branch)}
             overlayNames={overlayNamesByBranch.get(palace.branch)}
             enterDelay={ENTER_ORDER_BY_BRANCH[palace.branch] * 36}
@@ -122,7 +141,7 @@ export function ChartBoard({
         </div>
       ))}
       <div style={{ gridArea: "center" }} className="flex">
-        <ChartCenter chart={chart} horoscope={horoscope ?? undefined} />
+        <ChartCenter chart={chart} horoscope={horoscope ?? undefined} patterns={patterns} onPatternHover={onPatternHover} />
       </div>
 
       {/* 三方四正金线:选宫时从本宫射向对宫与三合宫 */}
@@ -130,6 +149,16 @@ export function ChartBoard({
         <svg aria-hidden className="pointer-events-none absolute inset-0 z-10 h-full w-full">
           {lines.map((l) => (
             <g key={l.key}>
+              {/* 辉光底衬:宽而淡的金光,让连线像光束而非细线 */}
+              <line
+                x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+                pathLength={1}
+                className="sanfang-line"
+                stroke="var(--gold)"
+                strokeWidth="5"
+                strokeLinecap="round"
+                opacity="0.14"
+              />
               <line
                 x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
                 pathLength={1}
@@ -138,10 +167,16 @@ export function ChartBoard({
                 strokeWidth="1.5"
                 opacity="0.85"
               />
+              <circle cx={l.x2} cy={l.y2} r="5.5" fill="var(--gold)" opacity="0.18" />
               <circle cx={l.x2} cy={l.y2} r="3" fill="var(--gold)" opacity="0.9" />
             </g>
           ))}
-          {lines[0] && <circle cx={lines[0].x1} cy={lines[0].y1} r="4" fill="var(--gold-bright)" />}
+          {lines[0] && (
+            <>
+              <circle cx={lines[0].x1} cy={lines[0].y1} r="7" fill="var(--gold)" opacity="0.2" />
+              <circle cx={lines[0].x1} cy={lines[0].y1} r="4" fill="var(--gold-bright)" />
+            </>
+          )}
         </svg>
       )}
     </div>

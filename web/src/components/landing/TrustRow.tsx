@@ -7,17 +7,22 @@ const FACTS = [
 
 export function TrustRow() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
+    <section className="reveal mx-auto max-w-6xl px-4 py-16 md:py-24">
       <div
         className="grid gap-px overflow-hidden rounded-[10px] sm:grid-cols-3"
         style={{ boxShadow: "inset 0 0 0 1px var(--line)", background: "var(--line)" }}
       >
         {FACTS.map((f) => (
-          <div key={f.caption} className="bg-bg px-6 py-10 text-center md:py-12">
-            <div className="tnum font-display text-[39px] font-bold leading-none text-gold md:text-[49px]">
+          <div
+            key={f.caption}
+            className="group bg-bg px-6 py-10 text-center transition-colors duration-300 hover:bg-bg-raised md:py-12"
+          >
+            <div className="text-gold-gradient tnum font-display text-[39px] font-bold leading-none md:text-[49px]">
               {f.value}
             </div>
-            <p className="mt-4 text-[13px] leading-relaxed text-ink-secondary">{f.caption}</p>
+            <p className="mt-4 text-[13px] leading-relaxed text-ink-secondary transition-colors group-hover:text-ink">
+              {f.caption}
+            </p>
           </div>
         ))}
       </div>

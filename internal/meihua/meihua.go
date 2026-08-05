@@ -10,9 +10,12 @@ package meihua
 
 import (
 	"fmt"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/6tail/lunar-go/calendar"
+	"github.com/dawang20250107/ziweidoushu/internal/zhouyi"
 )
 
 // Trigram 八卦(先天数 1-8:乾兑离震巽坎艮坤)。
@@ -83,18 +86,24 @@ type Hexagram struct {
 	Lower Trigram `json:"lower"`
 	// Lines 六爻,自下而上(1-6 爻),true=阳爻。
 	Lines [6]bool `json:"lines"`
+	// GuaCi 《周易》卦辞(公版经文,internal/zhouyi)。
+	GuaCi string `json:"guaCi,omitempty"`
 }
 
 func makeHexagram(upper, lower Trigram) Hexagram {
 	var lines [6]bool
 	copy(lines[:3], lower.Lines[:])
 	copy(lines[3:], upper.Lines[:])
-	return Hexagram{
+	h := Hexagram{
 		Name:  hexagramNames[upper.Num-1][lower.Num-1],
 		Upper: upper,
 		Lower: lower,
 		Lines: lines,
 	}
+	if g := zhouyi.ByTrigrams(upper.Num, lower.Num); g != nil {
+		h.GuaCi = g.GuaCi
+	}
+	return h
 }
 
 // Relation 体用生克关系。
@@ -142,6 +151,7 @@ type Result struct {
 	// 起卦参数溯源(可复现)
 	LunarText string `json:"lunarText,omitempty"` // 时间起卦:农历「辰年十二月十七日申时」
 	Numbers   []int  `json:"numbers,omitempty"`   // 数字起卦的原始数
+	CastBasis string `json:"castBasis,omitempty"` // 起数依据(如「问辞12字起上卦,加申时数9配下卦」)
 
 	Ben    Hexagram `json:"ben"`    // 本卦
 	Hu     Hexagram `json:"hu"`     // 互卦
@@ -154,6 +164,18 @@ type Result struct {
 	TiIsUpper   bool     `json:"tiIsUpper"`
 	Relation    Relation `json:"relation"`
 	Verdict     string   `json:"verdict"` // 吉凶倾向一句话(卦理层,非断辞)
+
+	// Judgment 断卦层(体用总诀口径:卦气旺衰/体党用党/互变分层/事类/应期)。
+	Judgment *Judgment `json:"judgment,omitempty"`
+	// Lore 万物类象(体/用/变侧取象,断辞落到具体人事物;同卦去重)。
+	Lore []RoleLore `json:"lore,omitempty"`
+}
+
+// RoleLore 某一角色卦的类象(role: 体卦/用卦/变卦)。
+type RoleLore struct {
+	Role string `json:"role"`
+	Name string `json:"name"`
+	TrigramLore
 }
 
 // derive 由上卦数/下卦数/动爻组装完整结果。
@@ -183,10 +205,31 @@ func derive(upperN, lowerN, moving int) Result {
 	}
 	rel, verdict := judge(ti.Element, yong.Element)
 
+	// 类象:体/用/变动侧三角色(同卦去重),供前端类象卡与 AI 取象
+	bianSide := bian.Lower
+	if movingInUpper {
+		bianSide = bian.Upper
+	}
+	var lore []RoleLore
+	seen := map[string]bool{}
+	for _, rl := range []struct {
+		role string
+		tg   Trigram
+	}{{"体卦", ti}, {"用卦", yong}, {"变卦", bianSide}} {
+		if seen[rl.tg.Name] {
+			continue
+		}
+		seen[rl.tg.Name] = true
+		if l, ok := LoreOf(rl.tg.Name); ok {
+			lore = append(lore, RoleLore{Role: rl.role, Name: rl.tg.Name, TrigramLore: l})
+		}
+	}
+
 	return Result{
 		Ben: ben, Hu: hu, Bian: bian, Moving: moving,
 		TiTrigram: ti, YongTrigram: yong, TiIsUpper: !movingInUpper,
 		Relation: rel, Verdict: verdict,
+		Lore: lore,
 	}
 }
 
@@ -236,13 +279,59 @@ func ByTime(t time.Time, question string) (Result, error) {
 	r := derive(upperN, lowerN, moving)
 	r.Method = "time"
 	r.Question = question
+	r.CastBasis = "年月日时起卦(观梅体)"
 	r.LunarText = fmt.Sprintf("%s年%s月%s日%s时",
 		lunar.GetYearZhi(), lunar.GetMonthInChinese(), lunar.GetDayInChinese(), lunar.GetTimeZhi())
+	r.Judgment = r.Judge(monthN, question)
+	return r, nil
+}
+
+// ByTimeAndText 心易字数起卦(产品「以此时起卦」默认口径):以所问之辞
+// 字数为上卦数,加时辰数配下卦,总数取动爻——《梅花易数·声音占》
+// 「凡闻声音,数得数目,起作上卦,加时数配作下卦」之义,问辞即闻声之数。
+// 同一时辰众人问辞各异,卦自不同;无问辞则回退年月日时起卦(观梅体)。
+func ByTimeAndText(t time.Time, question string) (Result, error) {
+	wc := utf8.RuneCountInString(strings.TrimSpace(question))
+	if wc == 0 {
+		return ByTime(t, question)
+	}
+	if t.Year() < 1902 || t.Year() > 2098 {
+		return Result{}, fmt.Errorf("时间超出支持范围(1902-2098)")
+	}
+	lunar := calendar.NewSolarFromDate(t).GetLunar()
+	monthN := lunar.GetMonth()
+	if monthN < 0 {
+		monthN = -monthN
+	}
+	hourN := branchNum(lunar.GetTimeZhi())
+
+	upperN := wc % 8
+	if upperN == 0 {
+		upperN = 8
+	}
+	lowerSum := wc + hourN
+	lowerN := lowerSum % 8
+	if lowerN == 0 {
+		lowerN = 8
+	}
+	moving := lowerSum % 6
+	if moving == 0 {
+		moving = 6
+	}
+
+	r := derive(upperN, lowerN, moving)
+	r.Method = "time"
+	r.Question = question
+	r.CastBasis = fmt.Sprintf("问辞%d字起上卦,加%s时数%d配下卦(声音占义)", wc, lunar.GetTimeZhi(), hourN)
+	r.LunarText = fmt.Sprintf("%s年%s月%s日%s时",
+		lunar.GetYearZhi(), lunar.GetMonthInChinese(), lunar.GetDayInChinese(), lunar.GetTimeZhi())
+	r.Judgment = r.Judge(monthN, question)
 	return r, nil
 }
 
 // ByNumbers 数字起卦:两数(前上后下,和取动爻)或三数(第三数定动爻)。
-func ByNumbers(nums []int, question string) (Result, error) {
+// at 为占时(断卦层的卦气旺衰须知月令;传零值则跳过断卦层)。
+func ByNumbers(nums []int, at time.Time, question string) (Result, error) {
 	if len(nums) != 2 && len(nums) != 3 {
 		return Result{}, fmt.Errorf("数字起卦需两个或三个正整数")
 	}
@@ -271,5 +360,13 @@ func ByNumbers(nums []int, question string) (Result, error) {
 	r.Method = "number"
 	r.Question = question
 	r.Numbers = nums
+	if !at.IsZero() && at.Year() >= 1902 && at.Year() <= 2098 {
+		lunar := calendar.NewSolarFromDate(at).GetLunar()
+		monthN := lunar.GetMonth()
+		if monthN < 0 {
+			monthN = -monthN
+		}
+		r.Judgment = r.Judge(monthN, question)
+	}
 	return r, nil
 }

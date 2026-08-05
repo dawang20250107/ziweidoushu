@@ -20,16 +20,6 @@ export interface ChatMessage {
   error?: boolean;
 }
 
-/** 闪烁光标(用 Tailwind 内置 animate-pulse,不引入自定义 CSS)。 */
-function Caret() {
-  return (
-    <span
-      className="inline-block h-[15px] w-[2px] animate-pulse bg-gold align-text-bottom"
-      aria-hidden
-    />
-  );
-}
-
 function UserBubble({ text }: { text: string }) {
   return (
     <div className="flex justify-end">
@@ -44,16 +34,29 @@ function AssistantBubble({ m }: { m: ChatMessage }) {
   const showFootnote = !m.streaming && !m.error && (m.degraded || !!m.provider);
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] rounded-[6px] bg-bg-raised px-4 py-3 shadow-[0_0_0_1px_var(--line)]">
+      <div
+        className={[
+          "max-w-[85%] rounded-[6px] bg-bg-raised px-4 py-3 shadow-[0_0_0_1px_var(--line)]",
+          m.streaming ? "bubble-streaming" : "",
+        ].join(" ")}
+      >
         {m.error ? (
           <p className="text-[14px] leading-relaxed text-danger">{m.content}</p>
         ) : (
           <>
-            {m.content && <Markdown text={m.content} />}
-            {m.streaming && (
-              <span className="mt-1 flex items-center gap-2 text-[13px] text-ink-faint">
-                {!m.content && <span>正在推演命盘…</span>}
-                <Caret />
+            {m.content && (
+              <div className={m.streaming ? "stream-md" : undefined}>
+                <Markdown text={m.content} elder />
+              </div>
+            )}
+            {m.streaming && !m.content && (
+              <span className="flex items-center gap-2 text-[13px] text-ink-faint">
+                正在推演命盘
+                <span className="flex items-center gap-1" aria-hidden>
+                  <span className="think-dot" />
+                  <span className="think-dot" style={{ animationDelay: "0.15s" }} />
+                  <span className="think-dot" style={{ animationDelay: "0.3s" }} />
+                </span>
               </span>
             )}
             {showFootnote && (

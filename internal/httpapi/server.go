@@ -75,6 +75,9 @@ func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *
 	// 排盘
 	mux.HandleFunc("POST /api/v1/chart", s.handleChart)
 	mux.HandleFunc("POST /api/v1/horoscope", s.handleHoroscope)
+	mux.HandleFunc("GET /api/v1/world-cities", s.handleWorldCities)
+	mux.HandleFunc("GET /api/v1/timing/events", s.handleTimingEvents)
+	mux.HandleFunc("POST /api/v1/timing/event", s.handleEventTiming)
 	mux.HandleFunc("GET /api/v1/famous", s.handleFamousList)
 	mux.HandleFunc("GET /api/v1/famous/{id}/chart", s.handleFamousChart)
 
@@ -122,6 +125,7 @@ func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *
 	mux.HandleFunc("POST /api/v1/divination/meihua", s.handleMeihua)
 	mux.HandleFunc("POST /api/v1/divination/liuyao", s.handleLiuYao)
 	mux.HandleFunc("POST /api/v1/divination/xiaoliuren", s.handleXiaoLiuRen)
+	mux.HandleFunc("POST /api/v1/divination/daliuren", s.handleDaLiuRen)
 	mux.HandleFunc("POST /api/v1/ai/divine", s.requireAuth(s.handleDivineAI))
 
 	// 卦档:登录起卦自动存档,AI 解卦回填

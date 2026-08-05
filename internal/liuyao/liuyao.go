@@ -12,6 +12,7 @@ import (
 
 	"github.com/6tail/lunar-go/calendar"
 	"github.com/dawang20250107/ziweidoushu/internal/meihua"
+	"github.com/dawang20250107/ziweidoushu/internal/zhouyi"
 )
 
 // ── 基础表 ───────────────────────────────────────────────────
@@ -161,6 +162,18 @@ type Result struct {
 	Yaos       [6]Yao `json:"yaos"`
 	MovingNums []int  `json:"movingNums"` // 动爻位置列表(可为空=静卦)
 
+	// 卦性:六爻三对(初四/二五/三上)支支相冲为六冲卦、相合为六合卦(空则平常)
+	BenXingZhi  string `json:"benXingZhi,omitempty"`
+	BianXingZhi string `json:"bianXingZhi,omitempty"`
+
+	// FuShen 用神不上卦时之伏神(本宫首卦纳甲取,见 enrich.go)
+	FuShen *FuShen `json:"fuShen,omitempty"`
+
+	// JingWen 《周易》经文层(公版,internal/zhouyi):本卦卦辞、动爻爻辞、变卦卦辞。
+	JingWen *JingWen `json:"jingWen,omitempty"`
+
+	palaceIdx int // 本卦所属宫索引(伏神取本宫首卦纳甲用,不序列化)
+
 	// Tosses 摇卦原始记录(每爻背面数 0-3;报数起卦为空)
 	Tosses []int `json:"tosses,omitempty"`
 
@@ -179,6 +192,9 @@ type Result struct {
 	// 元忌力量评估(增删有力/无力条目对照,见 power.go;倾向供参,判定在解卦层)
 	YuanShenPower []PowerNote `json:"yuanShenPower"`
 	JiShenPower   []PowerNote `json:"jiShenPower"`
+
+	// Judgment 确定性断语(用神旺衰/元忌力量/动变/世应/应期,见 judge.go)。
+	Judgment *Judgment `json:"judgment,omitempty"`
 }
 
 var seqNames = []string{"八纯卦", "一世卦", "二世卦", "三世卦", "四世卦", "五世卦", "游魂卦", "归魂卦"}
@@ -355,6 +371,7 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 		MonthJian: string(monthJian),
 		// 静卦时也须输出 [] 而非 null(JSON 列表契约)
 		MovingNums: []int{},
+		palaceIdx:  entry.palace,
 	}
 	if len(movingSet) > 0 {
 		bl := meihua.TrigramByLines([3]bool{bianLines[0], bianLines[1], bianLines[2]})
@@ -453,7 +470,50 @@ func assemble(lines [6]bool, moving []int, dayStem, dayBranch int, monthJian run
 			r.MovingNums = append(r.MovingNums, pos)
 		}
 	}
+
+	// 卦性(六冲/六合):本卦按各爻纳甲支;变卦按变卦自身内外卦全六位纳甲
+	var benBs, bianBs [6]int
+	for i := 0; i < 6; i++ {
+		benBs[i] = branchIndexOf(r.Yaos[i].Branch)
+		var bb rune
+		if i < 3 {
+			bb = najia[bianLower.Num-1].inner[i]
+		} else {
+			bb = najia[bianUpper.Num-1].outer[i-3]
+		}
+		bianBs[i] = branchIndexOf(string(bb))
+	}
+	r.BenXingZhi = guaXingZhi(benBs)
+	if len(movingSet) > 0 {
+		r.BianXingZhi = guaXingZhi(bianBs)
+	}
+
+	// 经文层:本卦卦辞 + 动爻所值爻辞(自下而上);变卦卦辞;
+	// 六爻皆动之乾坤以用九/用六断(周易通例)。
+	if ben := zhouyi.ByTrigrams(upper.Num, lower.Num); ben != nil {
+		jw := &JingWen{BenGuaCi: ben.GuaCi}
+		for _, m := range r.MovingNums {
+			jw.YaoCi = append(jw.YaoCi, ben.YaoCi[m-1])
+		}
+		if len(movingSet) == 6 && ben.Yong != "" {
+			jw.Yong = ben.Yong
+		}
+		if len(movingSet) > 0 {
+			if bg := zhouyi.ByTrigrams(bianUpper.Num, bianLower.Num); bg != nil {
+				jw.BianGuaCi = bg.GuaCi
+			}
+		}
+		r.JingWen = jw
+	}
 	return r, nil
+}
+
+// JingWen 《周易》经文层。YaoCi 与 MovingNums 同序,文本带爻题(「九五:飞龙在天…」)。
+type JingWen struct {
+	BenGuaCi  string   `json:"benGuaCi"`
+	BianGuaCi string   `json:"bianGuaCi,omitempty"`
+	YaoCi     []string `json:"yaoCi,omitempty"`
+	Yong      string   `json:"yong,omitempty"` // 六爻皆动:乾用九/坤用六
 }
 
 // ── 研究校验导出(tools/liuyaoverify 以书校机)──────────────
@@ -486,13 +546,16 @@ func tossToYao(backs int) (yang, moving bool, err error) {
 	}
 }
 
-// dayGanZhi 当前时刻 → 农历日干支索引与月建。
+// dayGanZhi 当前时刻 → 日辰干支索引与月建。
+// 日辰用 Exact 口径:夜子时(23 点后)日辰归次日,与四柱/紫微日柱一致;
+// 月建以节交接的精确时刻分界(卜筮以节令换月,非农历初一)。
 func dayGanZhi(t time.Time) (dayStem, dayBranch int, monthJian rune, lunarText string, err error) {
 	if t.Year() < 1902 || t.Year() > 2098 {
 		return 0, 0, ' ', "", fmt.Errorf("时间超出支持范围(1902-2098)")
 	}
 	lunar := calendar.NewSolarFromDate(t).GetLunar()
-	dgz := []rune(lunar.GetDayInGanZhi())
+	dayGZ := lunar.GetDayInGanZhiExact()
+	dgz := []rune(dayGZ)
 	if len(dgz) != 2 {
 		return 0, 0, ' ', "", fmt.Errorf("日干支解析失败")
 	}
@@ -506,9 +569,12 @@ func dayGanZhi(t time.Time) (dayStem, dayBranch int, monthJian rune, lunarText s
 			dayBranch = i
 		}
 	}
-	mgz := []rune(lunar.GetMonthInGanZhi())
+	mgz := []rune(lunar.GetMonthInGanZhiExact())
 	monthJian = mgz[len(mgz)-1]
-	lunarText = fmt.Sprintf("%s月%s日(%s日)", lunar.GetMonthInChinese(), lunar.GetDayInChinese(), lunar.GetDayInGanZhi())
+	lunarText = fmt.Sprintf("%s月%s日(%s日)", lunar.GetMonthInChinese(), lunar.GetDayInChinese(), dayGZ)
+	if dayGZ != lunar.GetDayInGanZhi() {
+		lunarText += "(夜子时起,日辰归次日)"
+	}
 	return dayStem, dayBranch, monthJian, lunarText, nil
 }
 
@@ -541,7 +607,9 @@ func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
 	r.LunarText = lt
 	r.Tosses = append([]int(nil), tosses...)
 	r.applyYongShen()
+	r.applyFuShen()
 	r.applyPower()
+	r.Judgment = r.Judge() // 确定性断语,随起卦即出(免费层)
 	return r, nil
 }
 

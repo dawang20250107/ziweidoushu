@@ -3,13 +3,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { fetchChart, fetchHoroscope, ApiError } from "@/lib/api";
-import type { BirthInfo, ChartResponse, Horoscope } from "@/lib/types";
+import type { BirthInfo, ChartResponse, Horoscope, HoroscopeReading } from "@/lib/types";
 import { DENSITY_LABELS, type Density } from "@/lib/chart-helpers";
 import { BirthForm } from "@/components/chart/BirthForm";
 import { ChartBoard } from "@/components/chart/ChartBoard";
-import { DetailPanel } from "@/components/chart/DetailPanel";
+import { PalaceDrawer } from "@/components/chart/PalaceDrawer";
+import { PatternsOverview } from "@/components/chart/PatternsOverview";
 import { TimelineBar, type TimelineSelection } from "@/components/chart/TimelineBar";
 import { SiZhuPanel } from "@/components/chart/SiZhuPanel";
+import { ReadingPanel } from "@/components/chart/ReadingPanel";
+import { HoroscopeReadingPanel } from "@/components/chart/HoroscopeReadingPanel";
+import { TimingPicker } from "@/components/chart/TimingPicker";
 import { LuopanCast } from "@/components/chart/LuopanCast";
 import { SaveProfileButton } from "@/components/profiles/SaveProfileButton";
 
@@ -18,12 +22,15 @@ export default function ChartPage() {
   const [birth, setBirth] = useState<BirthInfo | null>(null);
   const [data, setData] = useState<ChartResponse | null>(null);
   const [horoscope, setHoroscope] = useState<Horoscope | null>(null);
+  const [horoReading, setHoroReading] = useState<HoroscopeReading | null>(null);
   const [timeline, setTimeline] = useState<TimelineSelection>({ year: null });
   const [density, setDensity] = useState<Density>("pro");
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+  const [hlPalaces, setHlPalaces] = useState<string[] | null>(null); // 格局悬停联动点亮的宫名
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [casting, setCasting] = useState(false); // 罗盘起盘仪式中
+  const [castLeaving, setCastLeaving] = useState(false); // 仪式收场淡出中
 
   const [initialBirth, setInitialBirth] = useState<BirthInfo | null>(null);
 
@@ -31,6 +38,7 @@ export default function ChartPage() {
     setLoading(true);
     setError("");
     setHoroscope(null);
+    setHoroReading(null);
     setTimeline({ year: null });
     setSelectedBranch(null);
     try {
@@ -46,7 +54,8 @@ export default function ChartPage() {
     }
   }, []);
 
-  // 手动排盘:星光击罗盘仪式(≥1.8s);恢复路径与 reduced-motion 直出
+  // 手动排盘:星光击罗盘全屏仪式(≥3.6s 全序列 + 0.5s 淡出收场);
+  // 恢复路径与 reduced-motion 直出
   const castChart = useCallback(async (b: BirthInfo) => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
@@ -54,9 +63,12 @@ export default function ChartPage() {
       return;
     }
     setCasting(true);
-    const minShow = new Promise((r) => setTimeout(r, 1800));
+    const minShow = new Promise((r) => setTimeout(r, 3600));
     await Promise.all([runChart(b), minShow]);
+    setCastLeaving(true);
+    await new Promise((r) => setTimeout(r, 500));
     setCasting(false);
+    setCastLeaving(false);
   }, [runChart]);
 
   // 挂载时恢复最近一次排盘生辰并自动出盘(档案「载入排盘」/刷新续排共用 ziwei-birth 契约)
@@ -78,6 +90,7 @@ export default function ChartPage() {
   useEffect(() => {
     if (!birth || timeline.year == null) {
       setHoroscope(null);
+      setHoroReading(null);
       return;
     }
     let cancelled = false;
@@ -88,7 +101,10 @@ export default function ChartPage() {
       hour: timeline.hour ?? 6,
     })
       .then((resp) => {
-        if (!cancelled) setHoroscope(resp.horoscope);
+        if (!cancelled) {
+          setHoroscope(resp.horoscope);
+          setHoroReading(resp.reading ?? null);
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof ApiError ? e.message : "运限计算失败");
@@ -160,39 +176,71 @@ export default function ChartPage() {
       {data && (
         <div className="flex flex-col gap-4">
           <TimelineBar chart={data.chart} selection={timeline} horoscope={horoscope} onChange={setTimeline} />
-          {/* 移动端必须显式 1 列 minmax(0,1fr):否则 auto 轨道被盘面 min-w 撑开,页面整体横向溢出 */}
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div>
-              <div className="relative">
-                <div className="overflow-x-auto">
-                  <div className="min-w-[640px]">
-                    <ChartBoard
-                      chart={data.chart}
-                      density={density}
-                      selectedBranch={selectedBranch}
-                      onSelectBranch={setSelectedBranch}
-                      horoscope={horoscope}
-                      overlayScopes={overlayScopes}
-                    />
-                  </div>
+          {/* 盘面全宽:格局下沉为独立分区、宫位详情浮出为抽屉,盘面不再与长侧栏比高。
+              选宫时桌面端右侧让位抽屉(padding 缓动平移,连线由 ResizeObserver 追踪) */}
+          <div>
+            <div
+              className={[
+                "relative transition-[padding] duration-500",
+                selectedBranch != null ? "lg:pr-[376px]" : "",
+              ].join(" ")}
+              style={{ transitionTimingFunction: "var(--ease-out)" }}
+            >
+              <div className="overflow-x-auto">
+                <div className="mx-auto min-w-[640px] max-w-[1120px]">
+                  <ChartBoard
+                    chart={data.chart}
+                    density={density}
+                    selectedBranch={selectedBranch}
+                    onSelectBranch={setSelectedBranch}
+                    horoscope={horoscope}
+                    overlayScopes={overlayScopes}
+                    patterns={data.patterns ?? []}
+                    highlightNames={hlPalaces}
+                    onPatternHover={setHlPalaces}
+                  />
                 </div>
-                {/* 移动端:右缘渐隐提示盘面可横向滑动 */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-bg to-transparent md:hidden"
-                />
               </div>
-              <p className="mt-1.5 text-center text-[11px] text-ink-faint md:hidden">左右滑动查看全盘</p>
+              {/* 移动端:右缘渐隐提示盘面可横向滑动 */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-bg to-transparent md:hidden"
+              />
             </div>
-            <DetailPanel chart={data.chart} patterns={data.patterns ?? []} selectedBranch={selectedBranch} />
+            <p className="mt-1.5 text-center text-[11px] text-ink-faint md:hidden">左右滑动查看全盘</p>
+            <p className="mt-1.5 hidden text-center text-[11px] text-ink-faint md:block">
+              点击宫位查看三方四正与星曜细目
+            </p>
           </div>
+
+          {/* 格局总览:全宽卡片墙(长文多列铺开,悬停点亮盘上关联宫位) */}
+          <PatternsOverview patterns={data.patterns ?? []} onPatternHover={setHlPalaces} />
+
+          {/* 运限断语:随时间轴选择的目标日期逐层生成(大限→流年→流月→流日→流时) */}
+          {horoReading && <HoroscopeReadingPanel reading={horoReading} />}
+
+          {/* 多维断语:逐宫断语骨架(随盘而异,确定性) */}
+          {data.reading && <ReadingPanel reading={data.reading} />}
+
+          {/* 事项择吉:选事项 → 利年/利月/利日(确定性) */}
+          {birth && <TimingPicker birth={birth} />}
 
           {/* 四柱视角:八字附加层(可折叠) */}
           {data.chart.siZhu && <SiZhuPanel siZhu={data.chart.siZhu} />}
         </div>
       )}
 
-      {casting && <LuopanCast />}
+      {/* 宫位详情抽屉:桌面右缘滑入、移动端底部上滑 */}
+      {data && (
+        <PalaceDrawer
+          chart={data.chart}
+          patterns={data.patterns ?? []}
+          selectedBranch={selectedBranch}
+          onClose={() => setSelectedBranch(null)}
+        />
+      )}
+
+      {casting && <LuopanCast leaving={castLeaving} />}
     </div>
   );
 }

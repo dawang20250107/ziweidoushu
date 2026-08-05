@@ -50,6 +50,20 @@ type Result struct {
 	Ke      [4]Ke      `json:"ke"`     // 四课(自第一至第四)
 	Chuan   [3]string  `json:"chuan"`  // 三传(初/中/末)
 	KeType  string     `json:"keType"` // 课体:贼克/比用/涉害/遥克/昴星/别责/八专/伏吟/返吟
+	// TianJiang[i] = 地盘 i 位上所乘十二天将(贵人歌两书互证,亥~辰顺布)。
+	TianJiang [12]string `json:"tianJiang"`
+	// ChuanJiang 三传所乘天将;GuiIsDay 本课用昼贵与否。
+	ChuanJiang [3]string `json:"chuanJiang"`
+	GuiIsDay   bool      `json:"guiIsDay"`
+	// XunKong 日干支所在旬的空亡两支;ChuanDunGan 三传旬遁干(传落空亡则空串)。
+	XunKong     [2]string `json:"xunKong"`
+	ChuanDunGan [3]string `json:"chuanDunGan"`
+	// 活时报数起课溯源(正时为零值):BaoShu 所报之数,HourNote 如「活时·报数7」。
+	BaoShu   int    `json:"baoShu,omitempty"`
+	HourNote string `json:"hourNote,omitempty"`
+
+	// Judgment 确定性断语(课体 + 三传对日干生克,见 judge.go)。
+	Judgment *Judgment `json:"judgment,omitempty"`
 }
 
 // tianPanOf 天盘布局:月将加于占时之上,顺行十二地支。
@@ -104,6 +118,29 @@ func Cast(dayStem, dayBranch, hour, monthGen int) (*Result, error) {
 	})
 	r.Chuan = [3]string{string(branches[chuan[0]]), string(branches[chuan[1]]), string(branches[chuan[2]])}
 	r.KeType = ktype
+	// 旬空与旬遁:旬首(甲)所临支 = 日支 - 日干;旬内十支得遁干,余二支即空亡
+	xunFirst := ((dayBranch-dayStem)%12 + 12) % 12
+	r.XunKong = [2]string{string(branches[(xunFirst+10)%12]), string(branches[(xunFirst+11)%12])}
+	for c := 0; c < 3; c++ {
+		if off := ((chuan[c]-xunFirst)%12 + 12) % 12; off < 10 {
+			r.ChuanDunGan[c] = string(stems[off])
+		}
+	}
+	// 十二天将:随天盘布于地盘十二位;三传乘将取该传之神所在地盘位
+	jiang, _, isDay := placeTianJiang(tp, dayStem, hour)
+	r.GuiIsDay = isDay
+	for i := 0; i < 12; i++ {
+		r.TianJiang[i] = TianJiangNames[jiang[i]]
+	}
+	for c := 0; c < 3; c++ {
+		for i := 0; i < 12; i++ {
+			if tp[i] == chuan[c] {
+				r.ChuanJiang[c] = TianJiangNames[jiang[i]]
+				break
+			}
+		}
+	}
+	r.Judgment = r.Judge() // 确定性断语,随起课即出
 	return r, nil
 }
 
@@ -111,6 +148,9 @@ func Cast(dayStem, dayBranch, hour, monthGen int) (*Result, error) {
 
 // keSheng a 生 b / a 克 b(五行索引)。
 func ke(a, b int) bool { return (branchElement[a]+2)%5 == branchElement[b] } // a 克 b
+
+// keEl 五行层面 a 克 b(供第一课以日干本气论克)。
+func keEl(aEl, bEl int) bool { return (aEl+2)%5 == bEl }
 
 var (
 	mengSet = map[int]bool{2: true, 5: true, 8: true, 11: true} // 孟:寅巳申亥
@@ -177,32 +217,63 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 		}
 	}
 
-	// 收集克:下贼上(下克上)优先,否则上克下
+	// 收集克:下贼上(下克上)优先,否则上克下。
+	// 第一课之「下」为日干本身,克战以日干本气五行论(非寄宫支五行)——
+	// 《六壬断案》案02 戊申日子将申时钉死:戊土上酉金无克,方成元首取辰。
+	loElOf := func(i int) int {
+		if i == 0 {
+			return stemElement[dayStem]
+		}
+		return branchElement[courses[i][0]]
+	}
+	// 派生课(第二/第四课)与前课下上全同者不取其克——「干支阴阳已先据其位,
+	// 不可重复取用」(《六壬断案》案07 乙巳日戌将亥时钉死:第四课辰卯与
+	// 第一课重,其克作废,无贼克而走遥克弹射取辰)。干支两正课(第一/第三)
+	// 不在此限:八专日课一课三支面同而克义异(课经「癸丑日俱有克」,
+	// 案220 癸丑日酉将戌时钉死:课三丑克子发用,三传子亥戌)。
+	dup := func(i int) bool {
+		if i != 1 && i != 3 {
+			return false
+		}
+		for j := 0; j < i; j++ {
+			if courses[j] == courses[i] {
+				return true
+			}
+		}
+		return false
+	}
 	var zei, keUp []int // 存 course 索引
 	for i, c := range courses {
-		lo, up := c[0], c[1]
-		if ke(lo, up) {
+		if dup(i) {
+			continue
+		}
+		upEl := branchElement[c[1]]
+		if keEl(loElOf(i), upEl) {
 			zei = append(zei, i)
-		} else if ke(up, lo) {
+		} else if keEl(upEl, loElOf(i)) {
 			keUp = append(keUp, i)
 		}
 	}
-	cand := zei
+	cand, candZei := zei, true
 	if len(cand) == 0 {
-		cand = keUp
+		cand, candZei = keUp, false
 	}
 
-	pickByClass := func(idxs []int) int { // 涉害:孟>仲>季,同类取课序小
+	// 涉害(理法易简「不数深浅,先取孟上神」之见机式,孟仲季论上神所临
+	// **地盘之位**,孟>仲>季>课序)。《六壬断案》四例钉死:案76(比者戌午,
+	// 午临亥孟)、案74(午临申孟胜寅临辰季)、案188(无孟取仲:未临卯仲)、
+	// 案189(戌临寅孟)、案191(丑临卯仲)。曾试历位数克之深浅法,
+	// 与上列诸案不合,弃之(考据见 research/daliuren-survey.md)。
+	pickSheHai := func(idxs []int) int {
 		best := idxs[0]
 		for _, i := range idxs[1:] {
-			bi, bb := classRank(courses[i][1]), classRank(courses[best][1])
-			if bi < bb {
+			if classRank(courses[i][0]) < classRank(courses[best][0]) {
 				best = i
 			}
 		}
 		return best
 	}
-	pickCand := func(idxs []int) (int, string) { // 贼克/比用/涉害
+	pickCand := func(idxs []int, _ bool) (int, string) { // 贼克/比用/涉害
 		if len(idxs) == 1 {
 			return idxs[0], "贼克"
 		}
@@ -215,14 +286,20 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 		if len(same) == 1 {
 			return same[0], "比用"
 		}
-		return pickByClass(idxs), "涉害"
+		// 俱比则涉害于比者之中取;俱不比方于全体候选中取
+		if len(same) > 1 {
+			return pickSheHai(same), "涉害"
+		}
+		return pickSheHai(idxs), "涉害"
 	}
 
-	// 伏吟
+	// 伏吟。中传取初传之刑;初传自刑者,阳日中取支上神、阴日中取干上神;
+	// 中传复自刑者,末传冲取(课经伏吟诀,《六壬断案》案215 辛酉日丑将丑时
+	// 钉死:初酉自刑、中取干上戌、末戌刑未 → 酉戌未)。
 	if fuyin {
 		var chu int
 		if len(cand) > 0 {
-			ci, _ := pickCand(cand)
+			ci, _ := pickCand(cand, candZei)
 			chu = courses[ci][1]
 		} else if yangDay {
 			chu = ganUpper
@@ -230,19 +307,23 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 			chu = zhiUpper
 		}
 		mid := xing[chu]
-		if mid == chu {
-			mid = (chu + 6) % 12 // 自刑取冲
+		if mid == chu { // 自刑:阳日取支上、阴日取干上
+			if yangDay {
+				mid = zhiUpper
+			} else {
+				mid = ganUpper
+			}
 		}
 		end := xing[mid]
 		if end == mid {
-			end = (mid + 6) % 12
+			end = (mid + 6) % 12 // 复自刑,冲取末传
 		}
 		return [3]int{chu, mid, end}, "伏吟"
 	}
 	// 返吟
 	if fanyin {
 		if len(cand) > 0 {
-			ci, _ := pickCand(cand)
+			ci, _ := pickCand(cand, candZei)
 			return chuanFrom(courses[ci][1], tp), "返吟"
 		}
 		return [3]int{yiMa(dayBranch), zhiUpper, ganUpper}, "返吟"
@@ -250,23 +331,62 @@ func deriveChuan(dayStem, dayBranch, jiGong int, tp [12]int, courses [4][2]int) 
 
 	// 贼克/比用/涉害
 	if len(cand) > 0 {
-		ci, name := pickCand(cand)
+		ci, name := pickCand(cand, candZei)
 		return chuanFrom(courses[ci][1], tp), name
 	}
 
-	// 遥克:日干(以寄宫论)与上神相克
-	var yao []int
-	jiEl := branchElement[jiGong]
-	for i, c := range courses {
-		up := c[1]
-		if (jiEl+2)%5 == branchElement[up] || (branchElement[up]+2)%5 == jiEl {
-			yao = append(yao, i)
+	// 八专:干支同位(甲寅庚申丁未己未癸丑五日)无克,不论遥克——
+	// 刚日干上神顺数三位、柔日第四课上神逆数三位为初传,中末俱并干上
+	// (课经集走例钉死:甲寅日辰时丑将→丑亥亥;丁未日丑时辰将→亥戌戌)。
+	if jiGong == dayBranch {
+		var chu int
+		if yangDay {
+			chu = (ganUpper + 2) % 12
+		} else {
+			chu = ((courses[3][1]-2)%12 + 12) % 12
+		}
+		return [3]int{chu, ganUpper, ganUpper}, "八专"
+	}
+
+	// 遥克:二三四课上神与日干(本气五行)隔位相克——
+	// 先取克干者(蒿矢),无则取干克者(弹射),再比用取舍。
+	// 《六壬断案》案36 丁卯日子将卯时(子水克丁,先于丁克酉)、
+	// 案95 己酉日卯将子时(书标「蒿矢」,卯木克己先于己克子)钉死。
+	var keGan, ganKe []int
+	ganEl := stemElement[dayStem]
+	for i := 1; i < 4; i++ {
+		upEl := branchElement[courses[i][1]]
+		if keEl(upEl, ganEl) {
+			keGan = append(keGan, i)
+		} else if keEl(ganEl, upEl) {
+			ganKe = append(ganKe, i)
 		}
 	}
+	yao, yaoZei := keGan, true
+	if len(yao) == 0 {
+		yao, yaoZei = ganKe, false
+	}
 	if len(yao) > 0 {
-		// 先取克干者(上克下之遥),再比用/孟仲季;简化取比用/课序
-		ci, _ := pickCand(yao)
+		ci, _ := pickCand(yao, yaoZei)
 		return chuanFrom(courses[ci][1], tp), "遥克"
+	}
+
+	// 别责:四课不全三课备、无克无遥——刚日取干合之干寄宫上神,
+	// 柔日取日支三合前一辰(支+4),中末俱并干上
+	// (课经集走例钉死:丙辰日卯时辰将→亥午午)。
+	distinct := map[[2]int]bool{}
+	for _, c := range courses {
+		distinct[c] = true
+	}
+	if len(distinct) == 3 {
+		var chu int
+		if yangDay {
+			heGan := (dayStem + 5) % 10 // 五合:甲己 乙庚 丙辛 丁壬 戊癸
+			chu = tp[stemJiGong[heGan]]
+		} else {
+			chu = (dayBranch + 4) % 12
+		}
+		return [3]int{chu, ganUpper, ganUpper}, "别责"
 	}
 
 	// 昴星:阳日取酉上神(地盘酉之天盘),中支上末干上;阴日取酉下神(天盘酉临之地盘),中干上末支上

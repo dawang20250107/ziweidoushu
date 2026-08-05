@@ -11,6 +11,20 @@ import {
 /** Hero 示例命盘的固定生辰(1964 甲辰 · 巳时 · 男)。 */
 const DEMO_BIRTH = { year: 1964, month: 9, day: 10, hour: 5, gender: "male" } as const;
 
+/** 罗盘刻度(模块级预计算,坐标定两位小数——SSR 与客户端序列化一致,避免水合不匹配)。 */
+const RING_TICKS = Array.from({ length: 60 }, (_, i) => {
+  const a = (i / 60) * Math.PI * 2;
+  const long = i % 5 === 0;
+  const r1 = long ? 46.4 : 47.6;
+  return {
+    long,
+    x1: (50 + r1 * Math.cos(a)).toFixed(2),
+    y1: (50 + r1 * Math.sin(a)).toFixed(2),
+    x2: (50 + 49 * Math.cos(a)).toFixed(2),
+    y2: (50 + 49 * Math.sin(a)).toFixed(2),
+  };
+});
+
 type Status = "loading" | "ready" | "error";
 
 /** 迷你宫格:仅主星名 + 亮度上色 + 宫名/地支底标。 */
@@ -21,7 +35,7 @@ function MiniCell({ branch, palace }: { branch: number; palace?: Palace }) {
 
   return (
     <div
-      className="palace-enter relative flex min-h-0 flex-col rounded-[6px] bg-bg-raised p-1.5"
+      className={["palace-enter relative flex min-h-0 flex-col rounded-[6px] bg-bg-raised p-1.5", isMing ? "ming-breathe" : ""].join(" ")}
       style={{
         gridArea: GRID_AREA_BY_BRANCH[branch],
         animationDelay: `${ENTER_ORDER_BY_BRANCH[branch] * 34}ms`,
@@ -117,6 +131,40 @@ export function HeroChart() {
           background: "radial-gradient(60% 55% at 65% 30%, var(--gold-glow), transparent 70%)",
         }}
       />
+      {/* 罗盘刻度环:双环反向缓旋,观星台的仪器感 */}
+      <svg
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-60"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <g className="ring-rotate" style={{ transformBox: "fill-box" }}>
+          {RING_TICKS.map((t, i) => (
+            <line
+              key={i}
+              x1={t.x1}
+              y1={t.y1}
+              x2={t.x2}
+              y2={t.y2}
+              stroke="var(--gold-dim)"
+              strokeWidth={t.long ? 0.35 : 0.2}
+              opacity={t.long ? 0.8 : 0.45}
+            />
+          ))}
+        </g>
+        <circle
+          className="ring-rotate-rev"
+          style={{ transformBox: "fill-box" }}
+          cx="50"
+          cy="50"
+          r="44.5"
+          fill="none"
+          stroke="var(--gold-dim)"
+          strokeWidth="0.22"
+          strokeDasharray="0.6 3.4"
+          opacity="0.5"
+        />
+      </svg>
       <div className="rounded-[10px] bg-bg-raised/40 p-3" style={{ boxShadow: "inset 0 0 0 1px var(--line)" }}>
         <figcaption className="mb-2.5 flex items-center justify-between px-0.5">
           <span className="flex items-center gap-1.5 text-[11px] tracking-[0.16em] text-ink-secondary">

@@ -73,7 +73,7 @@ export default function DivinationsPage() {
   return (
     <div className="mx-auto max-w-3xl px-5 py-14 md:py-20">
       <header>
-        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">问卦 · 卦档</p>
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">占卜 · 卦档</p>
         <div className="mt-3 flex flex-wrap items-baseline justify-between gap-3">
           <h1 className="font-display text-[39px] font-semibold text-ink sm:text-[49px]">卦档</h1>
           {records != null && total > 0 && (
@@ -88,7 +88,7 @@ export default function DivinationsPage() {
       {/* 占法筛选 */}
       {signedIn && (
         <div className="mt-8 flex flex-wrap gap-2" role="group" aria-label="按占法筛选">
-          {([["", "全部"], ["meihua", "梅花易数"], ["liuyao", "六爻纳甲"], ["xiaoliuren", "小六壬"]] as const).map(
+          {([["", "全部"], ["meihua", "梅花易数"], ["liuyao", "六爻纳甲"], ["daliuren", "大六壬"], ["xiaoliuren", "小六壬"]] as const).map(
             ([k, label]) => {
               const active = kindFilter === k;
               return (
@@ -139,10 +139,10 @@ export default function DivinationsPage() {
           <div className="flex flex-col items-start gap-4 rounded-[10px] bg-bg-raised px-6 py-10 shadow-[0_0_0_1px_var(--line)]">
             <p className="text-[15px] text-ink-secondary">卦档还空着。心念既定,去起一卦。</p>
             <Link
-              href="/divination"
+              href="/meihua"
               className="glow-gold inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-5 py-2 text-[14px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
             >
-              去问卦
+              去起卦
             </Link>
           </div>
         )}

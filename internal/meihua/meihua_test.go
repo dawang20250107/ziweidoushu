@@ -75,7 +75,7 @@ func TestPureHexagramHu(t *testing.T) {
 
 // TestByNumbers 数字起卦:8/8 取余作 8(坤),动爻和取六余。
 func TestByNumbers(t *testing.T) {
-	r, err := ByNumbers([]int{8, 16}, "")
+	r, err := ByNumbers([]int{8, 16}, time.Time{}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,14 +86,14 @@ func TestByNumbers(t *testing.T) {
 		t.Fatalf("动爻: got %d want 6", r.Moving)
 	}
 	// 三数式:第三数定动爻
-	r, _ = ByNumbers([]int{1, 2, 6}, "")
+	r, _ = ByNumbers([]int{1, 2, 6}, time.Time{}, "")
 	if r.Ben.Name != "乾为天" && r.Ben.Upper.Name != "乾" {
 		t.Fatalf("上卦: got %s want 乾", r.Ben.Upper.Name)
 	}
 	if r.Moving != 6 {
 		t.Fatalf("三数动爻: got %d want 6", r.Moving)
 	}
-	if _, err := ByNumbers([]int{0, 5}, ""); err == nil {
+	if _, err := ByNumbers([]int{0, 5}, time.Time{}, ""); err == nil {
 		t.Fatal("非正整数应拒绝")
 	}
 }

@@ -8,7 +8,9 @@ import { UserMenu } from "./UserMenu";
 
 export const NAV_ITEMS = [
   { href: "/chart", label: "排盘" },
-  { href: "/divination", label: "问卦" },
+  { href: "/meihua", label: "梅花" },
+  { href: "/liuyao", label: "六爻" },
+  { href: "/liuren", label: "六壬" },
   { href: "/heming", label: "合盘" },
   { href: "/library", label: "古籍" },
   { href: "/chat", label: "问星" },

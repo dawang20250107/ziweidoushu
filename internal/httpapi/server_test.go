@@ -98,6 +98,12 @@ func TestChartEndpoint(t *testing.T) {
 			Patterns []struct {
 				Name string `json:"name"`
 			} `json:"patterns"`
+			Reading struct {
+				Overview string `json:"overview"`
+				Sections []struct {
+					Key string `json:"key"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(body, &out); err != nil || !out.OK {
@@ -108,6 +114,16 @@ func TestChartEndpoint(t *testing.T) {
 	}
 	if out.Data.Chart.WuxingJuName == "" {
 		t.Fatal("五行局缺失")
+	}
+	// 多维断语须随盘序列化到 /api/v1/chart:含四化落宫、仆役维度与流年维度。
+	keys := map[string]bool{}
+	for _, s := range out.Data.Reading.Sections {
+		keys[s.Key] = true
+	}
+	for _, want := range []string{"sihua", "jiaoyou", "liunian", "ming"} {
+		if !keys[want] {
+			t.Errorf("排盘响应的断语缺失维度 %s(全键:%v)", want, keys)
+		}
 	}
 
 	// 非法输入
@@ -145,6 +161,11 @@ func TestHoroscopeEndpoint(t *testing.T) {
 					} `json:"stars"`
 				} `json:"yearly"`
 			} `json:"horoscope"`
+			Reading struct {
+				Sections []struct {
+					Key string `json:"key"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
@@ -163,6 +184,16 @@ func TestHoroscopeEndpoint(t *testing.T) {
 	}
 	if count != 11 { // 流曜十颗 + 年解
 		t.Errorf("流年流曜数: got %d want 11", count)
+	}
+	// 运限逐层断语须随响应一并返回(大限/流年/流月/流日/流时 五层)。
+	rkeys := map[string]bool{}
+	for _, sct := range out.Data.Reading.Sections {
+		rkeys[sct.Key] = true
+	}
+	for _, want := range []string{"decadal", "yearly", "monthly", "daily", "hourly"} {
+		if !rkeys[want] {
+			t.Errorf("运限响应缺断语层 %s(全键:%v)", want, rkeys)
+		}
 	}
 
 	// 越界目标
@@ -251,6 +282,13 @@ func TestInterpretFallbackJSON(t *testing.T) {
 			Text     string `json:"text"`
 			Provider string `json:"provider"`
 			Degraded bool   `json:"degraded"`
+			Reading  struct {
+				Overview string `json:"overview"`
+				Sections []struct {
+					Key  string `json:"key"`
+					Text string `json:"text"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
@@ -259,8 +297,12 @@ func TestInterpretFallbackJSON(t *testing.T) {
 	if !out.Data.Degraded || out.Data.Provider != "fallback/rule-based" {
 		t.Fatalf("无 Key 时应降级: %+v", out.Data)
 	}
-	if !strings.Contains(out.Data.Text, "命盘解读") {
+	if !strings.Contains(out.Data.Text, "命格总论") {
 		t.Fatalf("降级文本异常: %s", truncate([]byte(out.Data.Text)))
+	}
+	// 结构化多维断语须随盘生成(≥12 维度)。
+	if len(out.Data.Reading.Sections) < 12 || out.Data.Reading.Overview == "" {
+		t.Fatalf("多维断语骨架异常:维度数=%d", len(out.Data.Reading.Sections))
 	}
 }
 
@@ -287,6 +329,92 @@ func TestInterpretSSE(t *testing.T) {
 	}
 }
 
+func TestDaLiuRenEndpoint(t *testing.T) {
+	ts := newTestServer(t, nil)
+	resp, raw := postJSON(t, ts.URL+"/api/v1/divination/daliuren", map[string]any{
+		"question": "问事", // castAt 缺省=当下(受近 24h 校验约束)
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("大六壬起课 %d: %s", resp.StatusCode, truncate(raw))
+	}
+	var out struct {
+		Data struct {
+			Result struct {
+				KeType   string    `json:"keType"`
+				Chuan    [3]string `json:"chuan"`
+				Judgment struct {
+					Conclusion string `json:"conclusion"`
+					Level      string `json:"level"`
+				} `json:"judgment"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Data.Result.KeType == "" || out.Data.Result.Chuan[0] == "" {
+		t.Errorf("起课结果不完整: %+v", out.Data.Result)
+	}
+	if out.Data.Result.Judgment.Conclusion == "" || out.Data.Result.Judgment.Level == "" {
+		t.Errorf("大六壬断语缺失: %+v", out.Data.Result.Judgment)
+	}
+}
+
+func TestTimingEndpoints(t *testing.T) {
+	ts := newTestServer(t, nil)
+
+	// 事项目录。
+	resp, raw := getJSON(t, ts.URL+"/api/v1/timing/events")
+	if resp.StatusCode != 200 {
+		t.Fatalf("择吉目录 %d: %s", resp.StatusCode, truncate(raw))
+	}
+	var cat struct {
+		Data struct {
+			Events []struct {
+				Key    string `json:"key"`
+				Palace string `json:"palace"`
+			} `json:"events"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &cat); err != nil {
+		t.Fatal(err)
+	}
+	if len(cat.Data.Events) != 11 { // 7 择吉 + 4 避忌
+		t.Fatalf("事项应 11 项,得 %d", len(cat.Data.Events))
+	}
+
+	// 事项择吉。
+	resp, raw = postJSON(t, ts.URL+"/api/v1/timing/event", map[string]any{
+		"year": 1990, "month": 6, "day": 15, "hour": 5, "gender": "male", "event": "wealth",
+	})
+	if resp.StatusCode != 200 {
+		t.Fatalf("事项择吉 %d: %s", resp.StatusCode, truncate(raw))
+	}
+	var out struct {
+		Data struct {
+			Timing struct {
+				Palace  string `json:"palace"`
+				Summary string `json:"summary"`
+				Advice  string `json:"advice"`
+			} `json:"timing"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Data.Timing.Palace != "财帛" || out.Data.Timing.Summary == "" || out.Data.Timing.Advice == "" {
+		t.Errorf("求财择吉结果异常: %+v", out.Data.Timing)
+	}
+
+	// 未知事项 400。
+	resp, _ = postJSON(t, ts.URL+"/api/v1/timing/event", map[string]any{
+		"year": 1990, "month": 6, "day": 15, "hour": 5, "gender": "male", "event": "nope",
+	})
+	if resp.StatusCode != 400 {
+		t.Errorf("未知事项应 400,得 %d", resp.StatusCode)
+	}
+}
+
 func TestHemingEndpoint(t *testing.T) {
 	ts := newTestServer(t, nil)
 	resp, raw := postJSON(t, ts.URL+"/api/v1/heming", map[string]any{
@@ -303,6 +431,13 @@ func TestHemingEndpoint(t *testing.T) {
 				Readings  []any    `json:"readings"`
 			} `json:"a"`
 			Methodology string `json:"methodology"`
+			Reading     struct {
+				Score    int    `json:"score"`
+				Level    string `json:"level"`
+				Sections []struct {
+					Key string `json:"key"`
+				} `json:"sections"`
+			} `json:"reading"`
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(raw, &out); err != nil {
@@ -310,6 +445,19 @@ func TestHemingEndpoint(t *testing.T) {
 	}
 	if len(out.Data.A.FuqiStars) == 0 || out.Data.Methodology == "" {
 		t.Fatalf("合盘数据不完整: %+v", out.Data)
+	}
+	// 合盘确定性契合断语须随响应返回。
+	if out.Data.Reading.Score < 20 || out.Data.Reading.Level == "" {
+		t.Errorf("合盘契合断语缺失或分数越界: %+v", out.Data.Reading)
+	}
+	rkeys := map[string]bool{}
+	for _, sct := range out.Data.Reading.Sections {
+		rkeys[sct.Key] = true
+	}
+	for _, want := range []string{"nianming", "sihuafly", "echo", "advice"} {
+		if !rkeys[want] {
+			t.Errorf("合盘断语缺维度 %s(全键:%v)", want, rkeys)
+		}
 	}
 }
 

@@ -27,7 +27,7 @@ export function ProfileCard({
   const [confirming, setConfirming] = useState(false);
 
   return (
-    <div className="lift flex flex-col rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)]">
+    <div className="card-glow flex flex-col rounded-[10px] bg-bg-raised p-6 shadow-[0_0_0_1px_var(--line)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="truncate font-display text-[20px] font-semibold text-ink">{profile.label}</h2>

@@ -5,6 +5,7 @@
 import type {
   BirthInfo, ChartResponse, Horoscope, BookMeta, Book, Chapter,
   SearchHit, InterpretResult, FamousPerson, HemingResponse, Chart, Pattern,
+  WorldCity, ProvinceCities, HoroscopeReading, EventCatalogItem, EventTiming,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "";
@@ -55,11 +56,27 @@ export function fetchChart(birth: BirthInfo): Promise<ChartResponse> {
   return post<ChartResponse>("/api/v1/chart", birth);
 }
 
+export function fetchWorldCities(): Promise<{ cities: WorldCity[] }> {
+  return get("/api/v1/world-cities");
+}
+
+export function fetchTimingEvents(): Promise<{ events: EventCatalogItem[] }> {
+  return get("/api/v1/timing/events");
+}
+
+export function fetchEventTiming(birth: BirthInfo, event: string): Promise<{ timing: EventTiming }> {
+  return post("/api/v1/timing/event", { ...birth, event });
+}
+
+export function fetchChinaCities(): Promise<{ provinces: ProvinceCities[] }> {
+  return get("/api/v1/cities");
+}
+
 export function fetchHoroscope(
   birth: BirthInfo,
   target: { year: number; month: number; day: number; hour: number },
-): Promise<{ horoscope: Horoscope }> {
-  return post<{ horoscope: Horoscope }>("/api/v1/horoscope", { ...birth, target });
+): Promise<{ horoscope: Horoscope; reading?: HoroscopeReading }> {
+  return post<{ horoscope: Horoscope; reading?: HoroscopeReading }>("/api/v1/horoscope", { ...birth, target });
 }
 
 // ── 合盘与名人 ────────────────────────────────────────

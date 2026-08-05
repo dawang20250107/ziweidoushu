@@ -26,13 +26,19 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 	}
 
 	timeIndex := b.Hour
+	sYear, sMonth, sDay := b.Year, b.Month, b.Day
 	var solarTimeNote string
 	if opt.TrueSolarTime && b.Longitude != 0 {
-		timeIndex, solarTimeNote = AdjustHourByLongitude(b.Year, b.Month, b.Day, b.Hour, b.Longitude)
+		var dayDelta int
+		timeIndex, dayDelta, solarTimeNote = AdjustHourByLongitude(b.Year, b.Month, b.Day, b.Hour, b.Longitude, b.BaseMeridian)
+		if dayDelta != 0 { // 真太阳时跨子/午日界:公历日期同步进退,农历日/日柱/据日安星随之改动
+			t := time.Date(b.Year, time.Month(b.Month), b.Day+dayDelta, 12, 0, 0, 0, time.UTC)
+			sYear, sMonth, sDay = t.Year(), int(t.Month()), t.Day()
+		}
 		_ = solarTimeNote
 	}
 
-	snap := takeCalendar(b.Year, b.Month, b.Day, timeIndex)
+	snap := takeCalendar(sYear, sMonth, sDay, timeIndex)
 
 	// ── 月支索引(寅=0)与命身宫 ──────────────────────────────
 	// 闰月过半折算下月;晚子时(timeIndex=12)不折算。
@@ -150,6 +156,9 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 		})
 	}
 
+	// 年支系补充杂曜(大耗/龙德/劫煞)——独立字段,不动 iztro 对齐的 Stars
+	placeExtraStars(palaces, snap.YearBranch)
+
 	refYear := opt.ReferenceYear
 	if refYear == 0 {
 		refYear = time.Now().Year()
@@ -187,7 +196,14 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 		CurrentAge:         currentAge,
 		CurrentDaXianIndex: currentDX,
 	}
-	chart.SiZhu = buildSiZhu(chart.FourPillars) // 四柱视角(八字同源附加层)
+	// 四柱视角:子平节气口径(年起立春、月起节、晚子归次日),与紫微盘面四柱
+	// (初一分界)独立——月令取格与大运顺逆均须按节气才符《子平真诠》。
+	// 日期用真太阳时校正后的 sYear/sMonth/sDay(跨日进退随之生效)。
+	chart.SiZhu = buildSiZhu(takeSiZhuPillars(sYear, sMonth, sDay, timeIndex))
+	if chart.SiZhu != nil {
+		chart.SiZhu.Note = siZhuCaliberNote
+		chart.SiZhu.DaYun = buildDaYun(b.Gender, sYear, sMonth, sDay, timeIndex, refYear)
+	}
 	return chart, nil
 }
 
@@ -250,6 +266,14 @@ func ziweiTianfuIndex(snap calendarSnapshot, timeIndex, ju int) (int, int) {
 		day -= maxDays
 	}
 
+	ziwei := ziweiPalaceByJuDay(ju, day)
+	return ziwei, fix12(12 - ziwei)
+}
+
+// ziweiPalaceByJuDay 紫微定局:由五行局(ju=2水二…6火六)与农历日推紫微所在
+// 宫位索引(寅=0)。这是安星链的地基(局+日 → 紫微),其上再由
+// placeMajorStars 布其余十三主星。
+func ziweiPalaceByJuDay(ju, day int) int {
 	offset := -1
 	quotient := 0
 	remainder := -1
@@ -266,8 +290,7 @@ func ziweiTianfuIndex(snap calendarSnapshot, timeIndex, ju int) (int, int) {
 	} else {
 		ziwei -= offset
 	}
-	ziwei = fix12(ziwei)
-	return ziwei, fix12(12 - ziwei)
+	return fix12(ziwei)
 }
 
 // xiaoxianStartIndex 小限起宫(宫位索引):

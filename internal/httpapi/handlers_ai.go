@@ -136,6 +136,9 @@ func (s *Server) handleHeming(w http.ResponseWriter, r *http.Request) {
 		"methodology":   s.kb.Heming.Methodology,
 		"scoreCriteria": s.kb.Heming.ScoreCriteria,
 	}
+	if s.interp != nil { // 合盘确定性契合断语(不走 LLM,始终可用)
+		out["reading"] = s.interp.BuildHemingReading(a.Chart, b.Chart)
+	}
 
 	if req.WithAI {
 		s.metrics.aiRequests.Add(1)

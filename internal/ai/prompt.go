@@ -9,16 +9,25 @@ import (
 	"github.com/dawang20250107/ziweidoushu/internal/ziwei"
 )
 
-// systemPrompt 倪海厦体系解读人设。
-const systemPrompt = `你是一位深研倪海厦《天纪》体系的紫微斗数命理分析师。
+// systemPrompt 倪海厦体系解读人设:阅盘千张的长者,娓娓道来。
+const systemPrompt = `你是一位深研倪海厦《天纪》体系的紫微斗数解读者——如一位看过千盘的长者,
+语气从容笃定,像当面对坐、沏茶慢谈,娓娓道来;有话直说,但说得温厚。
 
 解读原则:
 1. 以倪师三合派为宗:命宫为本、三方四正为用;生年四化永远固定,不用飞星派的宫干自化与大限四化。
 2. 判断吉凶必看庙旺利陷与煞星会照,空宫借对宫主星论。
-3. 引用古籍(《骨髓赋》《紫微斗数全集》《紫微斗数全书》)或倪师原话时注明出处。
-4. 语言平实笃定、不故弄玄虚;给出可操作的建议(倪师:人事努力+地理调整 > 先天命运)。
+3. 引用古籍(《骨髓赋》《紫微斗数全集》《紫微斗数全书》)或倪师原话须注明出处,且引文单独成 > 引用块。
+4. 语言平实笃定、不故弄玄虚;结论落到可行之事(倪师:人事努力+地理调整 > 先天命运)。
 5. 不做疾病诊断与投资保证;涉及健康建议就医,涉及重大决策提示自行判断。
-6. 输出用简体中文 Markdown,结构清晰。`
+
+行文与排版(务必遵守):
+- 以连贯短段落叙述为主,一段三四句、说透一层意思;不满篇列表,唯并列的宜忌清单可用 -。
+- 用 ### 小标题分节,标题三到六字(如「命之根基」「财从何来」「行运之节」),全篇三到五节。
+- 每节先下判断、再讲缘由、后给做法;关键结论以 **加粗** 点睛,一节至多一两处。
+- 术语随手用白话点破(如「化忌——即此处易有牵绊执念」),不堆术语。
+- 忌 AI 腔:不用「首先/其次/综上所述」,不用表情符号,不复述提问,不写客套结尾。
+- 篇末以「### 叮嘱」收束:两三句长者式嘱咐,落到本月内可做的一两件实事。
+- 输出为简体中文 Markdown。`
 
 // BuildInterpretPrompt 由命盘 + 格局 + 知识库 + 古籍引文构建解读请求。
 func BuildInterpretPrompt(
@@ -32,6 +41,17 @@ func BuildInterpretPrompt(
 	var sb strings.Builder
 	sb.WriteString("## 命盘数据\n\n")
 	sb.WriteString(ChartSummary(chart))
+
+	// 结构化断语骨架:逐宫「主星×庙旺×四化×煞吉」的确定性判定,供 LLM 贴盘发挥,
+	// 避免脱离本盘写通用套话(这是不同命盘断语雷同的根因)。
+	if rd := buildReading(chart, patterns); rd != nil {
+		sb.WriteString("\n## 逐宫判定骨架(须据此贴盘,不得写通用套话)\n\n")
+		sb.WriteString("命格总论:" + rd.Overview + "\n")
+		for _, s := range rd.Sections {
+			sb.WriteString(fmt.Sprintf("- 【%s·%s】%s星曜[%s]:%s\n",
+				s.Title, s.Palace, levelWord(s.Level), strings.Join(s.Stars, " "), s.Text))
+		}
+	}
 
 	if len(patterns) > 0 {
 		sb.WriteString("\n## 已识别格局\n\n")
@@ -85,6 +105,12 @@ func BuildInterpretPrompt(
 		}
 	}
 
+	// 择时参考:该主题的宜忌年月(确定性推算,供 LLM 给出具体择时建议)。
+	if brief := TimingBriefForTopic(chart, topic); brief != "" {
+		sb.WriteString("\n## 择时参考(据本盘确定性推算,须结合命格给出宜忌年月)\n\n")
+		sb.WriteString(brief)
+	}
+
 	// 解读主题
 	sb.WriteString("\n## 解读要求\n\n")
 	if label, ok := topicLabel(kb, topic); ok {
@@ -121,6 +147,29 @@ func ChartSummary(c *ziwei.Chart) string {
 	if c.SiZhu != nil && c.SiZhu.GeJu != nil {
 		sb.WriteString(fmt.Sprintf("- 四柱视角:日主%s%s,月令%s(%s;%s)\n",
 			c.SiZhu.DayMaster, c.SiZhu.DayMasterElement, c.SiZhu.GeJu.Name, c.SiZhu.GeJu.Basis, c.SiZhu.GeJu.Source))
+	}
+	if c.SiZhu != nil && len(c.SiZhu.ShenSha) > 0 {
+		parts := make([]string, 0, len(c.SiZhu.ShenSha))
+		for _, s := range c.SiZhu.ShenSha {
+			parts = append(parts, fmt.Sprintf("%s(%s)", s.Name, strings.Join(s.Pillars, "")))
+		}
+		sb.WriteString("- 四柱神煞:" + strings.Join(parts, "、") + "(参照维度,轻重以格局旺衰为主)\n")
+	}
+	if c.SiZhu != nil && c.SiZhu.DaYun != nil {
+		dy := c.SiZhu.DaYun
+		for _, d := range dy.List {
+			if d.IsCurrent {
+				sb.WriteString(fmt.Sprintf("- 当前大运:%s(%s,%d 岁起,%s局)\n",
+					d.GanZhi, d.StemShiShen, d.StartAge, d.NaYin))
+				break
+			}
+		}
+		for _, l := range dy.CurrentLiuNian {
+			if l.IsCurrent {
+				sb.WriteString(fmt.Sprintf("- 流年:%s(%s)\n", l.GanZhi, l.StemShiShen))
+				break
+			}
+		}
 	}
 	sb.WriteString(fmt.Sprintf("- 命宫:%s宫|身宫:%s宫\n", ziwei.Branches[c.MingGongBranch], ziwei.Branches[c.ShenGongBranch]))
 	if c.CurrentDaXianIndex >= 0 && c.CurrentDaXianIndex < len(c.DaXians) {
