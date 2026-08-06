@@ -11,8 +11,8 @@ import { JudgeSections } from "@/components/divination/JudgeSections";
 import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
 const KE_NAMES = ["一课", "二课", "三课", "四课"];
-// 起课仪式总时长(月将加时→天将布位→课成)
-const CAST_ANIM_MS = 3200;
+// 起课仪式总时长(月将加时→天将布位→四课三传→课成)
+const CAST_ANIM_MS = 3600;
 const CHUAN_NAMES = ["初传", "中传", "末传"];
 const LEVEL_CLS: Record<string, string> = {
   good: "text-ok shadow-[inset_0_0_0_1px_var(--ok)]",

@@ -47,7 +47,7 @@ type AiErr =
 
 const MAX_Q = 200;
 // 起卦动效总时长封顶(六爻六位落定稍长)
-const CAST_ANIM_MS: Record<Kind, number> = { meihua: 2600, liuyao: 2800 };
+const CAST_ANIM_MS: Record<Kind, number> = { meihua: 3400, liuyao: 2800 };
 
 const KIND_META: Record<Kind, { eyebrow: string; title: string; sub: string; cta: string; casting: string; aiHint: string }> = {
   meihua: {
