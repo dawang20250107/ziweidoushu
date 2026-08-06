@@ -68,7 +68,57 @@ async function post<T>(path: string, payload: unknown, access?: string): Promise
   return body.data as T;
 }
 
-// ── 登录流程 ──────────────────────────────────────────
+// ── 登录流程(内测:邮箱验证码注册 + 密码登录 + 邀请码)──
+
+export type EmailCodePurpose = "register" | "reset" | "login";
+
+/** 发送邮箱验证码(注册/找回/新设备登录升级)。 */
+export async function sendEmailCode(email: string, purpose: EmailCodePurpose): Promise<{ devCode?: string }> {
+  return post("/api/v1/auth/email/send-code", { email, purpose });
+}
+
+/** 邮箱注册:验证码 + 自设密码 + 邀请码(内测闸门)。 */
+export async function registerEmail(input: {
+  email: string;
+  code: string;
+  password: string;
+  invite?: string;
+}): Promise<AuthUser> {
+  const data = await post<{ tokens: TokenPair; user: AuthUser }>("/api/v1/auth/email/register", input);
+  saveSession(data.tokens, data.user);
+  return data.user;
+}
+
+/** 邮箱密码登录;strict 模式陌生设备返回 needVerify(引导验证码分支后带 code 重试)。 */
+export async function loginEmail(input: {
+  email: string;
+  password: string;
+  code?: string;
+}): Promise<{ user?: AuthUser; needVerify?: boolean }> {
+  const data = await post<{ tokens?: TokenPair; user?: AuthUser; needVerify?: boolean }>(
+    "/api/v1/auth/email/login",
+    input,
+  );
+  if (data.needVerify) return { needVerify: true };
+  if (data.tokens && data.user) {
+    saveSession(data.tokens, data.user);
+    return { user: data.user };
+  }
+  throw new Error("登录响应异常");
+}
+
+/** 忘记密码:邮箱验证码 + 新密码(成功后全端下线,需重新登录)。 */
+export async function resetPassword(input: { email: string; code: string; newPassword: string }): Promise<void> {
+  await post("/api/v1/auth/password/reset", input);
+  clearSession();
+}
+
+/** 登录态改密(其余端下线)。 */
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  const access = await ensureAccess();
+  if (!access) throw new Error("请先登录");
+  await post("/api/v1/auth/password/change", { oldPassword, newPassword }, access);
+}
 
 export async function sendCode(phone: string): Promise<{ devCode?: string }> {
   return post("/api/v1/auth/sms/send", { phone });

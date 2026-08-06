@@ -43,6 +43,16 @@ type Config struct {
 	JWTPrevSecret string
 	// SMSDevEchoCode dev 短信通道下把验证码回显到接口(仅本地/E2E,生产禁开)。
 	SMSDevEchoCode bool
+	// SMTP 邮件通道(邮箱验证码):Host 为空则走 dev 通道(验证码写日志)。
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	SMTPFrom     string
+	// InviteRequired 内测闸门:注册须携带有效邀请码(默认开;公测置 0 关闭)。
+	InviteRequired bool
+	// DeviceStrict 环境检测:陌生设备密码登录须邮箱验证码升级(默认关)。
+	DeviceStrict bool
 	// PayDevEnabled dev 支付渠道开关(模拟支付回调即时履约;仅本地/E2E,生产禁开)。
 	PayDevEnabled bool
 
@@ -65,6 +75,13 @@ func FromEnv() Config {
 		JWTSecret:         os.Getenv("JWT_SECRET"),
 		JWTPrevSecret:     os.Getenv("JWT_SECRET_PREV"),
 		SMSDevEchoCode:    os.Getenv("SMS_DEV_ECHO_CODE") == "1",
+		SMTPHost:          os.Getenv("SMTP_HOST"),
+		SMTPPort:          envInt("SMTP_PORT", 465),
+		SMTPUsername:      os.Getenv("SMTP_USERNAME"),
+		SMTPPassword:      os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:          envOr("SMTP_FROM", os.Getenv("SMTP_USERNAME")),
+		InviteRequired:    envOr("AUTH_INVITE_REQUIRED", "1") == "1",
+		DeviceStrict:      os.Getenv("AUTH_DEVICE_STRICT") == "1",
 		PayDevEnabled:     os.Getenv("PAY_DEV_ENABLED") == "1",
 		AI:                ai.ConfigFromEnv(),
 	}

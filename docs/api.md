@@ -191,6 +191,44 @@ curl -N localhost:8080/api/v1/ai/interpret -d '{
 
 ## 用户体系(需配置 DATABASE_URL + JWT_SECRET,否则统一 503)
 
+**内测主通道为邮箱**:注册(邮箱验证码+自设密码+邀请码)→ 平时密码登录 →
+忘记走邮箱验证码重置。`AUTH_INVITE_REQUIRED=1`(默认)开启邀请码闸门;
+`AUTH_DEVICE_STRICT=1` 时陌生设备密码登录须邮箱验证码升级(环境检测,
+设备底账 login_devices)。邮件通道:配置 `SMTP_HOST/PORT/USERNAME/PASSWORD/FROM`
+即真发(465 隐式 TLS / 587 STARTTLS),未配置走 dev 通道(验证码写日志,
+`SMS_DEV_ECHO_CODE=1` 时回显)。手机号短信通道保留,公测接云厂商后并存。
+
+### POST /api/v1/auth/email/send-code
+
+`{email, purpose: "register"|"reset"|"login"}` → `{sent: true, devCode?}`。
+频控与短信同刻度(60s/次、1h≤5、24h≤10、同 IP 24h≤20)。register 用途
+且邮箱已注册时 400 `email_taken`。
+
+### POST /api/v1/auth/email/register
+
+`{email, code, password, invite?}` → `{tokens, user, created: true}`。
+密码 8-72 位须含字母与数字(bcrypt 存储);邀请码闸门开启时 invite 必填,
+无效/用尽/过期 400 `invite_invalid`;验证码错误 400 `code_invalid`。
+
+### POST /api/v1/auth/email/login
+
+`{email, password, code?}` → `{tokens, user}`;凭证错误统一 401
+`login_failed`(防枚举,恒时比对)。strict 模式陌生设备且密码正确时返回
+200 `{needVerify: true}`,客户端发 login 用途验证码后带 `code` 重试。
+
+### POST /api/v1/auth/password/reset
+
+`{email, code, newPassword}` → `{reset: true}`;成功后全端下线。
+
+### POST /api/v1/auth/password/change(需鉴权)
+
+`{oldPassword, newPassword}` → `{changed: true}`;其余端下线。
+
+### POST /api/v1/admin/invites(Bearer ADMIN_TOKEN)
+
+`{count: 1-200, maxUses: 1-10000, note?, expiresInDays?}` → `{codes: ["ZW-XXXXXXXX", ...]}`。
+内测运营铸码;`used_count/invite_uses` 落库可审计。
+
 ### POST /api/v1/auth/sms/send
 
 `{phone}` → `{sent: true}`。频控:同号 60s/次、1h≤5、24h≤10;同 IP 24h≤20。

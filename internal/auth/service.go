@@ -33,17 +33,22 @@ type Config struct {
 	JWTPrevSecret string
 	AccessTTL     time.Duration // 默认 30 分钟
 	RefreshTTL    time.Duration // 默认 30 天
-	CodeTTL       time.Duration // 验证码有效期,默认 5 分钟
+	CodeTTL       time.Duration // 验证码有效期,默认 5 分钟(邮箱码 10 分钟另有下限)
 	DevEchoCode   bool          // dev 通道下把验证码回显到接口(仅本地/E2E)
+	// InviteRequired 内测闸门:邮箱注册须携带有效邀请码。
+	InviteRequired bool
+	// DeviceStrict 环境检测:陌生设备密码登录须邮箱验证码升级。
+	DeviceStrict bool
 }
 
 // Service 鉴权服务。
 type Service struct {
-	st  *store.Store
-	jwt *JWT
-	sms SMSProvider
-	cfg Config
-	log *slog.Logger
+	st    *store.Store
+	jwt   *JWT
+	sms   SMSProvider
+	email EmailProvider
+	cfg   Config
+	log   *slog.Logger
 
 	// 会话版本进程内缓存(10s TTL):吊销延迟上限 10s,DB 压力可忽略
 	svMu    sync.Mutex
@@ -55,8 +60,8 @@ type svEntry struct {
 	expires time.Time
 }
 
-// NewService 构建鉴权服务。
-func NewService(st *store.Store, sms SMSProvider, cfg Config, log *slog.Logger) (*Service, error) {
+// NewService 构建鉴权服务(email 为 nil 时用 Dev 通道,验证码写日志)。
+func NewService(st *store.Store, sms SMSProvider, email EmailProvider, cfg Config, log *slog.Logger) (*Service, error) {
 	if cfg.AccessTTL == 0 {
 		cfg.AccessTTL = 30 * time.Minute
 	}
@@ -70,7 +75,10 @@ func NewService(st *store.Store, sms SMSProvider, cfg Config, log *slog.Logger) 
 	if err != nil {
 		return nil, err
 	}
-	return &Service{st: st, jwt: j, sms: sms, cfg: cfg, log: log, svCache: map[string]svEntry{}}, nil
+	if email == nil {
+		email = &DevEmail{Logger: log}
+	}
+	return &Service{st: st, jwt: j, sms: sms, email: email, cfg: cfg, log: log, svCache: map[string]svEntry{}}, nil
 }
 
 // 频控参数(docs/architecture/auth.md)

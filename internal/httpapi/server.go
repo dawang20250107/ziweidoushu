@@ -108,6 +108,13 @@ func New(cfg config.Config, logger *slog.Logger, corpusStore *corpus.Store, kb *
 	// 用户体系(未配置 DATABASE_URL/JWT_SECRET 时统一 503)
 	mux.HandleFunc("POST /api/v1/auth/sms/send", s.handleSMSSend)
 	mux.HandleFunc("POST /api/v1/auth/sms/verify", s.handleSMSVerify)
+	// 内测主通道:邮箱验证码注册 + 密码登录 + 找回/改密 + 邀请码铸造
+	mux.HandleFunc("POST /api/v1/auth/email/send-code", s.handleEmailSendCode)
+	mux.HandleFunc("POST /api/v1/auth/email/register", s.handleEmailRegister)
+	mux.HandleFunc("POST /api/v1/auth/email/login", s.handleEmailLogin)
+	mux.HandleFunc("POST /api/v1/auth/password/reset", s.handlePasswordReset)
+	mux.HandleFunc("POST /api/v1/auth/password/change", s.requireAuth(s.handlePasswordChange))
+	mux.HandleFunc("POST /api/v1/admin/invites", s.handleAdminInvites)
 	mux.HandleFunc("POST /api/v1/auth/refresh", s.handleRefresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.requireAuth(s.handleLogout))
 	mux.HandleFunc("GET /api/v1/me", s.requireAuth(s.handleMe))
