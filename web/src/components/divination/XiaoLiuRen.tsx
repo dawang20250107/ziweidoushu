@@ -12,6 +12,7 @@ import { JudgeSections } from "./JudgeSections";
  */
 export function XiaoLiuRen() {
   const [loading, setLoading] = useState(false);
+  const [question, setQuestion] = useState(""); // 所问之事:字数入数(第四跳),事各异落宫各异
   const [result, setResult] = useState<XiaoLiuRenResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [nonce, setNonce] = useState(0); // 每次起算换 key,重放点亮动效
@@ -21,7 +22,8 @@ export function XiaoLiuRen() {
     setLoading(true);
     setError(null);
     try {
-      const { result: r } = await castXiaoLiuRen();
+      const q = question.trim();
+      const { result: r } = await castXiaoLiuRen(q ? { question: q } : undefined);
       setResult(r);
       setNonce((n) => n + 1);
     } catch (e) {
@@ -29,7 +31,7 @@ export function XiaoLiuRen() {
     } finally {
       setLoading(false);
     }
-  }, [loading]);
+  }, [loading, question]);
 
   return (
     <section className="mt-14 rounded-[10px] bg-bg-raised px-5 py-8 shadow-[0_0_0_1px_var(--line)] md:px-8">
@@ -44,19 +46,28 @@ export function XiaoLiuRen() {
         }
       `}</style>
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-[12px] font-medium tracking-[0.24em] text-gold">小六壬 · 急事速占</p>
-          <h2 className="mt-2 font-display text-[25px] font-semibold text-ink">掐指一算</h2>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-secondary">
-            急事当下起算,掐指三步定吉凶缓急。免费,可反复。
-          </p>
-        </div>
+      <div>
+        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">小六壬 · 急事速占</p>
+        <h2 className="mt-2 font-display text-[25px] font-semibold text-ink">掐指一算</h2>
+        <p className="mt-2 text-[14px] leading-relaxed text-ink-secondary">
+          急事当下起算:月→日→时掐指三步;写下所问之事,再以字数入一数——同刻问事各异,落宫自不同。免费,可反复。
+        </p>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value.slice(0, 30))}
+          maxLength={30}
+          placeholder="所问之事(可选):如「下午的面试可顺利」"
+          aria-label="所问之事"
+          className="min-h-[44px] flex-1 rounded-[6px] bg-bg px-4 py-2.5 text-[15px] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+        />
         <button
           type="button"
           onClick={run}
           disabled={loading}
-          className="inline-flex min-h-[44px] shrink-0 items-center rounded-[6px] bg-bg-raised px-5 py-2.5 text-[15px] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--gold)] disabled:opacity-50"
+          className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-[6px] bg-bg-raised px-5 py-2.5 text-[15px] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--gold)] disabled:opacity-50"
         >
           {loading ? "掐指中…" : result ? "再算一次" : "急事速占"}
         </button>
@@ -70,12 +81,15 @@ export function XiaoLiuRen() {
 
       {result && (
         <div className="mt-7 flex flex-col gap-6" key={nonce}>
-          <p className="tnum text-[12px] tracking-[0.06em] text-ink-faint">起算 · {result.lunarText}</p>
+          <p className="tnum text-[12px] tracking-[0.06em] text-ink-faint">
+            起算 · {result.lunarText}
+            {result.qNum ? ` · 问数 ${result.qNum}(「${result.question}」${result.qNum} 字入课)` : " · 正时课"}
+          </p>
 
-          {/* 掌诀六宫环:金线自大安起沿环游走,月/日/时三落宫依次点亮,终宫金芒 */}
+          {/* 掌诀六宫环:金线自大安起沿环游走,月/日/时(有问再加问数)落宫依次点亮,终宫金芒 */}
           <PalmRing path={result.steps} />
 
-          {/* 掐指三步:依次点亮 */}
+          {/* 掐指逐步:依次点亮(月/日/时,有问再加问数) */}
           <div className="flex items-stretch gap-2">
             {result.path.map((pos, i) => {
               const tone = luckTone(pos.luck);
@@ -88,6 +102,9 @@ export function XiaoLiuRen() {
                     }`}
                     style={{ animationDelay: `${i * 0.28}s` }}
                   >
+                    <span className="text-[10px] tracking-[0.2em] text-ink-faint">
+                      {["月", "日", "时", "问"][i] ?? ""}
+                    </span>
                     <span className={`font-display text-[18px] font-semibold ${last ? "text-gold" : "text-ink"}`}>
                       {pos.name}
                     </span>

@@ -98,7 +98,8 @@ export interface LiuRenPos {
 export interface XiaoLiuRenResult {
   question?: string;
   lunarText: string; // 「正月初一子时」
-  steps: string[]; // 月/日/时三步落位名 ×3
+  steps: string[]; // 逐步落位名:月/日/时,有问辞再加问数一步
+  qNum?: number; // 问数(问辞字数,第四跳步数;缺省=无问辞正时课)
   result: LiuRenPos;
   path: LiuRenPos[]; // 三步完整落位 ×3
   sections?: JudgeSection[]; // 分节深断(掐指路径/落宫详断/途中之象)
