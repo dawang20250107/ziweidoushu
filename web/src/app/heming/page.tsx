@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchHeming, ApiError } from "@/lib/api";
 import type { HemingResponse, HemingSide } from "@/lib/types";
 import { ChartBoard } from "@/components/chart/ChartBoard";
 import { Markdown } from "@/components/chat/Markdown";
 import { BirthFields, toBirthInfo, type BirthValue } from "@/components/heming/BirthFields";
 import { HemingReadingPanel } from "@/components/heming/HemingReadingPanel";
+import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
 const DEFAULT_A: BirthValue = { name: "", date: "1990-06-15", hour: 6, gender: "female" };
 const DEFAULT_B: BirthValue = { name: "", date: "1988-03-02", hour: 7, gender: "male" };
@@ -22,6 +23,21 @@ export default function HemingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showMethod, setShowMethod] = useState(false);
+  // 农历换算中/失败(任一方):禁提交,防竞态提交旧公历值
+  const [pendA, setPendA] = useState(false);
+  const [pendB, setPendB] = useState(false);
+  // 收束镜头交接(与排盘/占卜同套):光圈聚拢结果区 + 滚入视口
+  const [cue, setCue] = useState(0);
+  const [spot, setSpot] = useState(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (cue === 0) return;
+    resultRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+  }, [cue]);
 
   async function run() {
     const ba = toBirthInfo(a);
@@ -34,6 +50,11 @@ export default function HemingPage() {
     setError("");
     try {
       setResult(await fetchHeming(ba, bb));
+      setCue((c) => c + 1);
+      if (!prefersReducedMotion()) {
+        setSpot(true);
+        setTimeout(() => setSpot(false), 1100);
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "合盘失败,请稍后重试");
     } finally {
@@ -51,8 +72,8 @@ export default function HemingPage() {
       </p>
 
       <div className="mt-10 flex flex-col gap-5 md:flex-row">
-        <BirthFields title="甲方" value={a} onChange={setA} />
-        <BirthFields title="乙方" value={b} onChange={setB} />
+        <BirthFields title="甲方" value={a} onChange={setA} onPendingChange={setPendA} />
+        <BirthFields title="乙方" value={b} onChange={setB} onPendingChange={setPendB} />
       </div>
 
       {error && (
@@ -64,14 +85,16 @@ export default function HemingPage() {
       <button
         type="button"
         onClick={run}
-        disabled={loading}
+        disabled={loading || pendA || pendB}
         className="glow-gold mt-6 inline-flex min-h-[44px] items-center rounded-[6px] bg-gold px-8 py-3 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50 disabled:shadow-none"
       >
-        {loading ? "合盘中…" : "开始合盘"}
+        {loading ? "合盘中…" : pendA || pendB ? "换算中…" : "开始合盘"}
       </button>
 
+      {spot && <div className="cast-spot" aria-hidden />}
+
       {result && (
-        <div className="mt-12 flex flex-col gap-8 md:mt-16">
+        <div ref={resultRef} className="mt-12 flex flex-col gap-8 scroll-mt-24 md:mt-16">
           {/* 合盘契合度(确定性,比对双盘);结果区各块与全站同套滚动聚焦节奏 */}
           <div className="reveal">
             <HemingReadingPanel reading={result.reading} />

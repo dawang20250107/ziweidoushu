@@ -264,21 +264,19 @@ func (s *Server) handleXiaoLiuRen(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
 		return
 	}
-	at := time.Now()
-	if req.CastAt > 0 {
-		at = time.Unix(req.CastAt, 0)
-		if at.After(time.Now().Add(time.Minute)) || time.Since(at) > 24*time.Hour {
-			writeError(w, http.StatusBadRequest, "cast_failed", "起算时刻须在近 24 小时内")
-			return
-		}
+	at, err := castTime(req.CastAt)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_cast_time", err.Error())
+		return
 	}
 	result, err := meihua.XiaoLiuRen(at, req.Question)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
 		return
 	}
+	// 归档锚定起算时刻(与课象同源)
 	recordID := s.saveDivinationRecord(r, "xiaoliuren", req.Question,
-		result.Result.Name+" · "+result.Result.Luck, result, time.Now())
+		result.Result.Name+" · "+result.Result.Luck, result, at)
 	resp := map[string]any{"result": result}
 	if recordID != "" {
 		resp["recordId"] = recordID

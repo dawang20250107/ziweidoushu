@@ -35,11 +35,13 @@ export function fromBirthRequest(b: BirthRequest): BirthValue {
 
 /** 合盘一方的生辰输入卡(无提交按钮,受控;登录后可从档案一键填入)。 */
 export function BirthFields({
-  title, value, onChange,
+  title, value, onChange, onPendingChange,
 }: {
   title: string;
   value: BirthValue;
   onChange: (v: BirthValue) => void;
+  /** 农历换算进行中/失败:父级禁提交,防竞态提交旧值 */
+  onPendingChange?: (pending: boolean) => void;
 }) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
 
@@ -117,7 +119,11 @@ export function BirthFields({
         <div className="col-span-2">
           {/* 公历/农历双模式(共享组件):农历选择即换算回写公历;
               档案填入整体改值时自动退回公历显示 */}
-          <CalendarDateField value={value.date} onChange={(date) => onChange({ ...value, date })} />
+          <CalendarDateField
+            value={value.date}
+            onChange={(date) => onChange({ ...value, date })}
+            onPendingChange={onPendingChange}
+          />
         </div>
         <div className="col-span-2 flex flex-col gap-1">
           <span className="text-[12px] text-ink-faint">性别</span>
