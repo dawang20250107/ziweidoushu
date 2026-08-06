@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import { castXiaoLiuRen, luckTone, DivinationError, type XiaoLiuRenResult } from "@/lib/divination";
 import { toneBadgeClass, toneTextClass } from "./tone";
+import { JudgeSections } from "./JudgeSections";
 
 /**
  * 小六壬快占(独立轻区块):一键掐指起算,三步路径依次点亮 + 结果断语。
@@ -114,6 +115,8 @@ export function XiaoLiuRen() {
               </span>
             </div>
             <p className="text-[14px] leading-relaxed text-ink-secondary">{result.result.meaning}</p>
+            {/* 分节深断:掐指路径/落宫详断/途中之象(免费确定性层) */}
+            <JudgeSections sections={result.sections} />
           </div>
         </div>
       )}

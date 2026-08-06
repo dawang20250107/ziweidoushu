@@ -19,6 +19,8 @@ type Judgment struct {
 	KeTypeText string   `json:"keTypeText"` // 课体含义
 	SanChuan   []string `json:"sanChuan"`   // 三传逐传解
 	Points     []string `json:"points"`     // 逐条断语
+	// Sections 分节深断(课体详解/三传始末/天将所临/应期推算),免费层呈现纵深。
+	Sections []JudgeSection `json:"sections,omitempty"`
 }
 
 // stemElement 天干五行(木0火1土2金3水4)。
@@ -169,6 +171,7 @@ func (r *Result) Judge() *Judgment {
 	default:
 		j.Conclusion = "综断:吉凶相参、课体平常,事在人为,宜审时度势、择机而动。"
 	}
+	r.buildSections(j)
 	return j
 }
 

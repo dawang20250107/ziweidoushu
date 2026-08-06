@@ -26,6 +26,7 @@ import { LiuYaoCast } from "@/components/divination/LiuYaoCast";
 import { StepShake } from "@/components/divination/StepShake";
 import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
 import { toneBadgeClass } from "@/components/divination/tone";
+import { JudgeSections } from "@/components/divination/JudgeSections";
 import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
 type Kind = "meihua" | "liuyao";
@@ -897,6 +898,8 @@ function JudgeCard({ j }: { j: MeihuaJudgment }) {
       <p className="mt-4 rounded-[6px] bg-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
         {j.yingQi}
       </p>
+      {/* 分节深断:卦象总论/体用之辨/过程与结局/类象取应/应期(免费确定性层) */}
+      <JudgeSections sections={j.sections} />
     </div>
   );
 }
@@ -957,6 +960,8 @@ function LiuYaoJudgeCard({ j, xingZhi }: { j: LiuYaoJudgment; xingZhi?: string }
           应期:{j.yingQi}
         </p>
       )}
+      {/* 分节深断:取用/旺衰/元忌/动变/世应/逐爻/应期(免费确定性层) */}
+      <JudgeSections sections={j.sections} />
     </div>
   );
 }

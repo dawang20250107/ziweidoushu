@@ -7,6 +7,7 @@ import { ReportText } from "@/components/profiles/ReportText";
 import { XiaoLiuRen } from "@/components/divination/XiaoLiuRen";
 import { LiurenPan } from "@/components/divination/LiurenPan";
 import { LiurenCast } from "@/components/divination/LiurenCast";
+import { JudgeSections } from "@/components/divination/JudgeSections";
 import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
 const KE_NAMES = ["一课", "二课", "三课", "四课"];
@@ -303,6 +304,8 @@ export default function LiuRenPage() {
                   </li>
                 ))}
               </ul>
+              {/* 分节深断:课体详解/三传始末/天将所临/应期推算(免费确定性层) */}
+              <JudgeSections sections={r.judgment.sections} />
             </div>
           )}
 

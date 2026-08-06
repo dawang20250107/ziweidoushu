@@ -35,6 +35,13 @@ export interface Hexagram {
 export type Relation = "用生体" | "比和" | "体克用" | "体生用" | "用克体";
 
 /** 一次梅花起卦的完整卦象。 */
+/** 断语分节(四线通用:免费确定性层的呈现单元)。 */
+export interface JudgeSection {
+  key: string;
+  title: string;
+  text: string;
+}
+
 export interface MeihuaJudgment {
   level: "good" | "neutral" | "caution";
   score: number;
@@ -44,6 +51,7 @@ export interface MeihuaJudgment {
   topic: string;
   topicNote?: string;
   yingQi: string;
+  sections?: JudgeSection[]; // 分节深断(卦象总论/体用之辨/过程与结局/类象取应/应期)
 }
 
 export interface MeihuaRoleLore {
@@ -91,6 +99,7 @@ export interface XiaoLiuRenResult {
   steps: string[]; // 月/日/时三步落位名 ×3
   result: LiuRenPos;
   path: LiuRenPos[]; // 三步完整落位 ×3
+  sections?: JudgeSection[]; // 分节深断(掐指路径/落宫详断/途中之象)
 }
 
 // ── 六爻纳甲(与 Go 后端 liuyao 包逐字段对应)──────────
@@ -125,6 +134,7 @@ export interface LiuYaoJudgment {
   yongShen: string; // 用神状态摘要
   yingQi: string; // 应期提示(含具体地支)
   points: string[];
+  sections?: JudgeSection[]; // 分节深断(取用/旺衰/元忌/动变/世应/逐爻/应期)
 }
 
 /** 用神不上卦时之伏神(本宫首卦纳甲取)。 */
@@ -299,6 +309,7 @@ export interface DaLiuRenJudgment {
   keTypeText: string;
   sanChuan: string[];
   points: string[];
+  sections?: JudgeSection[]; // 分节深断(课体详解/三传始末/天将所临/应期推算)
 }
 
 export interface DaLiuRenResult {
