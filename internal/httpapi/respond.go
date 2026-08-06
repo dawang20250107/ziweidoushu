@@ -29,8 +29,13 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 	_ = json.NewEncoder(w).Encode(envelope{OK: false, Error: &apiError{Code: code, Message: message}})
 }
 
+// maxBodyBytes 请求体上限:所有 JSON 端点的正常载荷远小于 1MB(最大是
+// 问星对话的多轮历史),超限直接 4xx,防止超大请求体拖垮解码与内存。
+const maxBodyBytes = 1 << 20
+
 // decodeJSON 解析请求体,出错时直接写响应并返回 false。
 func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {

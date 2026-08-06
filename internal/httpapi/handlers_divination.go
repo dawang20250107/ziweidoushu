@@ -286,6 +286,24 @@ func (s *Server) handleXiaoLiuRen(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
+// validateDivineReq 同一卦契约:解卦是对「用户所见之卦」的付费解读,必须
+// 可复现。castAt 缺省会落到当下时刻——时辰一换卦象/旺衰即变,故一律必传;
+// 六爻无六掷记录、六壬报数课不回传报数,服务端只能重摇出另一卦,同样拒绝。
+// 返回空 code 表示通过。
+func validateDivineReq(req divinationRequest) (code, msg string) {
+	if req.CastAt <= 0 {
+		return "bad_cast_time", "解卦须回传起卦返回的 castAt,以复现同一卦"
+	}
+	if req.Kind == "liuyao" && len(req.Tosses) != 6 {
+		return "bad_tosses", "解卦须回传起卦时的六掷记录(tosses)"
+	}
+	// 代摇(baoShu<=0)只属首次起课端点
+	if req.Kind == "daliuren" && req.BaoShu != nil && *req.BaoShu <= 0 {
+		return "bad_baoshu", "解课须回传起课时的报数(baoShu>0),不可代摇"
+	}
+	return "", ""
+}
+
 // handleDivineAI AI 深度解卦:消耗 1 次 divination;AI 失败自动退还。
 func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	claims := currentClaims(r.Context())
@@ -306,6 +324,10 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "ai_unavailable", "AI 服务暂不可用,未扣次数")
 		return
 	}
+	if code, msg := validateDivineReq(req); code != "" {
+		writeError(w, http.StatusBadRequest, code, msg)
+		return
+	}
 	// 按占法起卦(服务端重推,客户端不可伪造);at 单次解析,课象/归档同源
 	at, atErr := castTime(req.CastAt)
 	if atErr != nil {
@@ -320,11 +342,6 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	case "liuyao":
 		liuyaoResult, castErr = castLiuYao(req, at)
 	case "daliuren":
-		// 付费解课须复现用户所见之课:代摇(baoShu<=0)只属首次起课端点
-		if req.BaoShu != nil && *req.BaoShu <= 0 {
-			writeError(w, http.StatusBadRequest, "bad_baoshu", "解课须回传起课时的报数(baoShu>0),不可代摇")
-			return
-		}
 		daliurenResult, castErr = castDaLiuRenReq(req, at)
 	default:
 		meihuaResult, castErr = castMeihua(req, at)

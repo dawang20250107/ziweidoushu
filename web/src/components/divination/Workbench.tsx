@@ -46,8 +46,8 @@ type AiErr =
   | { kind: "network"; message: string };
 
 const MAX_Q = 200;
-// 起卦动效总时长封顶(六爻六位落定稍长)
-const CAST_ANIM_MS: Record<Kind, number> = { meihua: 3400, liuyao: 2800 };
+// 起卦动效总时长封顶(与各仪式编排对齐:梅花≈3.4s,六爻≈3.2s)
+const CAST_ANIM_MS: Record<Kind, number> = { meihua: 3400, liuyao: 3200 };
 
 const KIND_META: Record<Kind, { eyebrow: string; title: string; sub: string; cta: string; casting: string; aiHint: string }> = {
   meihua: {
@@ -106,6 +106,8 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
   const resultRef = useRef<HTMLDivElement>(null);
   const [resultCue, setResultCue] = useState(0); // 仪式收束→结果区聚焦归位(重放入场)
   const [spot, setSpot] = useState(false); // 收束光圈:幕布落下时光聚结果区再散开
+  // 起卦纪元:每次起卦递增;迟到的 AI 解读若纪元已变,不得错挂到新卦上
+  const castEpoch = useRef(0);
 
   // 登录态同步 + 拉解卦次数
   useEffect(() => {
@@ -172,6 +174,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       return;
     }
 
+    castEpoch.current += 1;
     setCasting(true);
     setCastError(null);
     setReading(null);
@@ -227,6 +230,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
     async (tosses: number[]) => {
       const q = question.trim();
       if (!q || casting) return;
+      castEpoch.current += 1;
       setCasting(true);
       setCastError(null);
       setReading(null);
@@ -249,6 +253,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
 
   const divine = useCallback(async () => {
     if (aiLoading) return;
+    const epoch = castEpoch.current; // 解读只属于此刻所见之卦
     setAiError(null);
     setReading(null);
     setAiLoading(true);
@@ -265,24 +270,28 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           recordId: lyRecordId ?? undefined,
           yongShen: lyResult.yongShenOverride || undefined, // 快照:与所见同一取用
         });
+        if (epoch !== castEpoch.current) return;
         setReading(rd.text);
         setCredits(remainingCredits);
       } else {
         if (!result) return;
         const q = result.question ?? question.trim();
         if (!q) return;
-        // 关键契约:回传与所见「同一卦」——时间卦传 castAt,数字卦传 numbers。
+        // 关键契约:回传与所见「同一卦」——castAt 一律回传(卦气旺衰随月令走,
+        // 数字卦卦象虽由数定,断层力度仍锚定起卦时刻);数字卦另传同组 numbers。
         const input: CastInput & { question: string; recordId?: string } =
           result.method === "number"
-            ? { method: "number", numbers: castNumbers ?? result.numbers, question: q, recordId: mhRecordId ?? undefined }
+            ? { method: "number", numbers: castNumbers ?? result.numbers, castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined }
             : result.method === "zi"
               ? { method: "zi", ziText: result.ziText, castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined }
               : { method: "time", castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined };
         const { reading: rd, remainingCredits } = await divineAI(input);
+        if (epoch !== castEpoch.current) return;
         setReading(rd.text);
         setCredits(remainingCredits);
       }
     } catch (e) {
+      if (epoch !== castEpoch.current) return; // 旧卦的失败不打扰新卦
       if (e instanceof DivinationError) {
         if (e.status === 401) setAiError({ kind: "unauth" });
         else if (e.status === 402 || e.code === "no_credits") {

@@ -340,12 +340,14 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 ### POST /api/v1/ai/divine(需鉴权,消耗 1 次 divination)
 
-`{kind?: "meihua"|"liuyao"|"daliuren", method?, numbers?, tosses?, castAt?,
+`{kind?: "meihua"|"liuyao"|"daliuren", method?, numbers?, tosses?, castAt,
 baoShu?, question}`(question 必填,kind 缺省 meihua)→
 `{result, reading, remainingCredits}`。
-服务端按 kind 重推卦象(不信任客户端;六爻须回传起卦返回的 tosses+castAt、
-大六壬活时课须回传 castAt+baoShu 以复原同一卦课;daliuren 的 baoShu≤0
-在此端点返回 400 `bad_baoshu`——付费解课不代摇)、引语料 RAG 解卦;
+服务端按 kind 重推卦象(不信任客户端),并强制「同一卦契约」:
+`castAt` 一律必传(缺失 400 `bad_cast_time`——卦象/旺衰随时辰走,缺省
+落到当下即另一卦);六爻须回传起卦返回的六掷 `tosses`(缺失 400
+`bad_tosses`);大六壬活时课须回传 `baoShu`,且 baoShu≤0 返回 400
+`bad_baoshu`——付费解课不代摇。校验通过后引语料 RAG 解卦;
 AI 失败自动退还;未配置 LLM 返回 503 不扣次;次数不足 402 `no_credits`。
 注:梅花 time 法卦象依赖问辞字数,回传时问辞须与起卦时一致方为同一卦。
 

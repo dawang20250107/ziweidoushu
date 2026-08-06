@@ -39,6 +39,9 @@ export function CalendarDateField({
   const [monthK, setMonthK] = useState("1");
   const [day, setDay] = useState(15);
   const [preview, setPreview] = useState("");
+  const [err, setErr] = useState<string | null>(null); // 历表/换算失败:可见 + 可重试
+  const [retryTick, setRetryTick] = useState(0);
+  const [converting, setConverting] = useState(false);
   const lastEmitted = useRef<string | null>(null);
 
   // 外部改值(非本组件回写)→ 农历选择已失义,退回公历显示
@@ -50,22 +53,29 @@ export function CalendarDateField({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
-  // 农历年变化 → 拉当年月表;选中月不存在(如换到无此闰月的年)则回退首月
+  // 农历年变化 → 拉当年月表;选中月不存在(如换到无此闰月的年)则回退首月。
+  // 失败时清空月表并示错:选择器空置 + 提交阻塞,绝不让人误以为农历已选定。
   useEffect(() => {
     if (calendar !== "lunar") return;
     let cancelled = false;
+    setErr(null);
     fetchLunarYear(lunarYear)
       .then(({ months: ms }) => {
         if (cancelled) return;
         setMonths(ms);
         if (!ms.some((m) => monthKey(m) === monthK)) setMonthK(monthKey(ms[0]));
       })
-      .catch(() => {});
+      .catch(() => {
+        if (cancelled) return;
+        setMonths([]);
+        setPreview("");
+        setErr("农历历表加载失败");
+      });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calendar, lunarYear]);
+  }, [calendar, lunarYear, retryTick]);
 
   const sel = months.find((m) => monthKey(m) === monthK);
   const dayMax = sel?.days ?? 30;
@@ -74,7 +84,8 @@ export function CalendarDateField({
   useEffect(() => {
     if (calendar !== "lunar" || !sel) return;
     let cancelled = false;
-    onPendingChange?.(true);
+    setConverting(true);
+    setErr(null);
     lunarToSolar({ year: lunarYear, month: sel.month, leap: sel.leap, day: Math.min(day, dayMax) })
       .then((s) => {
         if (cancelled) return;
@@ -84,16 +95,27 @@ export function CalendarDateField({
         onChange(str);
       })
       .catch(() => {
-        if (!cancelled) setPreview("");
+        if (cancelled) return;
+        setPreview("");
+        setErr("农历换算失败");
       })
       .finally(() => {
-        if (!cancelled) onPendingChange?.(false);
+        if (!cancelled) setConverting(false);
       });
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calendar, lunarYear, monthK, day, months]);
+  }, [calendar, lunarYear, monthK, day, months, retryTick]);
+
+  // 提交阻塞口径:农历模式下,换算中/月表缺失/出错 期间外部 value 都可能是旧值。
+  // 卸载与切回公历时解除,不给父级留死锁。
+  const blocked = calendar === "lunar" && (converting || !sel || err !== null);
+  useEffect(() => {
+    onPendingChange?.(blocked);
+    return () => onPendingChange?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocked]);
 
   return (
     <div className="flex flex-col gap-1">
@@ -163,6 +185,18 @@ export function CalendarDateField({
               </option>
             ))}
           </select>
+          {err && (
+            <span className="flex items-center gap-1.5 text-[11px] text-danger" role="alert">
+              {err}
+              <button
+                type="button"
+                onClick={() => setRetryTick((t) => t + 1)}
+                className="rounded-[2px] px-1.5 py-0.5 text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--gold)]"
+              >
+                重试
+              </button>
+            </span>
+          )}
         </div>
       )}
     </div>

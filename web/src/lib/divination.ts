@@ -257,7 +257,7 @@ export interface CastInput {
   method: "time" | "number" | "zi";
   numbers?: number[]; // 数字卦:[n,n] 或 [n,n,n]
   ziText?: string; // 测字卦:一或二个汉字(端法笔画起数)
-  castAt?: number; // 时间卦:unix 秒(回传同一卦时用)
+  castAt?: number; // unix 秒:解卦回传同一卦必带(数字卦断层旺衰亦锚定起卦时刻)
   question?: string;
 }
 
