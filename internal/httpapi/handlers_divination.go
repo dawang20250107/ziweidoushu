@@ -34,11 +34,31 @@ type divinationRequest struct {
 	RecordID string `json:"recordId,omitempty"` // 卦档记录:AI 解卦回填目标
 	// BaoShu 大六壬活时报数:缺省=正时起课;0=代摇(服务端心动即数);>0=以该数定占时
 	BaoShu *int `json:"baoShu,omitempty"`
+	// ZiText 梅花测字起卦(method=zi):一或二个汉字
+	ZiText string `json:"ziText,omitempty"`
+	// YongShen 六爻显式取用(世爻/妻财/官鬼/父母/子孙/兄弟;空=按问辞推断)
+	YongShen string `json:"yongShen,omitempty"`
+	// BirthYear 大六壬年命(问者出生公历年;0=不用年命层)
+	BirthYear int `json:"birthYear,omitempty"`
 }
 
 // castDaLiuRenReq 大六壬起课:正时,或活时报数(自子顺数定占时;0 为服务端代摇)。
 // at 由调用方 castTime 解析一次传入,保证课象、响应 castAt 与卦档同源(单一时刻)。
+// 问者提供出生年时追加年命上神层(正时课的个人化分断)。
 func castDaLiuRenReq(req divinationRequest, at time.Time) (*daliuren.Result, error) {
+	r, err := castDaLiuRenCore(req, at)
+	if err != nil {
+		return nil, err
+	}
+	if req.BirthYear != 0 {
+		if err := r.ApplyNianMing(req.BirthYear); err != nil {
+			return nil, err
+		}
+	}
+	return r, nil
+}
+
+func castDaLiuRenCore(req divinationRequest, at time.Time) (*daliuren.Result, error) {
 	if req.BaoShu == nil {
 		return daliuren.CastByTime(at)
 	}
@@ -122,6 +142,12 @@ func castMeihua(req divinationRequest, at time.Time) (*meihua.Result, error) {
 			return nil, err
 		}
 		return &r, nil
+	case "zi": // 测字起卦(端法义):笔画起数,可由 castAt+ziText 复现
+		r, err := meihua.ByZi(req.ZiText, at, req.Question)
+		if err != nil {
+			return nil, err
+		}
+		return &r, nil
 	default: // time:有问辞按字数起数(声音占义,众人同刻各卦),无问辞守年月日时
 		r, err := meihua.ByTimeAndText(at, req.Question)
 		if err != nil {
@@ -134,9 +160,9 @@ func castMeihua(req divinationRequest, at time.Time) (*meihua.Result, error) {
 // castLiuYao 六爻起卦(服务端摇卦或按用户报爻重现);at 口径同 castMeihua。
 func castLiuYao(req divinationRequest, at time.Time) (*liuyao.Result, error) {
 	if req.Method == "tosses" || len(req.Tosses) > 0 {
-		return liuyao.ByTosses(req.Tosses, at, req.Question)
+		return liuyao.ByTossesYong(req.Tosses, at, req.Question, req.YongShen)
 	}
-	return liuyao.Shake(at, req.Question)
+	return liuyao.ShakeYong(at, req.Question, req.YongShen)
 }
 
 // handleLiuYao 六爻摇卦(免费)。

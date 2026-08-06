@@ -30,7 +30,7 @@ import { JudgeSections } from "@/components/divination/JudgeSections";
 import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
 type Kind = "meihua" | "liuyao";
-type CastMethod = "time" | "number";
+type CastMethod = "time" | "number" | "zi";
 type LiuYaoMethod = "step" | "shake" | "tosses";
 
 const LY_METHOD_LABEL: Record<LiuYaoMethod, string> = {
@@ -79,6 +79,8 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
   // 起卦输入
   const [question, setQuestion] = useState("");
   const [method, setMethod] = useState<CastMethod>("time");
+  const [ziText, setZiText] = useState(""); // 测字起卦:一或二个汉字
+  const [lyYong, setLyYong] = useState(""); // 六爻显式取用(空=按问辞自动识别)
   const [lyMethod, setLyMethod] = useState<LiuYaoMethod>("step");
   const [numA, setNumA] = useState("");
   const [numB, setNumB] = useState("");
@@ -141,9 +143,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
     return n >= 1 && n <= 999 ? n : null;
   };
 
+  const ziValid = /^[\u4e00-\u9fff]{1,2}$/.test(ziText.trim());
   const inputsValid =
     kind === "meihua"
-      ? method === "time" || (validNum(numA) !== null && validNum(numB) !== null)
+      ? method === "time" ||
+        (method === "zi" ? ziValid : validNum(numA) !== null && validNum(numB) !== null)
       : lyMethod !== "tosses" || lyTosses.every((t) => t !== null);
   const canCast = question.trim().length > 0 && inputsValid && !casting;
   // 逐爻摇卦由 StepShake 自带掷爻按钮驱动,主 CTA 隐藏
@@ -177,10 +181,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
     const startedAt = Date.now();
     try {
       if (kind === "liuyao") {
+        const yong = lyYong || undefined;
         const input =
           lyMethod === "tosses"
-            ? { method: "tosses" as const, tosses: lyTosses.map((t) => t ?? 0), question: q }
-            : { method: "shake" as const, question: q };
+            ? { method: "tosses" as const, tosses: lyTosses.map((t) => t ?? 0), question: q, yongShen: yong }
+            : { method: "shake" as const, question: q, yongShen: yong };
         const { result: r, castAt: at, recordId } = await castLiuYao(input);
         const wait = (reduced ? 0 : CAST_ANIM_MS.liuyao) - (Date.now() - startedAt);
         if (wait > 0) await new Promise((res) => setTimeout(res, wait));
@@ -189,7 +194,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         setLyRecordId(recordId ?? null);
       } else {
         const input: CastInput =
-          method === "number" ? { method: "number", numbers, question: q } : { method: "time", question: q };
+          method === "number"
+            ? { method: "number", numbers, question: q }
+            : method === "zi"
+              ? { method: "zi", ziText: ziText.trim(), question: q }
+              : { method: "time", question: q };
         const { result: r, castAt: at, recordId } = await castMeihua(input);
         const wait = (reduced ? 0 : CAST_ANIM_MS.meihua) - (Date.now() - startedAt);
         if (wait > 0) await new Promise((res) => setTimeout(res, wait));
@@ -211,7 +220,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
     } finally {
       setCasting(false);
     }
-  }, [question, kind, method, lyMethod, numA, numB, lyTosses, casting]);
+  }, [question, kind, method, lyMethod, numA, numB, lyTosses, casting, ziText, lyYong]);
 
   // 逐爻摇卦完成:按六掷记录装卦(每掷动画即仪式,不再叠加整体动效)
   const castStep = useCallback(
@@ -223,7 +232,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       setReading(null);
       setAiError(null);
       try {
-        const { result: r, castAt: at, recordId } = await castLiuYao({ method: "tosses", tosses, question: q });
+        const { result: r, castAt: at, recordId } = await castLiuYao({ method: "tosses", tosses, question: q, yongShen: lyYong || undefined });
         setLyResult(r);
         setLyCastAt(at);
         setLyRecordId(recordId ?? null);
@@ -235,7 +244,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         setCasting(false);
       }
     },
-    [question, casting],
+    [question, casting, lyYong],
   );
 
   const divine = useCallback(async () => {
@@ -254,6 +263,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           castAt: lyCastAt,
           question: q,
           recordId: lyRecordId ?? undefined,
+          yongShen: lyResult.yongShenOverride || undefined, // 快照:与所见同一取用
         });
         setReading(rd.text);
         setCredits(remainingCredits);
@@ -265,7 +275,9 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         const input: CastInput & { question: string; recordId?: string } =
           result.method === "number"
             ? { method: "number", numbers: castNumbers ?? result.numbers, question: q, recordId: mhRecordId ?? undefined }
-            : { method: "time", castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined };
+            : result.method === "zi"
+              ? { method: "zi", ziText: result.ziText, castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined }
+              : { method: "time", castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined };
         const { reading: rd, remainingCredits } = await divineAI(input);
         setReading(rd.text);
         setCredits(remainingCredits);
@@ -338,7 +350,25 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
               <div className="flex flex-wrap gap-2">
                 <MethodTab active={method === "time"} onClick={() => setMethod("time")} title="以此时起卦" hint="时间卦 · 主推" />
                 <MethodTab active={method === "number"} onClick={() => setMethod("number")} title="报数起卦" hint="两数 1-999" />
+                <MethodTab active={method === "zi"} onClick={() => setMethod("zi")} title="测字起卦" hint="一或两字 · 端法" />
               </div>
+              {method === "zi" && (
+                <div className="mt-4 flex items-center gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[12px] text-ink-faint">心中所感之字(一或二字)</span>
+                    <input
+                      value={ziText}
+                      onChange={(e) => setZiText(e.target.value.slice(0, 2))}
+                      placeholder="如「梅」或「转职」"
+                      maxLength={2}
+                      className="w-40 rounded-[6px] bg-bg px-4 py-3 text-center font-display text-[22px] tracking-[0.3em] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-[14px] placeholder:tracking-normal placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                    />
+                  </label>
+                  <p className="mt-5 max-w-[220px] text-[11px] leading-relaxed text-ink-faint">
+                    一字:字画起上卦,加时辰配下卦;两字:两仪平分。笔画依 Unihan 简体。
+                  </p>
+                </div>
+              )}
               {method === "number" && (
                 <div className="mt-4 flex items-center gap-3">
                   <NumField label="上卦数" value={numA} onChange={setNumA} />
@@ -355,6 +385,36 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
                 <MethodTab active={lyMethod === "step"} onClick={() => setLyMethod("step")} title="逐爻摇卦" hint="铜钱六掷 · 主推" />
                 <MethodTab active={lyMethod === "shake"} onClick={() => setLyMethod("shake")} title="一键摇卦" hint="六爻齐落" />
                 <MethodTab active={lyMethod === "tosses"} onClick={() => setLyMethod("tosses")} title="手动报爻" hint="自摇铜钱按爻录入" />
+              </div>
+              {/* 所占之人事(定用神):问者自陈优先于问辞推断——用神为断卦之纲 */}
+              <div className="mt-5">
+                <p className="mb-2 text-[12px] font-medium tracking-[0.08em] text-gold">所占之人事(定用神)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {([
+                    ["", "自动识别"],
+                    ["世爻", "问自己"],
+                    ["妻财", "求财 · 问妻"],
+                    ["官鬼", "官职官司 · 问夫"],
+                    ["父母", "文书屋宅 · 问长辈"],
+                    ["子孙", "子女解忧"],
+                    ["兄弟", "朋友同辈"],
+                  ] as const).map(([v, label]) => (
+                    <button
+                      key={v || "auto"}
+                      type="button"
+                      aria-pressed={lyYong === v}
+                      onClick={() => setLyYong(v)}
+                      className={[
+                        "rounded-[4px] px-2.5 py-1 text-[12px] transition-colors",
+                        lyYong === v
+                          ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                          : "bg-bg text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] hover:text-ink",
+                      ].join(" ")}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               {lyMethod === "step" && (
                 <StepShake

@@ -1,6 +1,7 @@
 package liuyao
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -58,4 +59,25 @@ func splitLines(s string) []string {
 		out = append(out, s[start:])
 	}
 	return out
+}
+
+// TestYongShenOverride 显式取用:问者指明优先于问辞推断;非法值回退推断。
+func TestYongShenOverride(t *testing.T) {
+	at := time.Date(2026, 8, 5, 10, 30, 0, 0, time.FixedZone("CST", 8*3600))
+	// 问辞含「财」本会推妻财;显式指定官鬼须以官鬼为用
+	r, err := ByTossesYong([]int{1, 2, 0, 3, 1, 2}, at, "求财之事", "官鬼")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.YongShen != "官鬼" {
+		t.Errorf("显式取用官鬼应生效,得 %s", r.YongShen)
+	}
+	if !strings.Contains(r.YongShenBasis, "问者指明") {
+		t.Errorf("依据应标注问者指明: %s", r.YongShenBasis)
+	}
+	// 非法值回退问辞推断(妻财)
+	r2, _ := ByTossesYong([]int{1, 2, 0, 3, 1, 2}, at, "求财之事", "乱写")
+	if r2.YongShen != "妻财" {
+		t.Errorf("非法取用应回退推断妻财,得 %s", r2.YongShen)
+	}
 }

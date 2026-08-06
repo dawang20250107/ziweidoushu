@@ -43,3 +43,33 @@ func TestJudgeSections(t *testing.T) {
 		t.Errorf("天将深文应 12 将,得 %d", len(jiangDeep))
 	}
 }
+
+// TestApplyNianMing 年命上神:本命支正确、上神取自天盘、断语追加一节。
+func TestApplyNianMing(t *testing.T) {
+	r, err := CastByTime(time.Date(2026, 8, 5, 10, 30, 0, 0, time.FixedZone("CST", 8*3600)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.ApplyNianMing(1993); err != nil { // 癸酉年 → 本命酉
+		t.Fatal(err)
+	}
+	nm := r.NianMingInfo
+	if nm == nil || nm.Branch != "酉" {
+		t.Fatalf("1993 本命应为酉,得 %+v", nm)
+	}
+	if nm.ShangShen != r.TianPan[9] || nm.Jiang != r.TianJiang[9] {
+		t.Error("年命上神/乘将应取自天盘酉位")
+	}
+	found := false
+	for _, s := range r.Judgment.Sections {
+		if s.Key == "nianming" && len([]rune(s.Text)) > 40 {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("应追加年命上神分节")
+	}
+	if err := r.ApplyNianMing(1800); err == nil {
+		t.Error("区间外出生年应拒绝")
+	}
+}

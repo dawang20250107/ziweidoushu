@@ -300,6 +300,12 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 ### POST /api/v1/divination/meihua
 
+新增 `method: "zi"` 测字起卦:`ziText` 传一或二个汉字,按 Unihan 简体笔画起数
+(一字:字画起上卦、加时辰配下卦并取动爻;二字:两仪平分,总画加时取动爻);
+响应带 `ziText`/`ziStrokes` 溯源。六爻起卦可传 `yongShen`(世爻/妻财/官鬼/父母/子孙/兄弟)
+显式定用神,优先于问辞推断,响应 `yongShenOverride` 回传快照;大六壬可传 `birthYear`
+(1900-2100)加断年命上神,响应带 `nianMing`。AI 解卦回传同一卦时须原样回传上述字段。
+
 `{method: "time"|"number", numbers?, castAt?, question?}` → `{result, castAt}`。
 `time` 法:**有问辞按字数起数**(声音占义:问辞字数起上卦、加时辰数配下卦并
 取动爻——众人同刻问辞各异,卦自不同;`result.castBasis` 溯源起数依据),

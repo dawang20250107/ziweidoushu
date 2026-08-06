@@ -64,6 +64,8 @@ type Result struct {
 
 	// Judgment 确定性断语(课体 + 三传对日干生克,见 judge.go)。
 	Judgment *Judgment `json:"judgment,omitempty"`
+	// NianMingInfo 年命上神(问者提供出生年时计算,正时课的个人化分断)。
+	NianMingInfo *NianMing `json:"nianMing,omitempty"`
 }
 
 // tianPanOf 天盘布局:月将加于占时之上,顺行十二地支。

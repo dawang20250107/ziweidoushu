@@ -139,3 +139,53 @@ func yinYangName(branchIdx int) string {
 	}
 	return "阴"
 }
+
+// NianMing 年命上神(问者本命支加临天盘之神与所乘天将)。
+type NianMing struct {
+	BirthYear int    `json:"birthYear"`
+	Branch    string `json:"branch"`    // 本命支
+	ShangShen string `json:"shangShen"` // 本命上神(天盘)
+	Jiang     string `json:"jiang"`     // 上神所乘天将
+}
+
+// ApplyNianMing 以问者出生年取本命支,查其天盘上神与乘将,
+// 并向断语追加「年命上神」一节(正时之课古以年命分断,此其落地)。
+func (r *Result) ApplyNianMing(birthYear int) error {
+	if birthYear < 1900 || birthYear > 2100 {
+		return fmt.Errorf("出生年份须在 1900-2100 之间")
+	}
+	bi := ((birthYear-4)%12 + 12) % 12 // 甲子年支=子
+	nm := &NianMing{
+		BirthYear: birthYear,
+		Branch:    string(branches[bi]),
+		ShangShen: r.TianPan[bi],
+		Jiang:     r.TianJiang[bi],
+	}
+	r.NianMingInfo = nm
+	if r.Judgment == nil {
+		return nil
+	}
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("问者生于%d年,本命%s。本命之上临天盘%s",
+		birthYear, nm.Branch, nm.ShangShen))
+	si := branchIdx(nm.ShangShen)
+	if bi2 := branchIdx(nm.Branch); si >= 0 && bi2 >= 0 {
+		rel := wxRel(branchElement[si], branchElement[bi2])
+		relText := map[string]string{
+			"生":  "上神生本命——得地利人和,课中吉者于我尤显",
+			"被克": "本命克上神——我可制之,主动在我",
+			"比和": "上神与本命比和——气类相投,平顺",
+			"被生": "本命生上神——我有付出,谋之耗力",
+			"克":  "上神克本命——课外另有一层压力落在我身,吉课减吉、凶课添防",
+		}[rel]
+		b.WriteString(fmt.Sprintf("(%s)。", relText))
+	} else {
+		b.WriteString("。")
+	}
+	if d := jiangDeep[nm.Jiang]; d != "" {
+		b.WriteString(fmt.Sprintf("上神乘【%s】:%s", nm.Jiang, d))
+	}
+	b.WriteString("同一时辰之课人人相同,而年命上神人各不同——古以此分断众人,此正时课之个人化落点。")
+	r.Judgment.Sections = append(r.Judgment.Sections, JudgeSection{Key: "nianming", Title: "年命上神", Text: b.String()})
+	return nil
+}

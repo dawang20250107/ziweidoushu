@@ -65,9 +65,25 @@ func qinShengBy(qin string) string {
 	return ""
 }
 
+// yongShenWhitelist 显式取用允许值(问者指明所占之人事)。
+var yongShenWhitelist = map[string]string{
+	"世爻": "问自己之事,以世爻为用",
+	"妻财": "所占关乎妻室、财帛、雇仆,取妻财为用",
+	"官鬼": "所占关乎官职、官司、丈夫、病祟,取官鬼为用",
+	"父母": "所占关乎父母长辈、文书屋宅、师长,取父母为用",
+	"子孙": "所占关乎子女晚辈、僧道六畜、解忧之神,取子孙为用",
+	"兄弟": "所占关乎兄弟姊妹、朋友同辈、合伙,取兄弟为用",
+}
+
 // applyYongShen 填入用神建议、爻位与元忌仇链(用神不上卦则位置为空,伏神之法由解卦层论)。
+// 问者显式指明取用(YongShenOverride)优先于问辞关键词推断——所占之人事以问者自陈为准。
 func (r *Result) applyYongShen() {
 	name, basis := SuggestYongShen(r.Question)
+	if r.YongShenOverride != "" {
+		if b, ok := yongShenWhitelist[r.YongShenOverride]; ok {
+			name, basis = r.YongShenOverride, b+"(问者指明)"
+		}
+	}
 	r.YongShen = name
 	r.YongShenBasis = basis
 	r.YongShenPos = []int{}

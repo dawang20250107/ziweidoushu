@@ -67,11 +67,13 @@ export interface MeihuaRoleLore {
 }
 
 export interface MeihuaResult {
-  method: "time" | "number";
+  method: "time" | "number" | "zi";
   question?: string;
   lunarText?: string; // 时间卦:「午年六月初四日申时」
   numbers?: number[]; // 数字卦原始数
   castBasis?: string; // 起数依据(如「问辞12字起上卦,加申时数9配下卦」)
+  ziText?: string; // 测字起卦的原字(一或二字)
+  ziStrokes?: number[]; // 各字笔画数(Unihan 简体口径)
   ben: Hexagram; // 本卦
   hu: Hexagram; // 互卦
   bian: Hexagram; // 变卦
@@ -165,7 +167,8 @@ export interface LiuYaoResult {
   movingNums: number[]; // 动爻位置(空=静卦)
   tosses?: number[]; // 摇卦原始记录(每爻背面数 0-3),回传同一卦的凭据
   yongShen?: string; // 用神建议(六亲名或「世爻」)
-  yongShenBasis?: string; // 经义依据
+  yongShenBasis?: string;
+  yongShenOverride?: string; // 问者显式指明的取用(快照回传解卦用) // 经义依据
   yongShenPos?: number[]; // 用神所在爻位;空=不上卦
   yuanShen?: string; // 元神(生用神者)
   yuanShenPos?: number[];
@@ -251,8 +254,9 @@ const JSON_HEADERS = { "Content-Type": "application/json" };
 // ── 起卦入参 ──────────────────────────────────────────
 
 export interface CastInput {
-  method: "time" | "number";
+  method: "time" | "number" | "zi";
   numbers?: number[]; // 数字卦:[n,n] 或 [n,n,n]
+  ziText?: string; // 测字卦:一或二个汉字(端法笔画起数)
   castAt?: number; // 时间卦:unix 秒(回传同一卦时用)
   question?: string;
 }
@@ -262,6 +266,7 @@ export interface LiuYaoCastInput {
   tosses?: number[]; // ×6 每爻背面数 0-3,自下而上
   castAt?: number; // unix 秒(回传同一卦时用)
   question?: string;
+  yongShen?: string; // 显式取用:世爻/妻财/官鬼/父母/子孙/兄弟(空=按问辞推断)
 }
 
 // ── 接口 ──────────────────────────────────────────────
@@ -329,11 +334,12 @@ export interface DaLiuRenResult {
   baoShu?: number; // 活时报数(正时无)
   hourNote?: string; // 「活时·报数7」
   judgment?: DaLiuRenJudgment;
+  nianMing?: { birthYear: number; branch: string; shangShen: string; jiang: string }; // 年命上神
 }
 
 /** 大六壬起课(免费,匿名可用;登录则自动存入卦档)。 */
 export async function castDaLiuRen(
-  input?: { question?: string; castAt?: number; baoShu?: number },
+  input?: { question?: string; castAt?: number; baoShu?: number; birthYear?: number },
 ): Promise<{ result: DaLiuRenResult; castAt: number; recordId?: string }> {
   const res = await fetch(`${BASE}/api/v1/divination/daliuren`, {
     method: "POST",
@@ -345,7 +351,7 @@ export async function castDaLiuRen(
 
 /** AI 深度解课(大六壬,需登录,消耗 1 次)。 */
 export async function divineDaLiuRenAI(
-  input: { castAt: number; question: string; recordId?: string; baoShu?: number },
+  input: { castAt: number; question: string; recordId?: string; baoShu?: number; birthYear?: number },
 ): Promise<{ reading: DivineReading; remainingCredits: number }> {
   const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
     method: "POST",
@@ -384,7 +390,7 @@ export async function divineAI(
  * 同一卦契约:必须回传起卦返回的 tosses + castAt(method 固定 "tosses"),服务端按记录重装此卦。
  */
 export async function divineLiuYaoAI(
-  input: { tosses: number[]; castAt: number; question: string; recordId?: string },
+  input: { tosses: number[]; castAt: number; question: string; recordId?: string; yongShen?: string },
 ): Promise<{ result: LiuYaoResult; reading: DivineReading; remainingCredits: number }> {
   const res = await authFetch(`${BASE}/api/v1/ai/divine`, {
     method: "POST",
