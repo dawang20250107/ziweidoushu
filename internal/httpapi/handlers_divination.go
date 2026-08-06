@@ -120,11 +120,18 @@ func (s *Server) saveDivinationRecord(r *http.Request, kind, question, summary s
 	return id
 }
 
-// castTime 解析起卦时刻(近 24h 防伪造)。
+// cst8 命理时刻的唯一口径:北京时间(UTC+8)。
+// 农历/时辰/日干支取的是 time.Time 的墙钟字段(NewSolarFromDate 按其
+// Location 展开),而容器/部署时钟常为 UTC——不归一则时辰错八小时、
+// 子夜前后连日期都错。故凡起卦时刻一律先转东八区再入引擎。
+// (紫微排盘走用户显式生辰字段不经此路径;真太阳时为独立选项另行换算。)
+var cst8 = time.FixedZone("CST", 8*3600)
+
+// castTime 解析起卦时刻(近 24h 防伪造),并归一到北京时间。
 func castTime(castAt int64) (time.Time, error) {
-	at := time.Now()
+	at := time.Now().In(cst8)
 	if castAt > 0 {
-		at = time.Unix(castAt, 0)
+		at = time.Unix(castAt, 0).In(cst8)
 		if at.After(time.Now().Add(time.Minute)) || time.Since(at) > 24*time.Hour {
 			return at, errors.New("起卦时刻须在近 24 小时内")
 		}
