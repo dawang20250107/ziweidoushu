@@ -29,6 +29,10 @@ func (s *Server) handleKnowledgeStars(w http.ResponseWriter, _ *http.Request) {
 		"descriptions": s.kb.StarDesc,
 		"slugs":        s.kb.StarSlugs,
 		"order":        s.kb.StarOrder,
+		// 全量星曜档案层:lore 逐星义理、cycles 四大十二神逐名义、flow 流曜十义
+		"lore":   s.kb.StarLore,
+		"cycles": s.kb.StarCycles,
+		"flow":   s.kb.StarFlow,
 	})
 }
 

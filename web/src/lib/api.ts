@@ -206,3 +206,23 @@ export async function streamInterpret(
   }
   return { text: full, provider: meta.provider, degraded: meta.degraded };
 }
+
+// ── 星曜知识:全量档案 / 四大十二神 / 流曜 ───────────────────
+
+export interface StarLoreEntry {
+  element?: string; // 五行(如 己土)
+  hua?: string; // 化气(如 化气曰尊)
+  si: string; // 主司(如 官禄主 · 帝座)
+  gist: string; // 义理档案
+}
+
+export interface StarKnowledge {
+  lore: Record<string, StarLoreEntry>;
+  // cycles: changsheng12 / boshi12 / suiqian12 / jiangqian12 → 名目 → 一句义
+  cycles: Record<string, Record<string, string>>;
+  flow: Record<string, string>; // 去前缀后的流曜字(魁钺昌曲禄羊陀马鸾喜)→ 义
+}
+
+export function fetchStarKnowledge(): Promise<StarKnowledge> {
+  return get<StarKnowledge>("/api/v1/knowledge/stars");
+}

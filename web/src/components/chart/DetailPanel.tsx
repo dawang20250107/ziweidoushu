@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { Chart, Pattern, Palace } from "@/lib/types";
+import type { Chart, Pattern, Palace, Star } from "@/lib/types";
 import { branchName, brightnessVar, groupStars, sihuaBadgeStyle, stemName } from "@/lib/chart-helpers";
+import { BRIGHTNESS_MEANING, getStarKnowledge, loreOf, type StarKnowledge } from "@/lib/starlore";
 
 export const LEVEL_LABEL: Record<string, { text: string; cls: string }> = {
   excellent: { text: "上格", cls: "text-gold-bright shadow-[inset_0_0_0_1px_var(--gold-dim)]" },
@@ -28,13 +30,26 @@ export function PatternCard({ p }: { p: Pattern }) {
   );
 }
 
-/** 单宫详情内容(无外框定位,供侧栏/抽屉复用):星曜细目 + 关联格局 + 问 AI。 */
+/** 单宫详情内容(无外框定位,供侧栏/抽屉复用):星曜细目(逐星可点档案)+ 关联格局 + 问 AI。 */
 export function PalaceDetail({ palace, patterns }: { palace: Palace; patterns: Pattern[] }) {
   const { major, assist, adjective } = groupStars(palace.stars);
   // 年支系补充杂曜(大耗/龙德/劫煞)并入杂曜组展示
   const allAdjective = [...adjective, ...(palace.extraStars ?? [])];
   const related = patterns.filter((p) => (p.palaces ?? []).includes(palace.name));
   const aiQuestion = `请重点分析我命盘的【${palace.name}】(${stemName(palace.stem)}${branchName(palace.branch)}宫)。`;
+
+  // 星曜档案:点星名展开(再点收起);换宫自动收起
+  const [lib, setLib] = useState<StarKnowledge | null>(null);
+  const [openStar, setOpenStar] = useState<Star | null>(null);
+  const [openCycle, setOpenCycle] = useState<"cs" | "bs" | null>(null);
+  useEffect(() => {
+    getStarKnowledge().then(setLib).catch(() => {});
+  }, []);
+  useEffect(() => {
+    setOpenStar(null);
+    setOpenCycle(null);
+  }, [palace.branch]);
+  const openLore = openStar ? loreOf(lib, openStar.name) : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -63,29 +78,94 @@ export function PalaceDetail({ palace, patterns }: { palace: Palace; patterns: P
               <div key={group.label} className="mb-2">
                 <p className="mb-1 text-[11px] tracking-[0.08em] text-ink-faint">{group.label}</p>
                 <div className="flex flex-wrap gap-x-3 gap-y-1">
-                  {group.stars.map((s) => (
-                    <span key={s.name} className="text-[14px]" style={{ color: brightnessVar(s.brightness) }}>
-                      {s.name}
-                      {s.brightness && <span className="ml-0.5 text-[11px] opacity-80">({s.brightness})</span>}
-                      {s.siHua && (
-                        <sup
-                          className="ml-0.5 rounded-[2px] px-[3px] text-[10px] font-semibold not-italic"
-                          style={sihuaBadgeStyle(s.siHua)}
-                        >
-                          {s.siHua}
-                        </sup>
-                      )}
-                    </span>
-                  ))}
+                  {group.stars.map((s) => {
+                    const open = openStar?.name === s.name;
+                    return (
+                      <button
+                        key={s.name}
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() => {
+                          setOpenCycle(null);
+                          setOpenStar(open ? null : s);
+                        }}
+                        className={[
+                          "rounded-[4px] px-1 text-[14px] transition-shadow",
+                          open ? "shadow-[inset_0_0_0_1px_var(--gold-dim)]" : "hover:shadow-[inset_0_0_0_1px_var(--line-strong)]",
+                        ].join(" ")}
+                        style={{ color: brightnessVar(s.brightness) }}
+                      >
+                        {s.name}
+                        {s.brightness && <span className="ml-0.5 text-[11px] opacity-80">({s.brightness})</span>}
+                        {s.siHua && (
+                          <sup
+                            className="ml-0.5 rounded-[2px] px-[3px] text-[10px] font-semibold not-italic"
+                            style={sihuaBadgeStyle(s.siHua)}
+                          >
+                            {s.siHua}
+                          </sup>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ),
         )}
 
-        <div className="mt-2 flex gap-3 border-t border-line pt-2 text-[12px] text-ink-faint">
-          {palace.changsheng12 && <span>长生:{palace.changsheng12}</span>}
-          {palace.boshi12 && <span>博士:{palace.boshi12}</span>}
+        {/* 星曜档案卡:五行/化气/主司 + 义理 + 亮度要义(点星名展开) */}
+        {openStar && openLore && (
+          <div className="mb-2 rounded-[6px] bg-bg px-3 py-2.5 shadow-[inset_0_0_0_1px_var(--gold-dim)]">
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <span className="font-display text-[15px] font-semibold text-ink">{openStar.name}</span>
+              <span className="text-[12px] text-gold">
+                {[openLore.element, openLore.hua, openLore.si].filter(Boolean).join(" · ")}
+              </span>
+            </div>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-ink-secondary">{openLore.gist}</p>
+            {openStar.brightness && BRIGHTNESS_MEANING[openStar.brightness] && (
+              <p className="mt-1.5 text-[12px] text-ink-faint">
+                此宫亮度「{openStar.brightness}」:{BRIGHTNESS_MEANING[openStar.brightness]}。
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-line pt-2 text-[12px] text-ink-faint">
+          {palace.changsheng12 && (
+            <button
+              type="button"
+              aria-expanded={openCycle === "cs"}
+              onClick={() => {
+                setOpenStar(null);
+                setOpenCycle(openCycle === "cs" ? null : "cs");
+              }}
+              className={`rounded-[4px] px-1 transition-shadow ${openCycle === "cs" ? "text-ink shadow-[inset_0_0_0_1px_var(--gold-dim)]" : "hover:text-ink"}`}
+            >
+              长生:{palace.changsheng12}
+            </button>
+          )}
+          {palace.boshi12 && (
+            <button
+              type="button"
+              aria-expanded={openCycle === "bs"}
+              onClick={() => {
+                setOpenStar(null);
+                setOpenCycle(openCycle === "bs" ? null : "bs");
+              }}
+              className={`rounded-[4px] px-1 transition-shadow ${openCycle === "bs" ? "text-ink shadow-[inset_0_0_0_1px_var(--gold-dim)]" : "hover:text-ink"}`}
+            >
+              博士:{palace.boshi12}
+            </button>
+          )}
         </div>
+        {openCycle && lib && (
+          <p className="mt-1.5 rounded-[4px] bg-bg px-2.5 py-1.5 text-[12px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
+            {openCycle === "cs"
+              ? `长生十二神「${palace.changsheng12}」:${lib.cycles.changsheng12?.[palace.changsheng12 ?? ""] ?? ""}`
+              : `博士十二神「${palace.boshi12}」:${lib.cycles.boshi12?.[palace.boshi12 ?? ""] ?? ""}`}
+          </p>
+        )}
 
         <Link
           href={`/chat?q=${encodeURIComponent(aiQuestion)}`}

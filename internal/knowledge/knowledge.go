@@ -21,11 +21,17 @@ type Base struct {
 	StarDesc     map[string]StarDescription
 	StarSlugs    map[string]string // 主星名 → 拼音 slug
 	StarOrder    []string          // 十四主星顺序
-	Topics       TopicMeta
-	Heming       HemingKnowledge
-	Provinces    []Province
-	WorldCities  []WorldCity
-	Famous       []FamousPerson
+	// StarLore 全量星曜档案(主星/辅煞/杂曜,义引归纳原创行文);
+	// StarCycles 四大十二神逐名义(changsheng12/boshi12/suiqian12/jiangqian12);
+	// StarFlow 流曜十义(按去前缀后的字键:魁钺昌曲禄羊陀马鸾喜)。
+	StarLore   map[string]StarLore
+	StarCycles map[string]map[string]string
+	StarFlow   map[string]string
+	Topics     TopicMeta
+	Heming     HemingKnowledge
+	Provinces  []Province
+	WorldCities []WorldCity
+	Famous      []FamousPerson
 }
 
 // Quote 倪师语录。
@@ -39,6 +45,15 @@ type StarDescription struct {
 	Keywords string `json:"keywords"`
 	Nature   string `json:"nature"`
 	Element  string `json:"element"`
+}
+
+// StarLore 星曜档案:五行/化气/主司为传统口径,义理为义引归纳原创行文。
+// 杂曜多无五行化气,仅 si+gist。
+type StarLore struct {
+	Element string `json:"element,omitempty"` // 五行(如 己土)
+	Hua     string `json:"hua,omitempty"`     // 化气(如 化气曰尊)
+	Si      string `json:"si"`                // 主司(如 官禄主 · 帝座)
+	Gist    string `json:"gist"`              // 义理档案
 }
 
 // TopicMeta 解读主题标签。
@@ -141,9 +156,12 @@ func Load(dataFS fs.FS) (*Base, error) {
 		return nil, err
 	}
 	var starsView struct {
-		Descriptions map[string]StarDescription `json:"descriptions"`
-		Slugs        map[string]string          `json:"slugs"`
-		Order        []string                   `json:"order"`
+		Descriptions map[string]StarDescription   `json:"descriptions"`
+		Slugs        map[string]string            `json:"slugs"`
+		Order        []string                     `json:"order"`
+		Lore         map[string]StarLore          `json:"lore"`
+		Cycles       map[string]map[string]string `json:"cycles"`
+		Flow         map[string]string            `json:"flow"`
 	}
 	if err := json.Unmarshal(starsRaw, &starsView); err != nil {
 		return nil, fmt.Errorf("解析主星知识失败: %w", err)
@@ -151,6 +169,9 @@ func Load(dataFS fs.FS) (*Base, error) {
 	b.StarDesc = starsView.Descriptions
 	b.StarSlugs = starsView.Slugs
 	b.StarOrder = starsView.Order
+	b.StarLore = starsView.Lore
+	b.StarCycles = starsView.Cycles
+	b.StarFlow = starsView.Flow
 
 	topicsRaw, err := read("knowledge/topics.json")
 	if err != nil {

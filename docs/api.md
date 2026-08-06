@@ -138,7 +138,11 @@ curl -s localhost:8080/api/v1/horoscope -d '{
 
 ### GET /api/v1/knowledge/stars
 
-十四主星速览(关键词/五行/吉凶)+ 拼音 slug。
+十四主星速览(关键词/五行/吉凶)+ 拼音 slug,及全量星曜档案层:
+`lore` 逐星档案(主星/辅煞/杂曜共 69 曜,五行/化气/主司/义理,义引归纳
+原创行文)、`cycles` 四大十二神逐名义(changsheng12/boshi12/suiqian12/
+jiangqian12 各 12 名)、`flow` 流曜十义(按去前缀字键:魁钺昌曲禄羊陀马鸾喜)。
+完备性由测试钉住:真实排盘+运限收集盘上全部星名,逐一断言有档。
 
 ### GET /api/v1/knowledge/topics
 
