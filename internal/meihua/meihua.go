@@ -152,6 +152,8 @@ type Result struct {
 	LunarText string `json:"lunarText,omitempty"` // 时间起卦:农历「辰年十二月十七日申时」
 	Numbers   []int  `json:"numbers,omitempty"`   // 数字起卦的原始数
 	CastBasis string `json:"castBasis,omitempty"` // 起数依据(如「问辞12字起上卦,加申时数9配下卦」)
+	ZiText    string `json:"ziText,omitempty"`    // 测字起卦的原字(一或二字)
+	ZiStrokes []int  `json:"ziStrokes,omitempty"` // 各字笔画数(Unihan 简体口径)
 
 	Ben    Hexagram `json:"ben"`    // 本卦
 	Hu     Hexagram `json:"hu"`     // 互卦

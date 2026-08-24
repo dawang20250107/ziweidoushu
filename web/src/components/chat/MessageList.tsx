@@ -22,7 +22,7 @@ export interface ChatMessage {
 
 function UserBubble({ text }: { text: string }) {
   return (
-    <div className="flex justify-end">
+    <div className="msg-in flex justify-end">
       <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-[6px] bg-gold px-4 py-2.5 text-[15px] leading-relaxed text-[#161206]">
         {text}
       </div>
@@ -33,7 +33,7 @@ function UserBubble({ text }: { text: string }) {
 function AssistantBubble({ m }: { m: ChatMessage }) {
   const showFootnote = !m.streaming && !m.error && (m.degraded || !!m.provider);
   return (
-    <div className="flex justify-start">
+    <div className="msg-in flex justify-start">
       <div
         className={[
           "max-w-[85%] rounded-[6px] bg-bg-raised px-4 py-3 shadow-[0_0_0_1px_var(--line)]",
@@ -75,10 +75,32 @@ function AssistantBubble({ m }: { m: ChatMessage }) {
 
 export function MessageList({ messages }: { messages: ChatMessage[] }) {
   const endRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true); // 是否贴底:贴底才跟随流式滚动
+  const hasMessages = messages.length > 0;
 
-  // 每次消息或流式增量更新后,滚动到底部跟随对话
+  // 贴底跟踪:用户上翻回看(离底 > 80px)时,流式增量不再强拉到底——
+  // 修「AI 长答期间无法回看上文」;发出新提问则恢复贴底。
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    if (!hasMessages) return;
+    const container = listRef.current?.parentElement;
+    if (!container) return;
+    const onScroll = () => {
+      stickRef.current =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+    };
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
+  }, [hasMessages]);
+
+  // 新提问恢复贴底:发问时用户气泡与助手占位同帧追加(末条是 assistant),
+  // 故以「用户消息数量增长」判定,而非看末条角色。
+  const userCountRef = useRef(0);
+  useEffect(() => {
+    const users = messages.filter((m) => m.role === "user").length;
+    if (users > userCountRef.current) stickRef.current = true;
+    userCountRef.current = users;
+    if (stickRef.current) endRef.current?.scrollIntoView({ block: "end" });
   }, [messages]);
 
   if (messages.length === 0) {
@@ -93,7 +115,7 @@ export function MessageList({ messages }: { messages: ChatMessage[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={listRef} className="flex flex-col gap-4">
       {messages.map((m) =>
         m.role === "user" ? (
           <UserBubble key={m.id} text={m.content} />

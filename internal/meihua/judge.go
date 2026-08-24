@@ -19,14 +19,16 @@ import (
 
 // Judgment 确定性断卦结论(供盘面直出与 AI 贴卦发挥)。
 type Judgment struct {
-	Level      string   `json:"level"` // good / neutral / caution(与六爻同口径)
-	Score      int      `json:"score"`
-	TiQi       string   `json:"tiQi"` // 体卦月令旺衰:旺/相/休/囚/死
-	Conclusion string   `json:"conclusion"`
-	Points     []string `json:"points"`
-	Topic      string   `json:"topic"`
-	TopicNote  string   `json:"topicNote,omitempty"`
-	YingQi     string   `json:"yingQi"`
+	Level string `json:"level"` // good / neutral / caution(与六爻同口径)
+	Score int    `json:"score"`
+	// Sections 分节深断(卦象总论/体用之辨/过程与结局/类象取应/应期)。
+	Sections   []JudgeSection `json:"sections,omitempty"`
+	TiQi       string         `json:"tiQi"` // 体卦月令旺衰:旺/相/休/囚/死
+	Conclusion string         `json:"conclusion"`
+	Points     []string       `json:"points"`
+	Topic      string         `json:"topic"`
+	TopicNote  string         `json:"topicNote,omitempty"`
+	YingQi     string         `json:"yingQi"`
 }
 
 // wangElementByMonth 农历月 → 当令五行(梅花口径:三六九十二月土旺)。
@@ -282,5 +284,6 @@ func (r *Result) Judge(month int, question string) *Judgment {
 			j.Conclusion = "体用之势相持,成败参半,谋事在人,把握应期为要。"
 		}
 	}
+	r.buildSections(j)
 	return j
 }

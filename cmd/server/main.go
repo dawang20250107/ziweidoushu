@@ -75,17 +75,31 @@ func main() {
 			os.Exit(1)
 		}
 		defer st.Close()
-		authSvc, err := auth.NewService(st, &auth.DevSMS{Logger: logger}, auth.Config{
-			JWTSecret:     cfg.JWTSecret,
-			JWTPrevSecret: cfg.JWTPrevSecret,
-			DevEchoCode:   cfg.SMSDevEchoCode,
+		// 邮件通道:配置 SMTP 即真发,否则 dev 通道(验证码写日志)
+		var emailProv auth.EmailProvider
+		emailName := "dev(未配置 SMTP,验证码写日志)"
+		if cfg.SMTPHost != "" {
+			emailProv = &auth.SMTPEmail{Cfg: auth.SMTPConfig{
+				Host: cfg.SMTPHost, Port: cfg.SMTPPort,
+				Username: cfg.SMTPUsername, Password: cfg.SMTPPassword, From: cfg.SMTPFrom,
+			}}
+			emailName = "smtp:" + cfg.SMTPHost
+		}
+		authSvc, err := auth.NewService(st, &auth.DevSMS{Logger: logger}, emailProv, auth.Config{
+			JWTSecret:      cfg.JWTSecret,
+			JWTPrevSecret:  cfg.JWTPrevSecret,
+			DevEchoCode:    cfg.SMSDevEchoCode,
+			InviteRequired: cfg.InviteRequired,
+			DeviceStrict:   cfg.DeviceStrict,
 		}, logger)
 		if err != nil {
 			logger.Error("鉴权服务初始化失败", "err", err)
 			os.Exit(1)
 		}
 		deps = httpapi.Deps{Auth: authSvc, Store: st}
-		logger.Info("用户体系已启用", "sms", "dev(接入云厂商前不真实发送)")
+		logger.Info("用户体系已启用", "email", emailName,
+			"invite_required", cfg.InviteRequired, "device_strict", cfg.DeviceStrict,
+			"sms", "dev(接入云厂商前不真实发送)")
 
 		// 后台任务:周期关闭超时未支付订单(多实例部署时重复执行无害)
 		go func() {

@@ -88,12 +88,13 @@ func BuildDivinePrompt(r *meihua.Result, store *corpus.Store) Request {
 
 	// 语料引文(含研究语料;仅内部引用)。
 	// 每书限引 1 条:同一典籍在检索中易霸榜,分散引用面让断辞更立体。
+	// 按板块过滤只引梅花/周易/倪师通论,防紫微赋文等他门语料混入。
 	if store != nil {
 		var cites []string
 		seenPara := map[string]bool{}
 		seenBook := map[string]int{}
 		for _, q := range []string{r.Ben.Name, r.Bian.Name, r.Hu.Name, r.TiTrigram.Name + "卦"} {
-			for _, hit := range store.SearchAll(q, 6) {
+			for _, hit := range store.SearchAllIn(q, 6, corpus.CatMeihua, corpus.CatZhouYi, corpus.CatNi) {
 				if seenPara[hit.ParagraphID] || seenBook[hit.BookSlug] >= 1 {
 					continue
 				}

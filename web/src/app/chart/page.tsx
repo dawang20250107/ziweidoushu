@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { fetchChart, fetchHoroscope, ApiError } from "@/lib/api";
 import type { BirthInfo, ChartResponse, Horoscope, HoroscopeReading } from "@/lib/types";
@@ -31,10 +31,13 @@ export default function ChartPage() {
   const [error, setError] = useState("");
   const [casting, setCasting] = useState(false); // 罗盘起盘仪式中
   const [castLeaving, setCastLeaving] = useState(false); // 仪式收场淡出中
+  const [boardCue, setBoardCue] = useState(0); // 仪式收束→盘面聚焦重放(级联/命宫点睛)
+  const [spot, setSpot] = useState(false); // 收束光圈:幕布拉开时聚拢盘面再散开
+  const boardWrapRef = useRef<HTMLDivElement>(null);
 
   const [initialBirth, setInitialBirth] = useState<BirthInfo | null>(null);
 
-  const runChart = useCallback(async (b: BirthInfo) => {
+  const runChart = useCallback(async (b: BirthInfo): Promise<boolean> => {
     setLoading(true);
     setError("");
     setHoroscope(null);
@@ -47,15 +50,18 @@ export default function ChartPage() {
       setData(resp);
       // 跨页契约:问星页(/chat)读取最近一次排盘的生辰
       localStorage.setItem("ziwei-birth", JSON.stringify(b));
+      return true;
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "排盘失败,请稍后重试");
+      return false;
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // 手动排盘:星光击罗盘全屏仪式(≥3.6s 全序列 + 0.5s 淡出收场);
-  // 恢复路径与 reduced-motion 直出
+  // 手动排盘:星光击罗盘全屏仪式(≥3.6s 全序列 + 0.5s 淡出收场),
+  // 收场时镜头交接:光圈聚拢盘面、十二宫级联重放、盘面滚至视口中心。
+  // 恢复路径与 reduced-motion 直出。
   const castChart = useCallback(async (b: BirthInfo) => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
@@ -64,12 +70,35 @@ export default function ChartPage() {
     }
     setCasting(true);
     const minShow = new Promise((r) => setTimeout(r, 3600));
-    await Promise.all([runChart(b), minShow]);
+    const [ok] = await Promise.all([runChart(b), minShow]);
+    if (ok) {
+      setBoardCue((c) => c + 1);
+      setSpot(true);
+    }
     setCastLeaving(true);
     await new Promise((r) => setTimeout(r, 500));
     setCasting(false);
     setCastLeaving(false);
+    if (ok) setTimeout(() => setSpot(false), 650);
   }, [runChart]);
+
+  // 仪式期间锁页面滚动;幕布开始拉开即解锁,让聚焦滚动接管
+  useEffect(() => {
+    const lock = casting && !castLeaving;
+    document.body.style.overflow = lock ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [casting, castLeaving]);
+
+  // 仪式收束:盘面滚至视口中心(与幕布淡出、级联点亮同步进行)
+  useEffect(() => {
+    if (boardCue === 0) return;
+    const raf = requestAnimationFrame(() => {
+      boardWrapRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [boardCue]);
 
   // 挂载时恢复最近一次排盘生辰并自动出盘(档案「载入排盘」/刷新续排共用 ziwei-birth 契约)
   useEffect(() => {
@@ -182,12 +211,20 @@ export default function ChartPage() {
             <div
               className={[
                 "relative transition-[padding] duration-500",
-                selectedBranch != null ? "lg:pr-[376px]" : "",
+                // 让位量按视口计:抽屉固定于视口右缘(right-5 + 360px),
+                // 盘面右缘 = 抽屉左缘 - 20px 缝;宽屏下容器外边距抵扣让位,
+                // 不再出现「盘面过度左压、与抽屉之间大片空白」。
+                selectedBranch != null ? "lg:pr-[max(0px,calc(400px_-_(100vw_-_100%)/2))]" : "",
               ].join(" ")}
               style={{ transitionTimingFunction: "var(--ease-out)" }}
             >
               <div className="overflow-x-auto">
-                <div className="mx-auto min-w-[640px] max-w-[1120px]">
+                {/* key=boardCue:仪式收束时整盘重挂,十二宫级联与命宫点睛随之重放 */}
+                <div
+                  ref={boardWrapRef}
+                  key={boardCue}
+                  className={["mx-auto min-w-[640px] max-w-[1120px]", boardCue > 0 ? "board-focus" : ""].join(" ")}
+                >
                   <ChartBoard
                     chart={data.chart}
                     density={density}
@@ -217,16 +254,33 @@ export default function ChartPage() {
           <PatternsOverview patterns={data.patterns ?? []} onPatternHover={setHlPalaces} />
 
           {/* 运限断语:随时间轴选择的目标日期逐层生成(大限→流年→流月→流日→流时) */}
-          {horoReading && <HoroscopeReadingPanel reading={horoReading} />}
+          {horoReading && (
+            <div className="reveal">
+              <HoroscopeReadingPanel reading={horoReading} />
+            </div>
+          )}
 
-          {/* 多维断语:逐宫断语骨架(随盘而异,确定性) */}
-          {data.reading && <ReadingPanel reading={data.reading} />}
+          {/* 多维断语:逐宫断语骨架(随盘而异,确定性);
+              下方各分区与落地页同一套滚动聚焦节奏(reveal 渐进增强) */}
+          {data.reading && (
+            <div className="reveal">
+              <ReadingPanel reading={data.reading} />
+            </div>
+          )}
 
           {/* 事项择吉:选事项 → 利年/利月/利日(确定性) */}
-          {birth && <TimingPicker birth={birth} />}
+          {birth && (
+            <div className="reveal">
+              <TimingPicker birth={birth} />
+            </div>
+          )}
 
           {/* 四柱视角:八字附加层(可折叠) */}
-          {data.chart.siZhu && <SiZhuPanel siZhu={data.chart.siZhu} />}
+          {data.chart.siZhu && (
+            <div className="reveal">
+              <SiZhuPanel siZhu={data.chart.siZhu} />
+            </div>
+          )}
         </div>
       )}
 
@@ -241,6 +295,8 @@ export default function ChartPage() {
       )}
 
       {casting && <LuopanCast leaving={castLeaving} />}
+      {/* 收束光圈:幕布拉开瞬间光聚盘面,再徐徐散开(镜头交接) */}
+      {spot && <div className="cast-spot" aria-hidden />}
     </div>
   );
 }

@@ -9,27 +9,23 @@ import {
   divineAI,
   divineLiuYaoAI,
   fetchDivinationCredits,
-  RELATION_TONE,
-  TOSS_OPTIONS,
   DivinationError,
   type CastInput,
   type MeihuaResult,
-  type MeihuaJudgment,
-  type MeihuaRoleLore,
   type LiuYaoResult,
-  type LiuYaoJudgment,
 } from "@/lib/divination";
-import { ReportText } from "@/components/profiles/ReportText";
 import { HexagramView } from "@/components/divination/HexagramView";
 import { MeihuaCast } from "@/components/divination/MeihuaCast";
 import { LiuYaoCast } from "@/components/divination/LiuYaoCast";
 import { StepShake } from "@/components/divination/StepShake";
 import { LiuYaoPan } from "@/components/divination/LiuYaoPan";
-import { toneBadgeClass } from "@/components/divination/tone";
 import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
+import { CreditsBadge, MethodTab, NumField, TossEntry } from "./WorkbenchParts";
+import { TiYongCard, JudgeCard, JingWenCard, LiuYaoJudgeCard, LoreCard } from "./WorkbenchResultCards";
+import { AiSection, type AiErr } from "./WorkbenchAiSection";
 
 type Kind = "meihua" | "liuyao";
-type CastMethod = "time" | "number";
+type CastMethod = "time" | "number" | "zi";
 type LiuYaoMethod = "step" | "shake" | "tosses";
 
 const LY_METHOD_LABEL: Record<LiuYaoMethod, string> = {
@@ -38,15 +34,9 @@ const LY_METHOD_LABEL: Record<LiuYaoMethod, string> = {
   tosses: "手动报爻",
 };
 
-type AiErr =
-  | { kind: "unauth" }
-  | { kind: "no_credits" }
-  | { kind: "ai_unavailable" }
-  | { kind: "network"; message: string };
-
 const MAX_Q = 200;
-// 起卦动效总时长封顶(六爻六位落定稍长)
-const CAST_ANIM_MS: Record<Kind, number> = { meihua: 2600, liuyao: 2800 };
+// 起卦动效总时长封顶(与各仪式编排对齐:梅花≈3.4s,六爻≈3.2s)
+const CAST_ANIM_MS: Record<Kind, number> = { meihua: 3400, liuyao: 3200 };
 
 const KIND_META: Record<Kind, { eyebrow: string; title: string; sub: string; cta: string; casting: string; aiHint: string }> = {
   meihua: {
@@ -78,6 +68,8 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
   // 起卦输入
   const [question, setQuestion] = useState("");
   const [method, setMethod] = useState<CastMethod>("time");
+  const [ziText, setZiText] = useState(""); // 测字起卦:一或二个汉字
+  const [lyYong, setLyYong] = useState(""); // 六爻显式取用(空=按问辞自动识别)
   const [lyMethod, setLyMethod] = useState<LiuYaoMethod>("step");
   const [numA, setNumA] = useState("");
   const [numB, setNumB] = useState("");
@@ -101,6 +93,10 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
   const [aiError, setAiError] = useState<AiErr | null>(null);
 
   const resultRef = useRef<HTMLDivElement>(null);
+  const [resultCue, setResultCue] = useState(0); // 仪式收束→结果区聚焦归位(重放入场)
+  const [spot, setSpot] = useState(false); // 收束光圈:幕布落下时光聚结果区再散开
+  // 起卦纪元:每次起卦递增;迟到的 AI 解读若纪元已变,不得错挂到新卦上
+  const castEpoch = useRef(0);
 
   // 登录态同步 + 拉解卦次数
   useEffect(() => {
@@ -138,9 +134,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
     return n >= 1 && n <= 999 ? n : null;
   };
 
+  const ziValid = /^[\u4e00-\u9fff]{1,2}$/.test(ziText.trim());
   const inputsValid =
     kind === "meihua"
-      ? method === "time" || (validNum(numA) !== null && validNum(numB) !== null)
+      ? method === "time" ||
+        (method === "zi" ? ziValid : validNum(numA) !== null && validNum(numB) !== null)
       : lyMethod !== "tosses" || lyTosses.every((t) => t !== null);
   const canCast = question.trim().length > 0 && inputsValid && !casting;
   // 逐爻摇卦由 StepShake 自带掷爻按钮驱动,主 CTA 隐藏
@@ -165,6 +163,7 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       return;
     }
 
+    castEpoch.current += 1;
     setCasting(true);
     setCastError(null);
     setReading(null);
@@ -174,10 +173,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
     const startedAt = Date.now();
     try {
       if (kind === "liuyao") {
+        const yong = lyYong || undefined;
         const input =
           lyMethod === "tosses"
-            ? { method: "tosses" as const, tosses: lyTosses.map((t) => t ?? 0), question: q }
-            : { method: "shake" as const, question: q };
+            ? { method: "tosses" as const, tosses: lyTosses.map((t) => t ?? 0), question: q, yongShen: yong }
+            : { method: "shake" as const, question: q, yongShen: yong };
         const { result: r, castAt: at, recordId } = await castLiuYao(input);
         const wait = (reduced ? 0 : CAST_ANIM_MS.liuyao) - (Date.now() - startedAt);
         if (wait > 0) await new Promise((res) => setTimeout(res, wait));
@@ -186,7 +186,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         setLyRecordId(recordId ?? null);
       } else {
         const input: CastInput =
-          method === "number" ? { method: "number", numbers, question: q } : { method: "time", question: q };
+          method === "number"
+            ? { method: "number", numbers, question: q }
+            : method === "zi"
+              ? { method: "zi", ziText: ziText.trim(), question: q }
+              : { method: "time", question: q };
         const { result: r, castAt: at, recordId } = await castMeihua(input);
         const wait = (reduced ? 0 : CAST_ANIM_MS.meihua) - (Date.now() - startedAt);
         if (wait > 0) await new Promise((res) => setTimeout(res, wait));
@@ -195,6 +199,12 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         setCastNumbers(numbers ?? null);
         setMhRecordId(recordId ?? null);
       }
+      // 仪式收束镜头交接(与排盘罗盘同套):光圈聚拢结果区,结果自微放归位
+      setResultCue((c) => c + 1);
+      if (!reduced) {
+        setSpot(true);
+        setTimeout(() => setSpot(false), 1100);
+      }
     } catch (e) {
       if (kind === "liuyao") setLyResult(null);
       else setResult(null);
@@ -202,22 +212,24 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
     } finally {
       setCasting(false);
     }
-  }, [question, kind, method, lyMethod, numA, numB, lyTosses, casting]);
+  }, [question, kind, method, lyMethod, numA, numB, lyTosses, casting, ziText, lyYong]);
 
   // 逐爻摇卦完成:按六掷记录装卦(每掷动画即仪式,不再叠加整体动效)
   const castStep = useCallback(
     async (tosses: number[]) => {
       const q = question.trim();
       if (!q || casting) return;
+      castEpoch.current += 1;
       setCasting(true);
       setCastError(null);
       setReading(null);
       setAiError(null);
       try {
-        const { result: r, castAt: at, recordId } = await castLiuYao({ method: "tosses", tosses, question: q });
+        const { result: r, castAt: at, recordId } = await castLiuYao({ method: "tosses", tosses, question: q, yongShen: lyYong || undefined });
         setLyResult(r);
         setLyCastAt(at);
         setLyRecordId(recordId ?? null);
+        setResultCue((c) => c + 1); // 逐爻仪式在掷钱本身,收束只做归位不加光圈
       } catch (e) {
         setLyResult(null);
         setCastError(e instanceof DivinationError ? e.message : "起卦失败,请重试");
@@ -225,11 +237,12 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
         setCasting(false);
       }
     },
-    [question, casting],
+    [question, casting, lyYong],
   );
 
   const divine = useCallback(async () => {
     if (aiLoading) return;
+    const epoch = castEpoch.current; // 解读只属于此刻所见之卦
     setAiError(null);
     setReading(null);
     setAiLoading(true);
@@ -244,23 +257,30 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           castAt: lyCastAt,
           question: q,
           recordId: lyRecordId ?? undefined,
+          yongShen: lyResult.yongShenOverride || undefined, // 快照:与所见同一取用
         });
+        if (epoch !== castEpoch.current) return;
         setReading(rd.text);
         setCredits(remainingCredits);
       } else {
         if (!result) return;
         const q = result.question ?? question.trim();
         if (!q) return;
-        // 关键契约:回传与所见「同一卦」——时间卦传 castAt,数字卦传 numbers。
+        // 关键契约:回传与所见「同一卦」——castAt 一律回传(卦气旺衰随月令走,
+        // 数字卦卦象虽由数定,断层力度仍锚定起卦时刻);数字卦另传同组 numbers。
         const input: CastInput & { question: string; recordId?: string } =
           result.method === "number"
-            ? { method: "number", numbers: castNumbers ?? result.numbers, question: q, recordId: mhRecordId ?? undefined }
-            : { method: "time", castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined };
+            ? { method: "number", numbers: castNumbers ?? result.numbers, castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined }
+            : result.method === "zi"
+              ? { method: "zi", ziText: result.ziText, castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined }
+              : { method: "time", castAt: castAt ?? undefined, question: q, recordId: mhRecordId ?? undefined };
         const { reading: rd, remainingCredits } = await divineAI(input);
+        if (epoch !== castEpoch.current) return;
         setReading(rd.text);
         setCredits(remainingCredits);
       }
     } catch (e) {
+      if (epoch !== castEpoch.current) return; // 旧卦的失败不打扰新卦
       if (e instanceof DivinationError) {
         if (e.status === 401) setAiError({ kind: "unauth" });
         else if (e.status === 402 || e.code === "no_credits") {
@@ -328,7 +348,25 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
               <div className="flex flex-wrap gap-2">
                 <MethodTab active={method === "time"} onClick={() => setMethod("time")} title="以此时起卦" hint="时间卦 · 主推" />
                 <MethodTab active={method === "number"} onClick={() => setMethod("number")} title="报数起卦" hint="两数 1-999" />
+                <MethodTab active={method === "zi"} onClick={() => setMethod("zi")} title="测字起卦" hint="一或两字 · 端法" />
               </div>
+              {method === "zi" && (
+                <div className="mt-4 flex items-center gap-3">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[12px] text-ink-faint">心中所感之字(一或二字)</span>
+                    <input
+                      value={ziText}
+                      onChange={(e) => setZiText(e.target.value.slice(0, 2))}
+                      placeholder="如「梅」或「转职」"
+                      maxLength={2}
+                      className="w-40 rounded-[6px] bg-bg px-4 py-3 text-center font-display text-[22px] tracking-[0.3em] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-[14px] placeholder:tracking-normal placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                    />
+                  </label>
+                  <p className="mt-5 max-w-[220px] text-[11px] leading-relaxed text-ink-faint">
+                    一字:字画起上卦,加时辰配下卦;两字:两仪平分。笔画依 Unihan 简体。
+                  </p>
+                </div>
+              )}
               {method === "number" && (
                 <div className="mt-4 flex items-center gap-3">
                   <NumField label="上卦数" value={numA} onChange={setNumA} />
@@ -345,6 +383,36 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
                 <MethodTab active={lyMethod === "step"} onClick={() => setLyMethod("step")} title="逐爻摇卦" hint="铜钱六掷 · 主推" />
                 <MethodTab active={lyMethod === "shake"} onClick={() => setLyMethod("shake")} title="一键摇卦" hint="六爻齐落" />
                 <MethodTab active={lyMethod === "tosses"} onClick={() => setLyMethod("tosses")} title="手动报爻" hint="自摇铜钱按爻录入" />
+              </div>
+              {/* 所占之人事(定用神):问者自陈优先于问辞推断——用神为断卦之纲 */}
+              <div className="mt-5">
+                <p className="mb-2 text-[12px] font-medium tracking-[0.08em] text-gold">所占之人事(定用神)</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {([
+                    ["", "自动识别"],
+                    ["世爻", "问自己"],
+                    ["妻财", "求财 · 问妻"],
+                    ["官鬼", "官职官司 · 问夫"],
+                    ["父母", "文书屋宅 · 问长辈"],
+                    ["子孙", "子女解忧"],
+                    ["兄弟", "朋友同辈"],
+                  ] as const).map(([v, label]) => (
+                    <button
+                      key={v || "auto"}
+                      type="button"
+                      aria-pressed={lyYong === v}
+                      onClick={() => setLyYong(v)}
+                      className={[
+                        "rounded-[4px] px-2.5 py-1 text-[12px] transition-colors",
+                        lyYong === v
+                          ? "bg-[var(--gold-glow)] font-medium text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+                          : "bg-bg text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] hover:text-ink",
+                      ].join(" ")}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               {lyMethod === "step" && (
                 <StepShake
@@ -383,9 +451,13 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       {/* ── 起卦动效(逐爻摇卦的仪式在掷钱本身,不再叠加) ── */}
       {casting && (kind === "liuyao" ? (lyMethod === "step" ? null : <LiuYaoCast />) : <MeihuaCast />)}
 
-      {/* ── 卦象展示 ── */}
+      {/* ── 卦象展示(key=resultCue:收束时整区重挂,聚焦归位重放) ── */}
       {kind === "meihua" && result && !casting && (
-        <div ref={resultRef} className="page-enter mt-12 scroll-mt-20">
+        <div
+          ref={resultRef}
+          key={`mh-${resultCue}`}
+          className={["page-enter mt-12 scroll-mt-20", resultCue > 0 ? "board-focus" : ""].join(" ")}
+        >
           {/* 起卦信息 */}
           <div className="flex flex-col gap-2">
             <div className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
@@ -399,13 +471,13 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
             )}
           </div>
 
-          {/* 本卦(大) */}
-          <div className="mt-8 flex justify-center rounded-[10px] bg-bg-raised px-4 py-8 shadow-[0_0_0_1px_var(--line)]">
+          {/* 本卦(大);结果区各块与全站同套滚动聚焦节奏(reveal 渐进增强) */}
+          <div className="reveal mt-8 flex justify-center rounded-[10px] bg-bg-raised px-4 py-8 shadow-[0_0_0_1px_var(--line)]">
             <HexagramView hexagram={result.ben} moving={result.moving} label="本卦" emphasis />
           </div>
 
           {/* 互卦 / 变卦 */}
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="reveal mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex justify-center rounded-[10px] bg-bg-raised px-4 py-7 shadow-[0_0_0_1px_var(--line)]">
               <HexagramView hexagram={result.hu} moving={0} label="互卦" />
             </div>
@@ -416,25 +488,37 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
 
           {/* 周易经文(公版卦辞) */}
           {result.ben.guaCi && (
-            <JingWenCard
-              rows={[
-                { label: `本卦 ${result.ben.name}`, text: result.ben.guaCi },
-                ...(result.bian.guaCi ? [{ label: `变卦 ${result.bian.name}`, text: result.bian.guaCi }] : []),
-              ]}
-            />
+            <div className="reveal">
+              <JingWenCard
+                rows={[
+                  { label: `本卦 ${result.ben.name}`, text: result.ben.guaCi },
+                  ...(result.bian.guaCi ? [{ label: `变卦 ${result.bian.name}`, text: result.bian.guaCi }] : []),
+                ]}
+              />
+            </div>
           )}
 
           {/* 体用生克 */}
-          <TiYongCard result={result} />
+          <div className="reveal">
+            <TiYongCard result={result} />
+          </div>
 
           {/* 断卦骨架(确定性:卦气旺衰/体党用党/互变分层/事类/应期) */}
-          {result.judgment && <JudgeCard j={result.judgment} />}
+          {result.judgment && (
+            <div className="reveal">
+              <JudgeCard j={result.judgment} />
+            </div>
+          )}
 
           {/* 万物类象(体/用/变取象) */}
-          {result.lore && result.lore.length > 0 && <LoreCard lore={result.lore} />}
+          {result.lore && result.lore.length > 0 && (
+            <div className="reveal">
+              <LoreCard lore={result.lore} />
+            </div>
+          )}
 
           {/* ── AI 深度解卦 ── */}
-          <div className="mt-8">
+          <div className="reveal mt-8">
             <AiSection
               signedIn={signedIn}
               credits={credits}
@@ -451,7 +535,11 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
       )}
 
       {kind === "liuyao" && lyResult && !casting && (
-        <div ref={resultRef} className="page-enter mt-12 scroll-mt-20">
+        <div
+          ref={resultRef}
+          key={`ly-${resultCue}`}
+          className={["page-enter mt-12 scroll-mt-20", resultCue > 0 ? "board-focus" : ""].join(" ")}
+        >
           {/* 起卦信息 */}
           <div className="flex flex-col gap-2">
             <div className="tnum flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] tracking-[0.06em] text-ink-faint">
@@ -463,30 +551,36 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
             )}
           </div>
 
-          {/* 装卦盘面 */}
-          <div className="mt-8">
+          {/* 装卦盘面;结果区各块与全站同套滚动聚焦节奏(reveal 渐进增强) */}
+          <div className="reveal mt-8">
             <LiuYaoPan result={lyResult} />
           </div>
 
           {/* 周易经文:本卦辞/动爻爻辞/变卦辞(公版) */}
           {lyResult.jingWen && (
-            <JingWenCard
-              rows={[
-                { label: `本卦 ${lyResult.benName}`, text: lyResult.jingWen.benGuaCi },
-                ...(lyResult.jingWen.yaoCi ?? []).map((yc) => ({ label: "动爻", text: yc, strong: true })),
-                ...(lyResult.jingWen.yong ? [{ label: "六爻皆动", text: lyResult.jingWen.yong, strong: true }] : []),
-                ...(lyResult.jingWen.bianGuaCi && lyResult.bianName
-                  ? [{ label: `变卦 ${lyResult.bianName}`, text: lyResult.jingWen.bianGuaCi }]
-                  : []),
-              ]}
-            />
+            <div className="reveal">
+              <JingWenCard
+                rows={[
+                  { label: `本卦 ${lyResult.benName}`, text: lyResult.jingWen.benGuaCi },
+                  ...(lyResult.jingWen.yaoCi ?? []).map((yc) => ({ label: "动爻", text: yc, strong: true })),
+                  ...(lyResult.jingWen.yong ? [{ label: "六爻皆动", text: lyResult.jingWen.yong, strong: true }] : []),
+                  ...(lyResult.jingWen.bianGuaCi && lyResult.bianName
+                    ? [{ label: `变卦 ${lyResult.bianName}`, text: lyResult.jingWen.bianGuaCi }]
+                    : []),
+                ]}
+              />
+            </div>
           )}
 
           {/* 确定性断语骨架(免费层) */}
-          {lyResult.judgment && <LiuYaoJudgeCard j={lyResult.judgment} xingZhi={lyResult.benXingZhi} />}
+          {lyResult.judgment && (
+            <div className="reveal">
+              <LiuYaoJudgeCard j={lyResult.judgment} xingZhi={lyResult.benXingZhi} />
+            </div>
+          )}
 
           {/* ── AI 深度解卦 ── */}
-          <div className="mt-8">
+          <div className="reveal mt-8">
             <AiSection
               signedIn={signedIn}
               credits={credits}
@@ -501,469 +595,9 @@ export function DivinationWorkbench({ kind, homePath }: { kind: Kind; homePath: 
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-/** 剩余解卦次数徽标。 */
-function CreditsBadge({ credits }: { credits: number | null }) {
-  if (credits == null) return null;
-  if (credits <= 0) {
-    return (
-      <Link
-        href="/pricing"
-        className="tnum inline-flex items-center rounded-[2px] px-2 py-1 text-[12px] tracking-[0.08em] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)] transition-colors hover:bg-bg-raised"
-      >
-        解卦次数不足 · 去购买
-      </Link>
-    );
-  }
-  return (
-    <span className="tnum inline-flex items-center rounded-[2px] px-2 py-1 text-[12px] tracking-[0.08em] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
-      解卦剩余 {credits} 次
-    </span>
-  );
-}
-
-/** 起卦方式分段项。 */
-function MethodTab({
-  active,
-  onClick,
-  title,
-  hint,
-}: {
-  active: boolean;
-  onClick: () => void;
-  title: string;
-  hint: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={[
-        "flex min-h-[44px] flex-col items-start gap-0.5 rounded-[6px] px-4 py-2.5 text-left transition-shadow",
-        active
-          ? "bg-[var(--gold-glow)] shadow-[inset_0_0_0_1px_var(--gold-dim)]"
-          : "bg-bg shadow-[inset_0_0_0_1px_var(--line)] hover:shadow-[inset_0_0_0_1px_var(--line-strong)]",
-      ].join(" ")}
-    >
-      <span className={`text-[14px] font-medium ${active ? "text-gold" : "text-ink"}`}>{title}</span>
-      <span className="text-[11px] text-ink-faint">{hint}</span>
-    </button>
-  );
-}
-
-/** 报数输入(1-999,仅数字)。 */
-function NumField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] text-ink-faint">{label}</span>
-      <input
-        type="text"
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 3))}
-        placeholder="1-999"
-        className="tnum w-24 rounded-[6px] bg-bg px-3 py-2.5 text-center text-[16px] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
-      />
-    </label>
-  );
-}
-
-const YAO_NAMES = ["初爻", "二爻", "三爻", "四爻", "五爻", "上爻"];
-
-/** 六爻报爻录入:初爻在上(先摇先录),每爻四选一(背面数)。 */
-function TossEntry({ tosses, onChange }: { tosses: (number | null)[]; onChange: (t: (number | null)[]) => void }) {
-  const set = (i: number, backs: number) => {
-    const next = [...tosses];
-    next[i] = backs;
-    onChange(next);
-  };
-  return (
-    <div className="mt-4 flex flex-col gap-2">
-      <p className="text-[12px] leading-relaxed text-ink-faint">
-        以三枚铜钱自摇六次,自初爻起逐次录入每掷的背面枚数(字面朝上不计)。
-      </p>
-      {YAO_NAMES.map((name, i) => (
-        <div key={name} className="flex items-center gap-2.5">
-          <span className="w-9 shrink-0 text-[12px] text-ink-secondary">{name}</span>
-          <div className="flex flex-1 flex-wrap gap-1.5">
-            {TOSS_OPTIONS.map((opt) => {
-              const active = tosses[i] === opt.backs;
-              return (
-                <button
-                  key={opt.backs}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => set(i, opt.backs)}
-                  className={[
-                    "flex min-h-[38px] flex-col items-center justify-center rounded-[4px] px-2.5 py-1 transition-shadow",
-                    active
-                      ? "bg-[var(--gold-glow)] shadow-[inset_0_0_0_1px_var(--gold-dim)]"
-                      : "bg-bg shadow-[inset_0_0_0_1px_var(--line)] hover:shadow-[inset_0_0_0_1px_var(--line-strong)]",
-                  ].join(" ")}
-                >
-                  <span className={`text-[12px] leading-tight ${active ? "text-gold" : "text-ink"}`}>{opt.label}</span>
-                  <span className="text-[10px] leading-tight text-ink-faint">{opt.hint}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** 体用生克卡。 */
-function TiYongCard({ result }: { result: MeihuaResult }) {
-  const rel = RELATION_TONE[result.relation];
-  return (
-    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
-      <p className="text-[12px] font-medium tracking-[0.24em] text-gold">体用生克</p>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <TiYongCell
-          role="体"
-          position={result.tiIsUpper ? "上卦" : "下卦"}
-          trigram={result.tiTrigram.name}
-          element={result.tiTrigram.element}
-        />
-        <TiYongCell
-          role="用"
-          position={result.tiIsUpper ? "下卦" : "上卦"}
-          trigram={result.yongTrigram.name}
-          element={result.yongTrigram.element}
-        />
-      </div>
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <span
-          className={`inline-flex items-center rounded-[2px] px-2.5 py-1 text-[13px] font-medium tracking-[0.06em] ${toneBadgeClass(
-            rel.tone,
-          )}`}
-        >
-          {rel.label}
-        </span>
-        <p className="flex-1 text-[14px] leading-relaxed text-ink-secondary">{result.verdict}</p>
-      </div>
-    </div>
-  );
-}
-
-function TiYongCell({
-  role,
-  position,
-  trigram,
-  element,
-}: {
-  role: string;
-  position: string;
-  trigram: string;
-  element: string;
-}) {
-  return (
-    <div className="flex flex-col gap-1 rounded-[6px] bg-bg px-4 py-4 shadow-[inset_0_0_0_1px_var(--line)]">
-      <span className="text-[11px] tracking-[0.1em] text-ink-faint">
-        {role} · {position}
-      </span>
-      <div className="flex items-baseline gap-2">
-        <span className="font-display text-[25px] font-semibold text-ink">{trigram}</span>
-        <span className="text-[13px] text-ink-secondary">五行 · {element}</span>
-      </div>
-    </div>
-  );
-}
-
-/** AI 深度解卦区:登录/次数/加载/错误/结果分态。 */
-function AiSection({
-  signedIn,
-  credits,
-  loading,
-  reading,
-  error,
-  hint,
-  archived,
-  homePath,
-  onDivine,
-}: {
-  signedIn: boolean | null;
-  credits: number | null;
-  loading: boolean;
-  reading: string | null;
-  error: AiErr | null;
-  hint: string;
-  archived?: boolean;
-  homePath: string;
-  onDivine: () => void;
-}) {
-  // 已出结果
-  if (reading != null && !loading) {
-    return (
-      <article className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)] md:px-10 md:py-10">
-        <p className="mb-5 text-[12px] font-medium tracking-[0.24em] text-gold">AI 深度解卦</p>
-        <ReportText text={reading} />
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {credits != null && <span className="tnum text-[12px] text-ink-faint">解卦剩余 {credits} 次</span>}
-            {archived && (
-              <Link href="/divinations" className="text-[12px] text-gold transition-opacity hover:opacity-80">
-                已存入卦档 · 查看
-              </Link>
-            )}
-          </span>
-          <span className="text-[11px] leading-relaxed text-ink-faint">占卜为传统文化参考,不构成决策建议。</span>
-        </div>
-      </article>
-    );
-  }
-
-  // 加载骨架(解卦较慢,>20s 常见)
-  if (loading) {
-    return (
-      <div
-        className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)]"
-        role="status"
-        aria-label="AI 正在解卦"
-      >
-        <div className="h-4 w-24 animate-pulse rounded-[2px] bg-line" aria-hidden />
-        <div className="mt-5 flex flex-col gap-3">
-          {[94, 100, 86, 96, 72].map((w, i) => (
-            <div key={i} className="h-4 animate-pulse rounded-[2px] bg-line" style={{ width: `${w}%` }} aria-hidden />
-          ))}
-        </div>
-        <p className="mt-6 text-[12px] text-ink-faint">AI 正在依卦象逐层解读,通常需 20 秒以上,请勿离开…</p>
-      </div>
-    );
-  }
-
-  // 错误分态
-  if (error) {
-    if (error.kind === "unauth") {
-      return (
-        <PromptBar tone="gold" text="登录后即可 AI 深度解卦。" action={{ href: `/login?next=${homePath}`, label: "去登录" }} />
-      );
-    }
-    if (error.kind === "no_credits") {
-      return (
-        <PromptBar tone="gold" text="解卦次数不足,购买次卡后再试。" action={{ href: "/pricing", label: "去购买" }} />
-      );
-    }
-    if (error.kind === "ai_unavailable") {
-      return <PromptBar tone="warn" text="AI 服务暂不可用,本次未扣次数,请稍后再试。" retry={onDivine} />;
-    }
-    return <PromptBar tone="danger" text={error.message || "解卦失败,请重试。"} retry={onDivine} />;
-  }
-
-  // 初始:登录 / 次数 / 解卦按钮(本区唯一金色辉光主 CTA)
-  if (signedIn === false) {
-    return (
-      <Link
-        href={`/login?next=${homePath}`}
-        className="glow-gold inline-flex min-h-[48px] w-full items-center justify-center rounded-[6px] bg-gold px-7 py-3 text-[16px] font-medium text-[#161206] transition-colors hover:bg-gold-bright sm:w-auto"
-      >
-        登录后 AI 深度解卦
-      </Link>
-    );
-  }
-  if (signedIn && credits === 0) {
-    return <PromptBar tone="gold" text="解卦次数不足,购买次卡后即可深度解卦。" action={{ href: "/pricing", label: "去购买" }} />;
-  }
-  return (
-    <div className="flex flex-col items-start gap-2.5">
-      <button
-        type="button"
-        onClick={onDivine}
-        className="glow-gold inline-flex min-h-[48px] w-full items-center justify-center rounded-[6px] bg-gold px-7 py-3 text-[16px] font-medium text-[#161206] transition-colors hover:bg-gold-bright sm:w-auto"
-      >
-        AI 深度解卦(消耗 1 次)
-      </button>
-      <p className="text-[12px] text-ink-faint">
-        {hint}
-        {credits != null ? `,当前剩余 ${credits} 次` : ""}。
-      </p>
-    </div>
-  );
-}
-
-/** 提示条:登录/购买/重试。 */
-function PromptBar({
-  tone,
-  text,
-  action,
-  retry,
-}: {
-  tone: "gold" | "warn" | "danger";
-  text: string;
-  action?: { href: string; label: string };
-  retry?: () => void;
-}) {
-  const ring =
-    tone === "gold"
-      ? "shadow-[inset_0_0_0_1px_var(--gold-dim)]"
-      : tone === "warn"
-        ? "shadow-[inset_0_0_0_1px_var(--warn)]"
-        : "shadow-[inset_0_0_0_1px_var(--danger)]";
-  const textColor = tone === "gold" ? "text-ink-secondary" : tone === "warn" ? "text-warn" : "text-danger";
-  return (
-    <div className={`flex flex-wrap items-center justify-between gap-3 rounded-[6px] bg-bg-raised px-4 py-3 ${ring}`}>
-      <p className={`text-[14px] ${textColor}`}>{text}</p>
-      {action && (
-        <Link
-          href={action.href}
-          className="inline-flex min-h-[44px] shrink-0 items-center rounded-[6px] bg-gold px-4 py-2 text-[14px] font-medium text-[#161206] transition-colors hover:bg-gold-bright"
-        >
-          {action.label}
-        </Link>
-      )}
-      {retry && (
-        <button
-          type="button"
-          onClick={retry}
-          className="inline-flex min-h-[44px] shrink-0 items-center rounded-[6px] bg-bg px-4 py-2 text-[14px] text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)] transition-colors hover:text-ink"
-        >
-          重试
-        </button>
-      )}
-    </div>
-  );
-}
-
-const JUDGE_LEVEL: Record<string, { label: string; cls: string }> = {
-  good: { label: "吉", cls: "text-ok shadow-[inset_0_0_0_1px_var(--ok)]" },
-  neutral: { label: "平", cls: "text-ink-secondary shadow-[inset_0_0_0_1px_var(--line-strong)]" },
-  caution: { label: "慎", cls: "text-danger shadow-[inset_0_0_0_1px_var(--danger)]" },
-};
-
-/** 断卦骨架卡:《梅花易数·体用总诀》确定性推演(卦气/体党/互变/事类/应期)。 */
-function JudgeCard({ j }: { j: MeihuaJudgment }) {
-  const lv = JUDGE_LEVEL[j.level] ?? JUDGE_LEVEL.neutral;
-  return (
-    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">断卦 · 体用总诀</p>
-        <span className="flex items-center gap-2">
-          <span className="text-[11px] text-ink-faint">体气【{j.tiQi}】· 所问【{j.topic}】</span>
-          <span className={`rounded-[3px] px-1.5 py-0.5 text-[11px] leading-none ${lv.cls}`}>{lv.label}</span>
-        </span>
-      </div>
-      <p className="mt-4 font-reading text-[16px] leading-[1.9] text-ink">{j.conclusion}</p>
-      <ul className="mt-4 flex flex-col gap-2.5 border-t border-line pt-4">
-        {j.points.map((pt, i) => (
-          <li key={i} className="flex gap-2 text-[14px] leading-relaxed text-ink-secondary">
-            <span aria-hidden className="mt-[9px] h-[3px] w-[3px] shrink-0 rounded-full bg-gold-dim" />
-            {pt}
-          </li>
-        ))}
-      </ul>
-      <p className="mt-4 rounded-[6px] bg-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
-        {j.yingQi}
-      </p>
-    </div>
-  );
-}
-
-/** 周易经文卡:卦辞与动爻爻辞(维基文库公版通行本,动爻辞加粗为断卦要义)。 */
-function JingWenCard({ rows }: { rows: { label: string; text: string; strong?: boolean }[] }) {
-  return (
-    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">周易经文</p>
-        <span className="text-[11px] text-ink-faint">通行本原文 · 公版</span>
-      </div>
-      <dl className="mt-4 flex flex-col gap-2.5">
-        {rows.map((row, i) => (
-          <div key={i} className="flex flex-col gap-0.5 sm:flex-row sm:gap-3">
-            <dt className="shrink-0 text-[12px] leading-[1.9] tracking-[0.06em] text-ink-faint sm:w-24">
-              {row.label}
-            </dt>
-            <dd
-              className={`font-reading text-[15px] leading-[1.9] ${row.strong ? "font-medium text-ink" : "text-ink-secondary"}`}
-            >
-              {row.text}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
-}
-
-/** 六爻断卦骨架卡:用神旺衰/伏神/卦性/动变/世应/应期确定性推演(免费层)。 */
-function LiuYaoJudgeCard({ j, xingZhi }: { j: LiuYaoJudgment; xingZhi?: string }) {
-  const lv = JUDGE_LEVEL[j.level] ?? JUDGE_LEVEL.neutral;
-  // 应期已单独落底部框,列表内滤重
-  const points = j.points.filter((pt) => !pt.startsWith("应期:"));
-  return (
-    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">断卦 · 用神旺衰</p>
-        <span className="flex items-center gap-2">
-          {xingZhi && <span className="text-[11px] text-ink-faint">本卦【{xingZhi}】</span>}
-          <span className={`rounded-[3px] px-1.5 py-0.5 text-[11px] leading-none ${lv.cls}`}>{lv.label}</span>
-        </span>
-      </div>
-      <p className="mt-4 font-reading text-[16px] leading-[1.9] text-ink">{j.conclusion}</p>
-      {points.length > 0 && (
-        <ul className="mt-4 flex flex-col gap-2.5 border-t border-line pt-4">
-          {points.map((pt, i) => (
-            <li key={i} className="flex gap-2 text-[14px] leading-relaxed text-ink-secondary">
-              <span aria-hidden className="mt-[9px] h-[3px] w-[3px] shrink-0 rounded-full bg-gold-dim" />
-              {pt}
-            </li>
-          ))}
-        </ul>
-      )}
-      {j.yingQi && (
-        <p className="mt-4 rounded-[6px] bg-bg px-3.5 py-2.5 text-[13px] leading-relaxed text-ink-secondary shadow-[inset_0_0_0_1px_var(--line)]">
-          应期:{j.yingQi}
-        </p>
-      )}
-    </div>
-  );
-}
-
-const LORE_ROWS: { key: keyof Omit<MeihuaRoleLore, "role" | "name">; label: string }[] = [
-  { key: "renlun", label: "人物" },
-  { key: "shenti", label: "身体" },
-  { key: "jingwu", label: "器物" },
-  { key: "fangwei", label: "方位" },
-  { key: "xing", label: "性情" },
-];
-
-/** 万物类象卡:体/用/变三角色卦的邵子类占速查(断辞落到具体人事物)。 */
-function LoreCard({ lore }: { lore: MeihuaRoleLore[] }) {
-  return (
-    <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
-      <div className="flex items-baseline justify-between">
-        <p className="text-[12px] font-medium tracking-[0.24em] text-gold">万物类象</p>
-        <span className="text-[11px] text-ink-faint">邵子八卦类占义 · 取象参考</span>
-      </div>
-      {/* Tailwind 类须静态可析,按数量映射 */}
-      <div
-        className={`mt-4 grid grid-cols-1 gap-3 ${
-          lore.length >= 3 ? "sm:grid-cols-3" : lore.length === 2 ? "sm:grid-cols-2" : ""
-        }`}
-      >
-        {lore.map((l) => (
-          <div key={l.role + l.name} className="rounded-[6px] bg-bg px-4 py-4 shadow-[inset_0_0_0_1px_var(--line)]">
-            <div className="flex items-baseline gap-2">
-              <span className="rounded-[2px] px-1.5 py-0.5 text-[10px] tracking-[0.08em] text-gold shadow-[inset_0_0_0_1px_var(--gold-dim)]">
-                {l.role}
-              </span>
-              <span className="font-display text-[19px] font-semibold text-ink">{l.name}</span>
-            </div>
-            <dl className="mt-3 flex flex-col gap-1.5">
-              {LORE_ROWS.map((row) => (
-                <div key={row.key} className="flex gap-2 text-[12.5px] leading-relaxed">
-                  <dt className="shrink-0 text-ink-faint">{row.label}</dt>
-                  <dd className="text-ink-secondary">{l[row.key]}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ))}
-      </div>
+      {/* 收束光圈:仪式幕布落下时光聚结果区再徐徐散开(镜头交接) */}
+      {spot && <div className="cast-spot" aria-hidden />}
     </div>
   );
 }

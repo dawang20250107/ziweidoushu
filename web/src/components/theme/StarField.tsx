@@ -82,17 +82,21 @@ export function StarField() {
       last = now;
       ctx!.clearRect(0, 0, w, h);
 
+      // 滚动视差:远层随滚动轻移、近层稍多,全站滚动即有星空纵深
+      const sy = reduced ? 0 : window.scrollY;
       const t = now / 1000;
       for (const s of stars) {
         if (!reduced) {
           s.x += s.drift * dt;
           if (s.x > 1.002) s.x = -0.002;
         }
+        const far = s.r < 0.9;
+        const py = (((s.y * h - sy * (far ? 0.05 : 0.11)) % (h + 8)) + h + 8) % (h + 8) - 4;
         const tw = reduced ? 1 : 0.72 + 0.28 * Math.sin(t * s.speed + s.phase);
         ctx!.globalAlpha = s.base * tw;
         ctx!.fillStyle = s.gold ? "#d9b36c" : "#cdd6f0";
         ctx!.beginPath();
-        ctx!.arc(s.x * w, s.y * h, s.r, 0, Math.PI * 2);
+        ctx!.arc(s.x * w, py, s.r, 0, Math.PI * 2);
         ctx!.fill();
       }
 

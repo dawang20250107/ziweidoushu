@@ -3,10 +3,11 @@
 import { createPortal } from "react-dom";
 
 /**
- * 梅花起卦全屏仪式(对标紫微罗盘盛典),约 2.6s:
- *   ①墨幕落下,太极旋入盘心缓转 → ②先天八卦环显形环转 →
- *   ③六道爻画自下而上逐一凝定(阴阳闪烁而后定形,金芒缀之) →
- *   ④「卦成」金字收束。步进字幕:心动而占 → 数起于时 → 卦成。
+ * 梅花起卦全屏仪式(盛典版),约 3.4s:
+ *   ①墨幕落下,梅瓣自四野飘旋汇入盘心(观梅之意)→ ②太极旋入、
+ *   先天八卦环显形环转 → ③击盘脉冲,六道爻画自下而上逐一凝定 →
+ *   ④动爻金脉冲点睛 → ⑤远环震荡、金芒一闪、「卦成」收束。
+ * 字幕:心动而占 → 观梅取数 → 定动爻 → 卦成。
  * 经 createPortal 挂 body,任何祖先 transform 无法劫持 fixed 定位;
  * prefers-reduced-motion 下动画全停(内容静置,请求本就快)。
  * 仅为仪式装饰:爻序为固定纹样,真实卦象由服务端起卦后揭示。
@@ -14,6 +15,20 @@ import { createPortal } from "react-dom";
 
 const BAGUA = ["☰", "☴", "☵", "☶", "☷", "☳", "☲", "☱"]; // 先天卦序环布
 const DECOR = [true, false, true, true, false, true]; // 装饰爻序(自下而上)
+const MOVING_YAO = 2; // 装饰动爻位(第三爻,金脉冲点睛)
+
+/** 梅瓣:黄金角散布全屏,自四野旋入盘心(确定性方位/延迟)。 */
+const PETALS = Array.from({ length: 16 }, (_, i) => {
+  const a = (i * 137.5 * Math.PI) / 180;
+  const d = 36 + (i % 5) * 8;
+  return {
+    dx: (Math.cos(a) * d).toFixed(1),
+    dy: (Math.sin(a) * d).toFixed(1),
+    delay: ((i % 8) * 0.09).toFixed(2),
+    rot: (i * 137.5) % 360 | 0,
+    big: i % 3 === 0,
+  };
+});
 
 export function MeihuaCast() {
   const R = 150;
@@ -28,7 +43,7 @@ export function MeihuaCast() {
     >
       <style>{`
         @keyframes mh-in { from { opacity: 0; } to { opacity: 1; } }
-        .mh-stage { animation: mh-in 300ms var(--ease-out) both; }
+        .mh-stage { animation: mh-in 300ms var(--ease-out) both, mh-quake 0.45s 1.15s var(--ease-out) both; }
         @keyframes mh-spin { to { transform: rotate(360deg); } }
         @keyframes mh-taiji-in {
           from { opacity: 0; transform: scale(0.5) rotate(-90deg); }
@@ -60,23 +75,97 @@ export function MeihuaCast() {
           from { opacity: 0; transform: scale(0.85); letter-spacing: 0.12em; }
           to { opacity: 1; transform: scale(1); letter-spacing: 0.46em; }
         }
-        @keyframes mh-flash { 0% { opacity: 0; } 45% { opacity: 0.26; } 100% { opacity: 0; } }
+        @keyframes mh-flash { 0% { opacity: 0; } 45% { opacity: 0.3; } 100% { opacity: 0; } }
+        @keyframes mh-petal {
+          0% { transform: translate(calc(var(--px) * 1vw), calc(var(--py) * 1vh)) rotate(var(--pr)) scale(0.5); opacity: 0; }
+          14% { opacity: 0.95; }
+          66% { transform: translate(0, 0) rotate(calc(var(--pr) + 200deg)) scale(1); opacity: 0.85; }
+          78%, 100% { transform: translate(0, 0) rotate(calc(var(--pr) + 230deg)) scale(0.3); opacity: 0; }
+        }
+        @keyframes mh-quake {
+          0%, 100% { translate: 0 0; }
+          22% { translate: 6px -4px; }
+          46% { translate: -5px 3px; }
+          70% { translate: 3px 2px; }
+        }
+        @keyframes mh-pulse { from { transform: scale(0.4); opacity: 0.85; } to { transform: scale(2); opacity: 0; } }
+        @keyframes mh-pulse-far { from { transform: scale(0.12); opacity: 0.5; } to { transform: scale(1); opacity: 0; } }
+        @keyframes mh-glow { from { opacity: 0; } to { opacity: 0.5; } }
+        @keyframes mh-moving-ring {
+          0% { transform: scale(0.7); opacity: 0; }
+          30% { opacity: 0.9; }
+          100% { transform: scale(1.5); opacity: 0; }
+        }
         @keyframes mh-taiji-dim { from { opacity: 1; } to { opacity: 0.22; } }
         @media (prefers-reduced-motion: reduce) {
           .mh-stage, .mh-stage * { animation: none !important; }
         }
       `}</style>
 
+      {/* 梅瓣自四野飘旋汇入(观梅之意) */}
+      {PETALS.map((p, i) => (
+        <span
+          key={i}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            // @ts-expect-error 自定义变量
+            "--px": p.dx,
+            "--py": p.dy,
+            "--pr": `${p.rot}deg`,
+            width: p.big ? 13 : 9,
+            height: p.big ? 11 : 8,
+            marginLeft: p.big ? -6 : -4,
+            marginTop: p.big ? -5 : -4,
+            borderRadius: "62% 4% 62% 62%",
+            background: "linear-gradient(135deg, rgba(240,196,186,0.92), rgba(217,179,108,0.7))",
+            boxShadow: "0 0 8px rgba(240,196,186,0.45)",
+            animation: `mh-petal 1.45s ${p.delay}s var(--ease-inout) both`,
+          }}
+        />
+      ))}
+
+      {/* 击盘后的全屏远环震荡 */}
+      <span
+        className="absolute left-1/2 top-1/2 h-[120vmax] w-[120vmax] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          boxShadow: "inset 0 0 0 1.5px var(--gold-dim), inset 0 0 56px rgba(191,155,73,0.22)",
+          animation: "mh-pulse-far 1s 2.55s var(--ease-out) both",
+        }}
+      />
+
       {/* 卦成金芒 */}
       <span
         className="absolute inset-0"
         style={{
           background: "radial-gradient(46% 46% at 50% 46%, rgba(240,214,160,0.8), transparent 66%)",
-          animation: "mh-flash 0.5s 2.15s var(--ease-out) both",
+          animation: "mh-flash 0.5s 2.9s var(--ease-out) both",
         }}
       />
 
       <div className="relative aspect-square w-[min(72vmin,480px)]">
+        {/* 击盘:盘心辉光洇开 + 双重脉冲扩散 */}
+        <span
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: "radial-gradient(50% 50% at 50% 50%, rgba(191,155,73,0.2), transparent 70%)",
+            animation: "mh-glow 0.8s 1.2s var(--ease-out) both",
+          }}
+        />
+        <span
+          className="absolute inset-[8%] rounded-full"
+          style={{
+            boxShadow: "0 0 0 1.5px var(--gold-dim), var(--glow-gold-strong)",
+            animation: "mh-pulse 0.9s 1.15s var(--ease-out) both",
+          }}
+        />
+        <span
+          className="absolute inset-[8%] rounded-full"
+          style={{
+            boxShadow: "0 0 0 1px var(--gold-dim)",
+            animation: "mh-pulse 0.8s 1.38s var(--ease-out) both",
+          }}
+        />
+
         {/* 太极:旋入缓转,爻成时退隐为底纹 */}
         <div
           className="absolute inset-[24%]"
@@ -120,16 +209,25 @@ export function MeihuaCast() {
           </svg>
         </div>
 
-        {/* 六爻自下而上凝定 */}
+        {/* 六爻自下而上凝定;动爻位另加金脉冲点睛 */}
         <div className="absolute inset-x-[34%] inset-y-[31%] flex flex-col-reverse justify-between">
           {DECOR.map((yang, i) => (
             <div
               key={i}
-              className="flex h-[9%] items-stretch justify-center gap-[12%]"
+              className="relative flex h-[9%] items-stretch justify-center gap-[12%]"
               style={{
-                animation: `mh-yao-flicker 0.62s ${0.75 + i * 0.22}s var(--ease-out) both, mh-yao-glint 0.62s ${0.75 + i * 0.22}s linear both`,
+                animation: `mh-yao-flicker 0.62s ${0.95 + i * 0.22}s var(--ease-out) both, mh-yao-glint 0.62s ${0.95 + i * 0.22}s linear both`,
               }}
             >
+              {i === MOVING_YAO && (
+                <span
+                  className="pointer-events-none absolute -inset-x-[10%] -inset-y-[55%] rounded-full"
+                  style={{
+                    boxShadow: "0 0 0 1.5px var(--gold), 0 0 22px rgba(240,214,160,0.5)",
+                    animation: "mh-moving-ring 0.85s 2.35s var(--ease-out) both",
+                  }}
+                />
+              )}
               {yang ? (
                 <span className="w-full rounded-[1.5px] bg-[var(--gold)]" style={{ opacity: 0.92 }} />
               ) : (
@@ -146,8 +244,9 @@ export function MeihuaCast() {
       {/* 步进字幕 */}
       <div className="relative mt-[3.5vmin] h-9 w-full">
         {[
-          { t: "心动而占", d: 0.25 },
-          { t: "数起于时", d: 1.1 },
+          { t: "心动而占", d: 0.3 },
+          { t: "观梅取数", d: 1.15 },
+          { t: "定动爻", d: 2.05 },
         ].map((s) => (
           <p
             key={s.t}
@@ -162,7 +261,7 @@ export function MeihuaCast() {
           style={{
             fontFamily: "var(--font-display)",
             textShadow: "0 0 20px rgba(191,155,73,0.6)",
-            animation: "mh-cap-final 0.45s 2.2s var(--ease-out) both",
+            animation: "mh-cap-final 0.45s 2.95s var(--ease-out) both",
           }}
         >
           卦成

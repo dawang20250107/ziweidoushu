@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/dawang20250107/ziweidoushu/internal/corpus"
 	"github.com/dawang20250107/ziweidoushu/internal/liuyao"
 )
 
@@ -152,7 +153,8 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 		}
 	}
 
-	// 语料引文:每书限一条,分散引用面
+	// 语料引文:每书限一条,分散引用面;
+	// 按板块过滤只引六爻/周易/倪师通论,防他门口诀混入。
 	if it.store != nil {
 		var cites []string
 		seenPara := map[string]bool{}
@@ -162,7 +164,7 @@ func (it *Interpreter) DivineLiuYao(ctx context.Context, r *liuyao.Result, onDel
 			queries = append(queries, r.BianName)
 		}
 		for _, q := range queries {
-			for _, hit := range it.store.SearchAll(q, 6) {
+			for _, hit := range it.store.SearchAllIn(q, 6, corpus.CatLiuYao, corpus.CatZhouYi, corpus.CatNi) {
 				if seenPara[hit.ParagraphID] || seenBook[hit.BookSlug] >= 1 {
 					continue
 				}

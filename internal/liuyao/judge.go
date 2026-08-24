@@ -18,6 +18,8 @@ type Judgment struct {
 	YongShen   string   `json:"yongShen"`   // 用神状态摘要
 	YingQi     string   `json:"yingQi"`     // 应期提示
 	Points     []string `json:"points"`     // 逐条断语
+	// Sections 分节深断(取用/旺衰/元忌/动变/世应/逐爻/应期),免费层呈现纵深。
+	Sections []JudgeSection `json:"sections,omitempty"`
 }
 
 var yaoNumCN = [6]string{"初", "二", "三", "四", "五", "上"}
@@ -215,7 +217,8 @@ func judgeLevel(score int) string {
 }
 
 // Judge 由已装之卦机械推演六爻断语(确定性)。
-func (r *Result) Judge() *Judgment {
+// judgeCore 断语推演本体(多路径返回;分节深断由 Judge 包装统一追加)。
+func (r *Result) judgeCore() *Judgment {
 	j := &Judgment{}
 	name := r.YongShen
 	if name == "" {

@@ -56,6 +56,27 @@ export function fetchChart(birth: BirthInfo): Promise<ChartResponse> {
   return post<ChartResponse>("/api/v1/chart", birth);
 }
 
+/** 农历某年的逐月表(闰月按年内实际位置插入;days 为 29/30)。 */
+export interface LunarMonthMeta {
+  month: number;
+  leap: boolean;
+  days: number;
+}
+
+export function fetchLunarYear(year: number): Promise<{ year: number; months: LunarMonthMeta[] }> {
+  return get(`/api/v1/calendar/lunar-year?year=${year}`);
+}
+
+/** 农历→公历换算(表单农历模式在提交前调用,下游一律公历)。 */
+export function lunarToSolar(input: {
+  year: number;
+  month: number;
+  leap: boolean;
+  day: number;
+}): Promise<{ year: number; month: number; day: number }> {
+  return post("/api/v1/calendar/lunar-to-solar", input);
+}
+
 export function fetchWorldCities(): Promise<{ cities: WorldCity[] }> {
   return get("/api/v1/world-cities");
 }
@@ -184,4 +205,24 @@ export async function streamInterpret(
     }
   }
   return { text: full, provider: meta.provider, degraded: meta.degraded };
+}
+
+// ── 星曜知识:全量档案 / 四大十二神 / 流曜 ───────────────────
+
+export interface StarLoreEntry {
+  element?: string; // 五行(如 己土)
+  hua?: string; // 化气(如 化气曰尊)
+  si: string; // 主司(如 官禄主 · 帝座)
+  gist: string; // 义理档案
+}
+
+export interface StarKnowledge {
+  lore: Record<string, StarLoreEntry>;
+  // cycles: changsheng12 / boshi12 / suiqian12 / jiangqian12 → 名目 → 一句义
+  cycles: Record<string, Record<string, string>>;
+  flow: Record<string, string>; // 去前缀后的流曜字(魁钺昌曲禄羊陀马鸾喜)→ 义
+}
+
+export function fetchStarKnowledge(): Promise<StarKnowledge> {
+  return get<StarKnowledge>("/api/v1/knowledge/stars");
 }

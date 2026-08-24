@@ -1,6 +1,7 @@
 package meihua
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -131,7 +132,39 @@ func TestXiaoLiuRen(t *testing.T) {
 	if r.Result.Name != "大安" {
 		t.Fatalf("正月初一子时: got %s want 大安(农历 %s)", r.Result.Name, r.LunarText)
 	}
-	if r.Steps != [3]string{"大安", "大安", "大安"} {
-		t.Fatalf("三步落位: %v", r.Steps)
+	if len(r.Steps) != 3 || r.Steps[0] != "大安" || r.Steps[1] != "大安" || r.Steps[2] != "大安" {
+		t.Fatalf("无问辞应为传统三跳皆大安: %v", r.Steps)
+	}
+	if r.QNum != 0 {
+		t.Fatalf("无问辞 QNum 应为 0: %d", r.QNum)
+	}
+
+	// 问数入课:问辞字数自时位(大安)顺数第四跳。
+	// 「问财」2 字 → 大安数一、留连数二,终落留连;路径四步。
+	r2, err := XiaoLiuRen(tm, "问财")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r2.QNum != 2 || len(r2.Steps) != 4 || r2.Result.Name != "留连" {
+		t.Fatalf("「问财」应问数2终落留连: qNum=%d steps=%v result=%s", r2.QNum, r2.Steps, r2.Result.Name)
+	}
+	// 一字问辞数至一即落当前位(时位不动)
+	r3, _ := XiaoLiuRen(tm, "财")
+	if r3.Result.Name != "大安" || len(r3.Steps) != 4 {
+		t.Fatalf("一字问辞应原位而断: %v %s", r3.Steps, r3.Result.Name)
+	}
+	// 同刻不同问辞,落宫可异(唯一性口径)
+	if r2.Result.Name == r3.Result.Name {
+		t.Fatal("二字与一字问辞同落,唯一性失义")
+	}
+	// 分节:掐指路径应叙及问数
+	found := false
+	for _, s := range r2.Sections {
+		if s.Key == "qiazhi" && strings.Contains(s.Text, "2 字") {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("掐指路径分节应叙及问数字数")
 	}
 }

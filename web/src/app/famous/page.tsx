@@ -70,8 +70,9 @@ export default function FamousPage() {
 
       {persons && (
         <div className="mt-10 flex flex-col gap-10 md:gap-12">
+          {/* 分类区随下滑逐组入焦(scroll-driven,渐进增强) */}
           {categories.map((cat) => (
-            <section key={cat}>
+            <section key={cat} className="reveal">
               <h2 className="mb-4 text-[12px] font-medium tracking-[0.08em] text-ink-secondary">{cat}</h2>
               <div className="grid gap-5 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
                 {persons.filter((p) => p.category === cat).map((p) => {

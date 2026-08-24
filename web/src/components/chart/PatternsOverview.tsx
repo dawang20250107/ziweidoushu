@@ -26,7 +26,7 @@ export function PatternsOverview({
         {patterns.map((p) => (
           <div
             key={p.name}
-            className="reveal"
+            className="reveal lift"
             tabIndex={-1}
             onMouseEnter={() => onPatternHover?.(p.palaces ?? [])}
             onMouseLeave={() => onPatternHover?.(null)}

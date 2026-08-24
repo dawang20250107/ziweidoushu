@@ -157,48 +157,57 @@ interface CapabilityRowProps {
   flip?: boolean;
 }
 
-function CapabilityRow({ eyebrow, title, body, example, flip = false }: CapabilityRowProps) {
+function CapabilityScene({ eyebrow, title, body, example, flip = false }: CapabilityRowProps) {
+  // 一屏一景:整景吸附居中,scene-body 自深处驶来、scene 掠过身旁(穿行感);
+  // 景内文案先聚焦、示例卡晚半拍(reveal 次序)。
   return (
-    <div className="reveal grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-      <div className={flip ? "lg:order-2" : ""}>
-        <p className="text-[12px] font-medium tracking-[0.08em] text-gold">{eyebrow}</p>
-        <h2 className="mt-4 text-balance font-display text-[26px] font-semibold leading-snug text-ink md:text-[31px]">
-          {title}
-        </h2>
-        <p className="mt-5 max-w-md text-[15px] leading-[1.75] text-ink-secondary">{body}</p>
+    <section className="scene flex min-h-[92svh] items-center">
+      <div className="scene-body mx-auto w-full max-w-6xl px-4">
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          <div className={["reveal", flip ? "lg:order-2" : ""].join(" ")}>
+            <p className="text-[12px] font-medium tracking-[0.08em] text-gold">{eyebrow}</p>
+            <h2 className="mt-4 text-balance font-display text-[31px] font-semibold leading-snug text-ink md:text-[39px]">
+              {title}
+            </h2>
+            <p className="mt-5 max-w-md text-[15px] leading-[1.75] text-ink-secondary md:text-[16px]">{body}</p>
+          </div>
+          <div
+            className={[
+              "reveal reveal-late flex justify-center",
+              flip ? "lg:order-1 lg:justify-start" : "lg:justify-end",
+            ].join(" ")}
+          >
+            {example}
+          </div>
+        </div>
       </div>
-      <div className={["flex justify-center", flip ? "lg:order-1 lg:justify-start" : "lg:justify-end"].join(" ")}>
-        {example}
-      </div>
-    </div>
+    </section>
   );
 }
 
-/** 三大能力区:排盘做透 / 古籍丝滑 / AI 问星。 */
+/** 三大能力,各占一景:排盘做透 / 古籍丝滑 / AI 问星。 */
 export function Capabilities() {
   return (
-    <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-      <div className="space-y-24 md:space-y-32">
-        <CapabilityRow
-          eyebrow="排盘"
-          title="从安星到运限,一张盘全交代"
-          body="十二宫、四化、三方四正一次算全;星曜按庙旺利陷上色,强弱一眼可读。格局与大限流年逐层展开,每一步都对齐经典口径。"
-          example={<PalaceSample />}
-        />
-        <CapabilityRow
-          flip
-          eyebrow="古籍"
-          title="古籍全文,查得到也读得下"
-          body="《紫微斗数全书》等经典逐句录入,全文检索命中即达。正文以楷体排版、注译随文对照,古人的话就在纸上,不必再东翻西找。"
-          example={<ClassicQuote />}
-        />
-        <CapabilityRow
-          eyebrow="问星"
-          title="解读依盘而言,不作空谈"
-          body="把你的命盘交给 AI,它引盘中的星曜与格局作答,每一句都标注依据、可回到盘上核对。要的是有出处的判断,而非泛泛之词。"
-          example={<ChatSample />}
-        />
-      </div>
-    </section>
+    <>
+      <CapabilityScene
+        eyebrow="排盘"
+        title="从安星到运限,一张盘全交代"
+        body="十二宫、四化、三方四正一次算全;星曜按庙旺利陷上色,强弱一眼可读。格局与大限流年逐层展开,每一步都对齐经典口径。"
+        example={<PalaceSample />}
+      />
+      <CapabilityScene
+        flip
+        eyebrow="古籍"
+        title="古籍全文,查得到也读得下"
+        body="《紫微斗数全书》等经典逐句录入,全文检索命中即达。正文以楷体排版、注译随文对照,古人的话就在纸上,不必再东翻西找。"
+        example={<ClassicQuote />}
+      />
+      <CapabilityScene
+        eyebrow="问星"
+        title="解读依盘而言,不作空谈"
+        body="把你的命盘交给 AI,它引盘中的星曜与格局作答,每一句都标注依据、可回到盘上核对。要的是有出处的判断,而非泛泛之词。"
+        example={<ChatSample />}
+      />
+    </>
   );
 }

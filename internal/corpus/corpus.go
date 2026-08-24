@@ -47,6 +47,8 @@ type Book struct {
 	Source string `json:"source,omitempty"`
 	// Research 研究语料:不进书架、不进公开检索,仅供 AI 解读引用(内部研究)。
 	Research bool `json:"research,omitempty"`
+	// Category 板块(见 category.go 常量);为空时按书名启发式归类。
+	Category string `json:"category,omitempty"`
 }
 
 // BookMeta 书目摘要(列表接口用,不携带全文)。
@@ -78,6 +80,7 @@ type SearchHit struct {
 type snapshot struct {
 	books  []Book
 	bySlug map[string]int
+	cats   []string // 与 books 对齐的板块(加载期一次归类,读路径零计算)
 	index  *searchIndex
 }
 
@@ -171,10 +174,12 @@ func (s *Store) replace(books []Book) {
 
 func (s *Store) replaceLocked(books []Book) {
 	bySlug := make(map[string]int, len(books))
+	cats := make([]string, len(books))
 	for i := range books {
 		bySlug[books[i].Slug] = i
+		cats[i] = bookCategory(&books[i])
 	}
-	s.snap = &snapshot{books: books, bySlug: bySlug, index: buildIndex(books)}
+	s.snap = &snapshot{books: books, bySlug: bySlug, cats: cats, index: buildIndex(books)}
 }
 
 func (s *Store) view() *snapshot {

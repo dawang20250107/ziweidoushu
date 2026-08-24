@@ -28,7 +28,7 @@ func newTestService(t *testing.T) (*Service, *store.Store) {
 	}
 	t.Cleanup(st.Close)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	svc, err := NewService(st, &DevSMS{Logger: logger}, Config{
+	svc, err := NewService(st, &DevSMS{Logger: logger}, &DevEmail{Logger: logger}, Config{
 		JWTSecret:   testSecret,
 		DevEchoCode: true,
 		AccessTTL:   time.Minute,

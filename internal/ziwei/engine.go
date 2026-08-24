@@ -161,7 +161,8 @@ func Generate(b BirthInfo, opt Options) (*Chart, error) {
 
 	refYear := opt.ReferenceYear
 	if refYear == 0 {
-		refYear = time.Now().Year()
+		// 流年缺省取北京时间的当年:部署时钟常为 UTC,跨年子夜前后相差 8h
+		refYear = time.Now().In(time.FixedZone("CST", 8*3600)).Year()
 	}
 	currentAge := refYear - b.Year
 	currentDX := -1

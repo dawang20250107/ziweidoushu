@@ -3,13 +3,16 @@
 import { useState } from "react";
 import type { BirthInfo, Gender } from "@/lib/types";
 import { HOUR_NAMES } from "@/lib/types";
-import { DateSelect } from "@/components/ui/DateSelect";
+import { CalendarDateField } from "@/components/ui/CalendarDateField";
 import { TrueSolarPicker, emptyTrueSolar, type TrueSolarValue } from "@/components/chart/TrueSolarPicker";
 
 const fieldCls =
   "rounded-[6px] bg-bg px-3 py-2 text-[15px] text-ink shadow-[inset_0_0_0_1px_var(--line)] focus:shadow-[inset_0_0_0_1px_var(--gold-dim)] outline-none transition-shadow";
 
-/** 排盘输入表单(公历生辰 + 时辰 + 性别)。 */
+/**
+ * 排盘输入表单:生日(公历/农历,CalendarDateField 统一回写公历)+ 时辰 + 性别
+ * (+ 真太阳时)。date 恒为公历 yyyy-mm-dd,下游无双口径。
+ */
 export function BirthForm({
   initial, loading, onSubmit,
 }: {
@@ -21,6 +24,7 @@ export function BirthForm({
   const [date, setDate] = useState(
     initial ? `${initial.year}-${String(initial.month).padStart(2, "0")}-${String(initial.day).padStart(2, "0")}` : "1990-06-15",
   );
+  const [converting, setConverting] = useState(false); // 农历换算中:禁提交防竞态旧值
   const [hour, setHour] = useState(initial?.hour ?? 6);
   const [gender, setGender] = useState<Gender>(initial?.gender ?? "male");
   const [solar, setSolar] = useState<TrueSolarValue>(() =>
@@ -40,7 +44,7 @@ export function BirthForm({
     e.preventDefault();
     const [y, m, d] = date.split("-").map(Number);
     if (!y || !m || !d || y < 1900 || y > 2100) {
-      setError("请输入 1900-2100 之间的有效公历日期");
+      setError("请输入 1900-2100 之间的有效日期");
       return;
     }
     if (solar.enabled) {
@@ -77,10 +81,7 @@ export function BirthForm({
           className={`${fieldCls} w-28`}
         />
       </label>
-      <div className="flex flex-col gap-1">
-        <span className="text-[12px] text-ink-faint">公历生日</span>
-        <DateSelect value={date} onChange={setDate} />
-      </div>
+      <CalendarDateField value={date} onChange={setDate} onPendingChange={setConverting} />
       <label className="flex flex-col gap-1">
         <span className="text-[12px] text-ink-faint">时辰</span>
         <select value={hour} onChange={(e) => setHour(Number(e.target.value))} className={fieldCls}>
@@ -114,10 +115,10 @@ export function BirthForm({
       </div>
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || converting}
         className="glow-gold w-full min-h-[44px] rounded-[6px] bg-gold px-6 py-2 text-[15px] font-medium text-[#161206] transition-colors hover:bg-gold-bright disabled:opacity-50 disabled:shadow-none sm:w-auto"
       >
-        {loading ? "排盘中…" : "排盘"}
+        {loading ? "排盘中…" : converting ? "换算中…" : "排盘"}
       </button>
       <TrueSolarPicker value={solar} onChange={setSolar} />
       {error && <p className="basis-full text-[13px] text-danger">{error}</p>}

@@ -180,7 +180,9 @@ type Result struct {
 	// 用神建议(事类→六亲映射,见 yongshen.go;仅建议,解卦层可按事理改取)
 	YongShen      string `json:"yongShen,omitempty"`
 	YongShenBasis string `json:"yongShenBasis,omitempty"`
-	YongShenPos   []int  `json:"yongShenPos"` // 用神所在爻位;空=用神不上卦(伏神之法另论)
+	// YongShenOverride 问者显式指明的取用(世爻/六亲名;空则按问辞推断)。
+	YongShenOverride string `json:"yongShenOverride,omitempty"`
+	YongShenPos      []int  `json:"yongShenPos"` // 用神所在爻位;空=用神不上卦(伏神之法另论)
 
 	// 元忌仇链(生用者元、克用者忌、生忌克元者仇——增删卜易·元神章)
 	YuanShen    string `json:"yuanShen,omitempty"`
@@ -580,6 +582,11 @@ func dayGanZhi(t time.Time) (dayStem, dayBranch int, monthJian rune, lunarText s
 
 // ByTosses 报爻起卦:六爻背面数(自下而上)。
 func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
+	return ByTossesYong(tosses, at, question, "")
+}
+
+// ByTossesYong 同 ByTosses,问者显式指明取用(世爻/六亲;空则按问辞推断)。
+func ByTossesYong(tosses []int, at time.Time, question, yong string) (*Result, error) {
 	if len(tosses) != 6 {
 		return nil, fmt.Errorf("六爻需六次摇卦记录")
 	}
@@ -606,6 +613,7 @@ func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
 	r.Question = question
 	r.LunarText = lt
 	r.Tosses = append([]int(nil), tosses...)
+	r.YongShenOverride = yong
 	r.applyYongShen()
 	r.applyFuShen()
 	r.applyPower()
@@ -615,6 +623,11 @@ func ByTosses(tosses []int, at time.Time, question string) (*Result, error) {
 
 // Shake 服务端摇卦:crypto/rand 模拟三枚铜钱六掷。
 func Shake(at time.Time, question string) (*Result, error) {
+	return ShakeYong(at, question, "")
+}
+
+// ShakeYong 同 Shake,问者显式指明取用。
+func ShakeYong(at time.Time, question, yong string) (*Result, error) {
 	tosses := make([]int, 6)
 	buf := make([]byte, 18) // 6 爻 × 3 枚
 	if _, err := rand.Read(buf); err != nil {
@@ -629,5 +642,5 @@ func Shake(at time.Time, question string) (*Result, error) {
 		}
 		tosses[i] = backs
 	}
-	return ByTosses(tosses, at, question)
+	return ByTossesYong(tosses, at, question, yong)
 }

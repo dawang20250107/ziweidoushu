@@ -39,7 +39,7 @@ type chartResponse struct {
 func (s *Server) computeChart(req chartRequest) (*chartResponse, error) {
 	refYear := req.ReferenceYear
 	if refYear == 0 {
-		refYear = time.Now().Year()
+		refYear = time.Now().In(cst8).Year() // 流年缺省取北京时间的当年(跨年子夜与 UTC 差 8h)
 	}
 	longitude := req.Longitude
 	var baseMeridian float64 // 0 → 引擎默认东经 120°(北京时)

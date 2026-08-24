@@ -3,9 +3,9 @@ import Link from "next/link";
 /** 尾部 CTA 条:再次引导开始排盘。 */
 export function ClosingCta() {
   return (
-    <section className="reveal mx-auto max-w-6xl px-4 pb-24 md:pb-32">
+    <section className="mx-auto max-w-6xl px-4 pb-16 md:pb-20">
       <div
-        className="relative overflow-hidden rounded-[10px] bg-bg-raised px-8 py-14 md:px-14 md:py-20"
+        className="reveal relative overflow-hidden rounded-[10px] bg-bg-raised px-8 py-14 md:px-14 md:py-20"
         style={{ boxShadow: "inset 0 0 0 1px var(--line)" }}
       >
         <div

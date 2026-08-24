@@ -49,6 +49,18 @@ curl -s localhost:8080/api/v1/chart -d '{
 - `daXians[12]` 大限序列;`currentDaXianIndex` 当前大限
 - `data.patterns[]` 格局:名称、吉凶等级(excellent/good/neutral/caution)、描述、必须/加分/破格条件、古籍出处
 
+### GET /api/v1/calendar/lunar-year?year=1993
+
+农历某年逐月表(供表单农历模式渲染月/日选项;lunar-go 口径,1900-2100)。
+
+响应 `data`: `{ year, months: [{month(1-12), leap, days(29|30)}...] }`,闰月按年内实际位置插入(如 1993 年三月后随闰三月,共 13 项)。
+
+### POST /api/v1/calendar/lunar-to-solar
+
+农历生日 → 公历。请求 `{year, month, leap, day}`(闰月以 `leap:true` 标记);
+响应 `data: {year, month, day}`。不存在的闰月/超出当月天数/区间外年份均 400(`bad_lunar_date`)。
+换算在提交前完成,排盘/档案/问星下游一律公历。
+
 ### POST /api/v1/horoscope
 
 运限叠加:大限(含童限)/ 小限 / 流年 / 流月 / 流日 / 流时。
@@ -126,7 +138,11 @@ curl -s localhost:8080/api/v1/horoscope -d '{
 
 ### GET /api/v1/knowledge/stars
 
-十四主星速览(关键词/五行/吉凶)+ 拼音 slug。
+十四主星速览(关键词/五行/吉凶)+ 拼音 slug,及全量星曜档案层:
+`lore` 逐星档案(主星/辅煞/杂曜共 69 曜,五行/化气/主司/义理,义引归纳
+原创行文)、`cycles` 四大十二神逐名义(changsheng12/boshi12/suiqian12/
+jiangqian12 各 12 名)、`flow` 流曜十义(按去前缀字键:魁钺昌曲禄羊陀马鸾喜)。
+完备性由测试钉住:真实排盘+运限收集盘上全部星名,逐一断言有档。
 
 ### GET /api/v1/knowledge/topics
 
@@ -174,6 +190,44 @@ curl -N localhost:8080/api/v1/ai/interpret -d '{
 ---
 
 ## 用户体系(需配置 DATABASE_URL + JWT_SECRET,否则统一 503)
+
+**内测主通道为邮箱**:注册(邮箱验证码+自设密码+邀请码)→ 平时密码登录 →
+忘记走邮箱验证码重置。`AUTH_INVITE_REQUIRED=1`(默认)开启邀请码闸门;
+`AUTH_DEVICE_STRICT=1` 时陌生设备密码登录须邮箱验证码升级(环境检测,
+设备底账 login_devices)。邮件通道:配置 `SMTP_HOST/PORT/USERNAME/PASSWORD/FROM`
+即真发(465 隐式 TLS / 587 STARTTLS),未配置走 dev 通道(验证码写日志,
+`SMS_DEV_ECHO_CODE=1` 时回显)。手机号短信通道保留,公测接云厂商后并存。
+
+### POST /api/v1/auth/email/send-code
+
+`{email, purpose: "register"|"reset"|"login"}` → `{sent: true, devCode?}`。
+频控与短信同刻度(60s/次、1h≤5、24h≤10、同 IP 24h≤20)。register 用途
+且邮箱已注册时 400 `email_taken`。
+
+### POST /api/v1/auth/email/register
+
+`{email, code, password, invite?}` → `{tokens, user, created: true}`。
+密码 8-72 位须含字母与数字(bcrypt 存储);邀请码闸门开启时 invite 必填,
+无效/用尽/过期 400 `invite_invalid`;验证码错误 400 `code_invalid`。
+
+### POST /api/v1/auth/email/login
+
+`{email, password, code?}` → `{tokens, user}`;凭证错误统一 401
+`login_failed`(防枚举,恒时比对)。strict 模式陌生设备且密码正确时返回
+200 `{needVerify: true}`,客户端发 login 用途验证码后带 `code` 重试。
+
+### POST /api/v1/auth/password/reset
+
+`{email, code, newPassword}` → `{reset: true}`;成功后全端下线。
+
+### POST /api/v1/auth/password/change(需鉴权)
+
+`{oldPassword, newPassword}` → `{changed: true}`;其余端下线。
+
+### POST /api/v1/admin/invites(Bearer ADMIN_TOKEN)
+
+`{count: 1-200, maxUses: 1-10000, note?, expiresInDays?}` → `{codes: ["ZW-XXXXXXXX", ...]}`。
+内测运营铸码;`used_count/invite_uses` 落库可审计。
 
 ### POST /api/v1/auth/sms/send
 
@@ -286,7 +340,19 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 
 问辞上限均为 200 字(按字符计)。
 
+**时区口径:北京时间(UTC+8)。** `castAt` 为 unix 秒(绝对时刻,本身无时区);
+服务端推农历/时辰/日干支前一律先归一到东八区墙钟,与部署机器时区无关
+(容器常为 UTC,回归测试钉住)。时辰为占法最小时间粒度(两小时一辰),
+秒与毫秒不参与推演;同一时辰的正时课(六壬正时/梅花与小六壬无问辞)人人相同,
+求同刻各异用问辞字数(梅花/小六壬)、报数(六壬活时)或摇卦随机(六爻)。
+
 ### POST /api/v1/divination/meihua
+
+新增 `method: "zi"` 测字起卦:`ziText` 传一或二个汉字,按 Unihan 简体笔画起数
+(一字:字画起上卦、加时辰配下卦并取动爻;二字:两仪平分,总画加时取动爻);
+响应带 `ziText`/`ziStrokes` 溯源。六爻起卦可传 `yongShen`(世爻/妻财/官鬼/父母/子孙/兄弟)
+显式定用神,优先于问辞推断,响应 `yongShenOverride` 回传快照;大六壬可传 `birthYear`
+(1900-2100)加断年命上神,响应带 `nianMing`。AI 解卦回传同一卦时须原样回传上述字段。
 
 `{method: "time"|"number", numbers?, castAt?, question?}` → `{result, castAt}`。
 `time` 法:**有问辞按字数起数**(声音占义:问辞字数起上卦、加时辰数配下卦并
@@ -318,16 +384,20 @@ dev 支付渠道:模拟渠道回调,标记支付成功并立即履约(订阅顺�
 ### POST /api/v1/divination/xiaoliuren
 
 小六壬快占(倪师《天纪》课堂教法):`{question?, castAt?}` →
-三步掐指落位(月/日/时)与断语(大安/留连/速喜/赤口/小吉/空亡)。
+掐指落位(月/日/时)与断语(大安/留连/速喜/赤口/小吉/空亡)。
+带 `question` 时以问辞字数自时位再入一数(问数第四跳,响应 `qNum`/
+`steps`×4 溯源)——同刻问事各异,落宫自不同;无问辞为传统正时三跳。
 
 ### POST /api/v1/ai/divine(需鉴权,消耗 1 次 divination)
 
-`{kind?: "meihua"|"liuyao"|"daliuren", method?, numbers?, tosses?, castAt?,
+`{kind?: "meihua"|"liuyao"|"daliuren", method?, numbers?, tosses?, castAt,
 baoShu?, question}`(question 必填,kind 缺省 meihua)→
 `{result, reading, remainingCredits}`。
-服务端按 kind 重推卦象(不信任客户端;六爻须回传起卦返回的 tosses+castAt、
-大六壬活时课须回传 castAt+baoShu 以复原同一卦课;daliuren 的 baoShu≤0
-在此端点返回 400 `bad_baoshu`——付费解课不代摇)、引语料 RAG 解卦;
+服务端按 kind 重推卦象(不信任客户端),并强制「同一卦契约」:
+`castAt` 一律必传(缺失 400 `bad_cast_time`——卦象/旺衰随时辰走,缺省
+落到当下即另一卦);六爻须回传起卦返回的六掷 `tosses`(缺失 400
+`bad_tosses`);大六壬活时课须回传 `baoShu`,且 baoShu≤0 返回 400
+`bad_baoshu`——付费解课不代摇。校验通过后引语料 RAG 解卦;
 AI 失败自动退还;未配置 LLM 返回 503 不扣次;次数不足 402 `no_credits`。
 注:梅花 time 法卦象依赖问辞字数,回传时问辞须与起卦时一致方为同一卦。
 

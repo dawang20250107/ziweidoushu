@@ -121,6 +121,46 @@ for (let y = 1950; y <= 2030; y += 5) {
   }
 }
 
+// ── P47 扩容分层:补齐抽样空洞(月×时 137/144、农历日 24/30、年界系统性缺失) ──
+const { Lunar } = require('lunar-javascript');
+
+// 6) 月×时穷举:命宫定位 = f(月,时) 的 144 格全覆盖 × 4 个年代(甲子分散)
+for (const y of [1937, 1968, 1999, 2041]) {
+  for (let m = 1; m <= 12; m++) {
+    for (let hour = 0; hour < 12; hour++) {
+      cases.push([y, m, 16, hour, (m + hour) % 2 === 0 ? 'male' : 'female']);
+    }
+  }
+}
+
+// 7) 整农历年逐日扫描:农历 1-30 日全覆盖 + 闰月整月连续覆盖
+//    1993(闰三月)与 2033(闰十一月难题年):自春节前 3 天起连扫 400 天
+for (const startY of [1993, 2033]) {
+  let cur = Lunar.fromYmd(startY, 1, 1).getSolar().next(-3);
+  for (let i = 0; i < 400; i++) {
+    cases.push([cur.getYear(), cur.getMonth(), cur.getDay(), i % 12, i % 2 === 0 ? 'male' : 'female']);
+    cur = cur.next(1);
+  }
+}
+
+// 8) 年界穷举:1900-2089 每年除夕 + 正月初一(生年干支翻转点,逐年不漏)
+for (let y = 1900; y <= 2089; y++) {
+  const spring = Lunar.fromYmd(y, 1, 1).getSolar();
+  const eve = spring.next(-1);
+  cases.push([eve.getYear(), eve.getMonth(), eve.getDay(), y % 12, y % 2 === 0 ? 'male' : 'female']);
+  cases.push([spring.getYear(), spring.getMonth(), spring.getDay(), (y + 6) % 12, y % 2 === 0 ? 'female' : 'male']);
+}
+
+// 9) 确定性随机加密(LCG 可复现):全区间均匀撒点,加密组合路径
+let seed = 20260805;
+const rnd = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
+for (let i = 0; i < 3600; i++) {
+  const y = 1900 + Math.floor(rnd() * 190);
+  const m = 1 + Math.floor(rnd() * 12);
+  const d = 1 + Math.floor(rnd() * daysInMonth(y, m));
+  cases.push([y, m, d, Math.floor(rnd() * 12), rnd() < 0.5 ? 'male' : 'female']);
+}
+
 const seen = new Set();
 const out = [];
 let failed = 0;

@@ -54,11 +54,11 @@ body {
   border-radius: var(--radius-sm);
 }
 
-/* 星盘入场:十二宫级联点亮 */
+/* 星盘入场:十二宫级联点亮(微缩归位,落定即聚焦) */
 @keyframes palace-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(6px) scale(0.985);
   }
   to {
     opacity: 1;
@@ -72,6 +72,58 @@ body {
   .palace-enter {
     animation: none;
   }
+}
+
+/* 排盘仪式收束:镜头交接到十二宫。
+ * 罗盘幕布拉开的同时,光圈(cast-spot)聚拢在盘面上再徐徐散开,
+ * 盘面自微放整体归位(board-focus),宫格自寅宫重放级联点亮,
+ * 末了命宫金环一荡点睛(ming-flare)。 */
+@keyframes board-focus-in {
+  from {
+    opacity: 0.35;
+    transform: scale(1.024);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.board-focus {
+  animation: board-focus-in 760ms var(--ease-out) both;
+}
+@keyframes spot-close {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.cast-spot {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  pointer-events: none;
+  background: radial-gradient(56% 50% at 50% 46%, transparent 26%, rgba(4, 6, 12, 0.9) 80%);
+  animation: spot-close 950ms 140ms var(--ease-inout) both;
+}
+@keyframes ming-flare {
+  0% {
+    box-shadow: 0 0 0 0 rgba(240, 214, 160, 0.55);
+    opacity: 1;
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(240, 214, 160, 0);
+    opacity: 0;
+  }
+}
+.board-focus .ming-breathe::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  pointer-events: none;
+  animation: ming-flare 1s 880ms var(--ease-out) both;
 }
 
 /* 古籍检索命中高亮 */
@@ -154,9 +206,23 @@ mark {
   animation: line-draw 480ms var(--ease-out) forwards;
 }
 
+/* 格局悬停金网:淡入即可(虚线自带 dasharray,不走描线动画) */
+@keyframes line-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.pattern-line {
+  animation: line-fade 320ms var(--ease-out) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .page-enter,
-  .sanfang-line {
+  .sanfang-line,
+  .pattern-line {
     animation: none;
   }
   .sanfang-line {
@@ -430,6 +496,21 @@ mark {
   background: var(--gold);
   animation: dot-bounce 1.2s var(--ease-inout) infinite;
 }
+/* 对话气泡入场:轻抬渐显(一次性,非滚动驱动) */
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.msg-in {
+  animation: msg-in 240ms var(--ease-out) both;
+}
+
 /* 流式中的气泡呼吸描边 */
 @keyframes bubble-stream {
   0%,
@@ -446,23 +527,192 @@ mark {
   animation: bubble-stream 2.4s var(--ease-inout) infinite;
 }
 
-/* 滚动显现叙事:区块进入视口时上浮渐显(scroll-driven animations,渐进增强) */
+/* 滚动聚焦叙事(scroll-driven animations,渐进增强):
+ * 不做平滑匀速滚过,做「焦点交接」——进入视口的区块上浮微缩归位(聚焦),
+ * 滚出视口顶部的区块降透明微缩退让(退焦),视线始终有唯一主角。
+ * 进/出分挂两层(focus-row 管退场、reveal 管进场),避免同元素双动画抢同一属性。 */
 @keyframes reveal-up {
   from {
     opacity: 0;
-    transform: translateY(28px);
+    transform: translateY(34px) scale(0.972);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
+@keyframes focus-exit {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0.32;
+    transform: translateY(-18px) scale(0.977);
+  }
+}
+@keyframes hero-recede {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0.18;
+    transform: translateY(-44px) scale(0.952);
+  }
+}
+@keyframes hint-away {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+/* 穿行星海(落地页):场景自深处驶来(scene-body 进场)、自身旁掠过(scene 退场)。
+ * 进/出分挂两层避免同元素双动画抢同一属性(同 focus-row/reveal 的既定手法)。 */
+@keyframes scene-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(110px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes scene-pass {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0.1;
+    transform: scale(1.1) translateY(-70px);
+  }
+}
+/* 一屏一景吸附:桌面 mandatory 完全翻页式;移动端场景可能高于一屏,
+ * 保留 proximity(mandatory 会把超屏内容中段变得停不住)。 */
+html.voyage-snap {
+  scroll-snap-type: y proximity;
+}
+@media (min-width: 1024px) {
+  html.voyage-snap {
+    scroll-snap-type: y mandatory;
+  }
+}
+.scene {
+  scroll-snap-align: start;
+  scroll-margin-top: 3.5rem; /* 顶栏高度 */
+}
+/* mandatory 下页脚须自成吸附点,否则滚到底会被弹回上一景 */
+html.voyage-snap footer {
+  scroll-snap-align: end;
+}
 @supports (animation-timeline: view()) {
   .reveal {
     animation: reveal-up 1ms linear both;
     animation-timeline: view();
-    animation-range: entry 5% entry 42%;
+    animation-range: entry 8% entry 42%;
   }
+  /* 同区块内的次序感:示例卡比文案晚半拍聚焦 */
+  .reveal-late {
+    animation-range: entry 16% entry 54%;
+  }
+  .focus-row {
+    animation: focus-exit 1ms linear both;
+    animation-timeline: view();
+    animation-range: exit 55% exit 100%;
+  }
+  .scene {
+    animation: scene-pass 1ms linear both;
+    animation-timeline: view();
+    animation-range: exit 40% exit 100%;
+  }
+  .scene-body {
+    animation: scene-arrive 1ms linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+  /* 首屏退焦:下滑时镜头从 Hero 移开(标题区上移缩暗,焦点交给能力区) */
+  .hero-recede {
+    animation: hero-recede 1ms linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 85vh;
+  }
+  .hero-hint {
+    animation: hint-away 1ms linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 22vh;
+  }
+}
+
+/* Hero 载入编排:标题区逐行升起、星盘自深处浮现后缓慢悬浮 */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hero-stagger > * {
+  animation: rise-in 640ms var(--ease-out) both;
+}
+.hero-stagger > *:nth-child(1) {
+  animation-delay: 80ms;
+}
+.hero-stagger > *:nth-child(2) {
+  animation-delay: 200ms;
+}
+.hero-stagger > *:nth-child(3) {
+  animation-delay: 340ms;
+}
+.hero-stagger > *:nth-child(4) {
+  animation-delay: 480ms;
+}
+@keyframes chart-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.hero-chart-in {
+  animation: chart-arrive 860ms 300ms var(--ease-out) both;
+}
+@keyframes chart-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.hero-chart-float {
+  animation: chart-float 7s 1.2s var(--ease-inout) infinite;
+}
+/* 下滑指引:金线呼吸下探(与 CTA 呼吸同族,幅度更小) */
+@keyframes hint-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(5px);
+    opacity: 1;
+  }
+}
+.hint-bob {
+  animation: hint-bob 2.4s var(--ease-inout) infinite;
 }
 
 /* 宫位详情抽屉:移动端自底上滑,桌面自右缘滑入 */
@@ -525,6 +775,18 @@ button:not(:disabled):active {
   .ring-rotate-rev,
   .ming-breathe::after,
   .reveal,
+  .focus-row,
+  .hero-recede,
+  .hero-hint,
+  .hint-bob,
+  .board-focus,
+  .cast-spot,
+  .board-focus .ming-breathe::before,
+  .scene,
+  .scene-body,
+  .hero-stagger > *,
+  .hero-chart-in,
+  .hero-chart-float,
   .drawer-panel {
     animation: none;
   }
@@ -541,6 +803,7 @@ button:not(:disabled):active {
   .stream-md > :last-child::after,
   .think-dot,
   .bubble-streaming,
+  .msg-in,
   .prose-elder > * {
     animation: none;
   }

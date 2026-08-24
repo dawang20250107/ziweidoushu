@@ -34,11 +34,31 @@ type divinationRequest struct {
 	RecordID string `json:"recordId,omitempty"` // 卦档记录:AI 解卦回填目标
 	// BaoShu 大六壬活时报数:缺省=正时起课;0=代摇(服务端心动即数);>0=以该数定占时
 	BaoShu *int `json:"baoShu,omitempty"`
+	// ZiText 梅花测字起卦(method=zi):一或二个汉字
+	ZiText string `json:"ziText,omitempty"`
+	// YongShen 六爻显式取用(世爻/妻财/官鬼/父母/子孙/兄弟;空=按问辞推断)
+	YongShen string `json:"yongShen,omitempty"`
+	// BirthYear 大六壬年命(问者出生公历年;0=不用年命层)
+	BirthYear int `json:"birthYear,omitempty"`
 }
 
 // castDaLiuRenReq 大六壬起课:正时,或活时报数(自子顺数定占时;0 为服务端代摇)。
 // at 由调用方 castTime 解析一次传入,保证课象、响应 castAt 与卦档同源(单一时刻)。
+// 问者提供出生年时追加年命上神层(正时课的个人化分断)。
 func castDaLiuRenReq(req divinationRequest, at time.Time) (*daliuren.Result, error) {
+	r, err := castDaLiuRenCore(req, at)
+	if err != nil {
+		return nil, err
+	}
+	if req.BirthYear != 0 {
+		if err := r.ApplyNianMing(req.BirthYear); err != nil {
+			return nil, err
+		}
+	}
+	return r, nil
+}
+
+func castDaLiuRenCore(req divinationRequest, at time.Time) (*daliuren.Result, error) {
 	if req.BaoShu == nil {
 		return daliuren.CastByTime(at)
 	}
@@ -100,11 +120,18 @@ func (s *Server) saveDivinationRecord(r *http.Request, kind, question, summary s
 	return id
 }
 
-// castTime 解析起卦时刻(近 24h 防伪造)。
+// cst8 命理时刻的唯一口径:北京时间(UTC+8)。
+// 农历/时辰/日干支取的是 time.Time 的墙钟字段(NewSolarFromDate 按其
+// Location 展开),而容器/部署时钟常为 UTC——不归一则时辰错八小时、
+// 子夜前后连日期都错。故凡起卦时刻一律先转东八区再入引擎。
+// (紫微排盘走用户显式生辰字段不经此路径;真太阳时为独立选项另行换算。)
+var cst8 = time.FixedZone("CST", 8*3600)
+
+// castTime 解析起卦时刻(近 24h 防伪造),并归一到北京时间。
 func castTime(castAt int64) (time.Time, error) {
-	at := time.Now()
+	at := time.Now().In(cst8)
 	if castAt > 0 {
-		at = time.Unix(castAt, 0)
+		at = time.Unix(castAt, 0).In(cst8)
 		if at.After(time.Now().Add(time.Minute)) || time.Since(at) > 24*time.Hour {
 			return at, errors.New("起卦时刻须在近 24 小时内")
 		}
@@ -122,6 +149,12 @@ func castMeihua(req divinationRequest, at time.Time) (*meihua.Result, error) {
 			return nil, err
 		}
 		return &r, nil
+	case "zi": // 测字起卦(端法义):笔画起数,可由 castAt+ziText 复现
+		r, err := meihua.ByZi(req.ZiText, at, req.Question)
+		if err != nil {
+			return nil, err
+		}
+		return &r, nil
 	default: // time:有问辞按字数起数(声音占义,众人同刻各卦),无问辞守年月日时
 		r, err := meihua.ByTimeAndText(at, req.Question)
 		if err != nil {
@@ -134,9 +167,9 @@ func castMeihua(req divinationRequest, at time.Time) (*meihua.Result, error) {
 // castLiuYao 六爻起卦(服务端摇卦或按用户报爻重现);at 口径同 castMeihua。
 func castLiuYao(req divinationRequest, at time.Time) (*liuyao.Result, error) {
 	if req.Method == "tosses" || len(req.Tosses) > 0 {
-		return liuyao.ByTosses(req.Tosses, at, req.Question)
+		return liuyao.ByTossesYong(req.Tosses, at, req.Question, req.YongShen)
 	}
-	return liuyao.Shake(at, req.Question)
+	return liuyao.ShakeYong(at, req.Question, req.YongShen)
 }
 
 // handleLiuYao 六爻摇卦(免费)。
@@ -238,26 +271,42 @@ func (s *Server) handleXiaoLiuRen(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "question_too_long", "所问之事请精简至 200 字内")
 		return
 	}
-	at := time.Now()
-	if req.CastAt > 0 {
-		at = time.Unix(req.CastAt, 0)
-		if at.After(time.Now().Add(time.Minute)) || time.Since(at) > 24*time.Hour {
-			writeError(w, http.StatusBadRequest, "cast_failed", "起算时刻须在近 24 小时内")
-			return
-		}
+	at, err := castTime(req.CastAt)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "bad_cast_time", err.Error())
+		return
 	}
 	result, err := meihua.XiaoLiuRen(at, req.Question)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "cast_failed", err.Error())
 		return
 	}
+	// 归档锚定起算时刻(与课象同源)
 	recordID := s.saveDivinationRecord(r, "xiaoliuren", req.Question,
-		result.Result.Name+" · "+result.Result.Luck, result, time.Now())
+		result.Result.Name+" · "+result.Result.Luck, result, at)
 	resp := map[string]any{"result": result}
 	if recordID != "" {
 		resp["recordId"] = recordID
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// validateDivineReq 同一卦契约:解卦是对「用户所见之卦」的付费解读,必须
+// 可复现。castAt 缺省会落到当下时刻——时辰一换卦象/旺衰即变,故一律必传;
+// 六爻无六掷记录、六壬报数课不回传报数,服务端只能重摇出另一卦,同样拒绝。
+// 返回空 code 表示通过。
+func validateDivineReq(req divinationRequest) (code, msg string) {
+	if req.CastAt <= 0 {
+		return "bad_cast_time", "解卦须回传起卦返回的 castAt,以复现同一卦"
+	}
+	if req.Kind == "liuyao" && len(req.Tosses) != 6 {
+		return "bad_tosses", "解卦须回传起卦时的六掷记录(tosses)"
+	}
+	// 代摇(baoShu<=0)只属首次起课端点
+	if req.Kind == "daliuren" && req.BaoShu != nil && *req.BaoShu <= 0 {
+		return "bad_baoshu", "解课须回传起课时的报数(baoShu>0),不可代摇"
+	}
+	return "", ""
 }
 
 // handleDivineAI AI 深度解卦:消耗 1 次 divination;AI 失败自动退还。
@@ -280,6 +329,10 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "ai_unavailable", "AI 服务暂不可用,未扣次数")
 		return
 	}
+	if code, msg := validateDivineReq(req); code != "" {
+		writeError(w, http.StatusBadRequest, code, msg)
+		return
+	}
 	// 按占法起卦(服务端重推,客户端不可伪造);at 单次解析,课象/归档同源
 	at, atErr := castTime(req.CastAt)
 	if atErr != nil {
@@ -294,11 +347,6 @@ func (s *Server) handleDivineAI(w http.ResponseWriter, r *http.Request) {
 	case "liuyao":
 		liuyaoResult, castErr = castLiuYao(req, at)
 	case "daliuren":
-		// 付费解课须复现用户所见之课:代摇(baoShu<=0)只属首次起课端点
-		if req.BaoShu != nil && *req.BaoShu <= 0 {
-			writeError(w, http.StatusBadRequest, "bad_baoshu", "解课须回传起课时的报数(baoShu>0),不可代摇")
-			return
-		}
 		daliurenResult, castErr = castDaLiuRenReq(req, at)
 	default:
 		meihuaResult, castErr = castMeihua(req, at)

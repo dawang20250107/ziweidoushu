@@ -1,17 +1,18 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { castDaLiuRen, divineDaLiuRenAI, DivinationError, type DaLiuRenResult } from "@/lib/divination";
 import { currentUser } from "@/lib/auth";
 import { ReportText } from "@/components/profiles/ReportText";
 import { XiaoLiuRen } from "@/components/divination/XiaoLiuRen";
 import { LiurenPan } from "@/components/divination/LiurenPan";
 import { LiurenCast } from "@/components/divination/LiurenCast";
+import { JudgeSections } from "@/components/divination/JudgeSections";
 import { prefersReducedMotion } from "@/components/divination/useReducedMotion";
 
 const KE_NAMES = ["一课", "二课", "三课", "四课"];
-// 起课仪式总时长(月将加时→天将布位→课成)
-const CAST_ANIM_MS = 3200;
+// 起课仪式总时长(月将加时→天将布位→四课三传→课成)
+const CAST_ANIM_MS = 3600;
 const CHUAN_NAMES = ["初传", "中传", "末传"];
 const LEVEL_CLS: Record<string, string> = {
   good: "text-ok shadow-[inset_0_0_0_1px_var(--ok)]",
@@ -28,6 +29,7 @@ export default function LiuRenPage() {
   const [question, setQuestion] = useState("");
   const [shiMode, setShiMode] = useState<"bao" | "zheng">("bao");
   const [baoInput, setBaoInput] = useState("");
+  const [birthYearInput, setBirthYearInput] = useState(""); // 选填:年命上神(正时课个人化分断)
   const [casting, setCasting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [r, setR] = useState<DaLiuRenResult | null>(null);
@@ -40,6 +42,18 @@ export default function LiuRenPage() {
   const [castQuestion, setCastQuestion] = useState("");
   // 起课序号:解课途中若重新起课,迟到的解读不得错挂到新课上
   const castSeq = useRef(0);
+  const [resultCue, setResultCue] = useState(0); // 仪式收束→课盘聚焦归位
+  const [spot, setSpot] = useState(false); // 收束光圈
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  // 收束:课盘滚入视口(与光圈散开、归位动画同步)
+  useEffect(() => {
+    if (resultCue === 0) return;
+    resultRef.current?.scrollIntoView({
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+      block: "start",
+    });
+  }, [resultCue]);
 
   const divine = async () => {
     if (aiLoading || castAt == null) return;
@@ -54,6 +68,7 @@ export default function LiuRenPage() {
         recordId: recordId ?? undefined,
         // 活时课须以同一报数重推同一课(服务端代摇之数已随课回传)
         baoShu: r?.baoShu || undefined,
+        birthYear: r?.nianMing?.birthYear || undefined, // 快照:与所见同一课
       });
       if (seq === castSeq.current) setReading(rd.text);
     } catch (e) {
@@ -84,11 +99,20 @@ export default function LiuRenPage() {
         bao = n;
       }
     }
+    let birthYear: number | undefined;
+    if (birthYearInput.trim() !== "") {
+      const y = Number(birthYearInput.trim());
+      if (!Number.isInteger(y) || y < 1900 || y > 2100) {
+        setError("出生年请输入 1900-2100 之间的公历年份,或留空");
+        return;
+      }
+      birthYear = y;
+    }
     setCasting(true);
     setError(null);
     const startedAt = Date.now();
     try {
-      const resp = await castDaLiuRen({ question: question.trim() || undefined, baoShu: bao });
+      const resp = await castDaLiuRen({ question: question.trim() || undefined, baoShu: bao, birthYear });
       // 仪式演满再揭课(reduced-motion 直出)
       const wait = (prefersReducedMotion() ? 0 : CAST_ANIM_MS) - (Date.now() - startedAt);
       if (wait > 0) await new Promise((res) => setTimeout(res, wait));
@@ -99,6 +123,12 @@ export default function LiuRenPage() {
       setCastQuestion(question.trim());
       setReading(null);
       setAiError(null);
+      // 仪式收束镜头交接(与排盘罗盘同套)
+      setResultCue((c) => c + 1);
+      if (!prefersReducedMotion()) {
+        setSpot(true);
+        setTimeout(() => setSpot(false), 1100);
+      }
     } catch (e) {
       setR(null);
       setError(e instanceof DivinationError ? e.message : "起课失败,请重试");
@@ -174,11 +204,22 @@ export default function LiuRenPage() {
               className="tnum min-h-[48px] w-36 rounded-[6px] bg-bg px-3.5 text-[14px] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
             />
           )}
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1900}
+            max={2100}
+            value={birthYearInput}
+            onChange={(e) => setBirthYearInput(e.target.value.slice(0, 4))}
+            placeholder="出生年(选填)"
+            aria-label="出生年(选填,1900-2100;提供则加断年命上神)"
+            className="tnum min-h-[48px] w-40 rounded-[6px] bg-bg px-3.5 text-[14px] text-ink shadow-[inset_0_0_0_1px_var(--line)] outline-none transition-shadow placeholder:text-ink-faint focus:shadow-[inset_0_0_0_1px_var(--gold-dim)]"
+          />
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
           {shiMode === "bao"
-            ? "自子顺数至所报之数定占时,众人同刻各得其课;留空则由天心代摇一数。"
-            : "正时之课同一时辰人人相同,古以问者年命分断;欲各得其课请用报数活时。"}
+            ? "自子顺数至所报之数定占时,众人同刻各得其课;留空则由天心代摇一数。填出生年可加断年命上神。"
+            : "正时之课同一时辰人人相同,古以问者年命分断——填出生年即以本命上神为你个人分断。"}
         </p>
 
         <div className="mt-5 flex flex-col items-start gap-2.5">
@@ -198,12 +239,18 @@ export default function LiuRenPage() {
       {casting && <LiurenCast />}
 
       {r && !casting && (
-        <div className="page-enter mt-10">
-          {/* 式盘:天地盘/天将/三传/课骨一体呈现 */}
-          <LiurenPan result={r} />
+        <div
+          ref={resultRef}
+          key={resultCue}
+          className={["page-enter mt-10 scroll-mt-20", resultCue > 0 ? "board-focus" : ""].join(" ")}
+        >
+          {/* 式盘:天地盘/天将/三传/课骨一体呈现;各块与全站同套滚动聚焦节奏 */}
+          <div className="reveal">
+            <LiurenPan result={r} />
+          </div>
 
           {/* 四课 / 三传 */}
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="reveal mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)]">
               <p className="text-[12px] font-medium tracking-[0.24em] text-gold">四课</p>
               <div className="mt-4 grid grid-cols-4 gap-2">
@@ -260,7 +307,7 @@ export default function LiuRenPage() {
 
           {/* 断语 */}
           {r.judgment && (
-            <div className="mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
+            <div className="reveal mt-4 rounded-[10px] bg-bg-raised px-5 py-6 shadow-[0_0_0_1px_var(--line)] md:px-8">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[12px] font-medium tracking-[0.24em] text-gold">断语 · 课体三传</p>
                 <span
@@ -279,11 +326,13 @@ export default function LiuRenPage() {
                   </li>
                 ))}
               </ul>
+              {/* 分节深断:课体详解/三传始末/天将所临/应期推算(免费确定性层) */}
+              <JudgeSections sections={r.judgment.sections} />
             </div>
           )}
 
           {/* ── AI 深度解课 ── */}
-          <div className="mt-8">
+          <div className="reveal mt-8">
             {reading != null && !aiLoading ? (
               <article className="rounded-[10px] bg-bg-raised px-6 py-8 shadow-[0_0_0_1px_var(--line)] md:px-10 md:py-10">
                 <p className="mb-5 text-[12px] font-medium tracking-[0.24em] text-gold">AI 深度解课</p>
@@ -319,7 +368,12 @@ export default function LiuRenPage() {
       )}
 
       {/* ── 小六壬快占 ── */}
-      <XiaoLiuRen />
+      <div className="reveal">
+        <XiaoLiuRen />
+      </div>
+
+      {/* 收束光圈:仪式幕布落下时光聚课盘再徐徐散开(镜头交接) */}
+      {spot && <div className="cast-spot" aria-hidden />}
     </div>
   );
 }

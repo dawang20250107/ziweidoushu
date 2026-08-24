@@ -146,11 +146,17 @@ func TestGoldenParity(t *testing.T) {
 		if chart.LunarDateText != g.LunarDate {
 			fail(g, "农历文本: got %s want %s", chart.LunarDateText, g.LunarDate)
 		}
-		// 农历数值(与 lunar-javascript 交叉验证)
-		if chart.LunarInfo.LunarYear != g.LunarJS.LunarYear ||
+		// 农历数值(与 lunar-javascript 交叉验证)。
+		// 豁免 2057 年九月(公历 2057-09-28 ~ 2057-10-27):合朔恰在
+		// 2057-09-29 00:00:28,官方口径(GB/T 33661,紫金山)合朔当日为初一,
+		// 我方 lunar-go 与 iztro 皆取 09-29 为九月初一(本月安星比对全等);
+		// lunar-javascript 1.7.3 独取 09-28,属已知历表分歧,不作失败。
+		lunarDivergent := g.Input.Year == 2057 &&
+			((g.Input.Month == 9 && g.Input.Day >= 28) || (g.Input.Month == 10 && g.Input.Day <= 27))
+		if !lunarDivergent && (chart.LunarInfo.LunarYear != g.LunarJS.LunarYear ||
 			chart.LunarInfo.LunarMonth != abs(g.LunarJS.LunarMonth) ||
 			chart.LunarInfo.LunarDay != g.LunarJS.LunarDay ||
-			chart.LunarInfo.IsLeapMonth != (g.LunarJS.LunarMonth < 0) {
+			chart.LunarInfo.IsLeapMonth != (g.LunarJS.LunarMonth < 0)) {
 			fail(g, "农历数值: got %+v want %+v", chart.LunarInfo, g.LunarJS)
 		}
 		if Stems[chart.LunarInfo.YearStem] != g.LunarJS.YearGan || Branches[chart.LunarInfo.YearBranch] != g.LunarJS.YearZhi {
